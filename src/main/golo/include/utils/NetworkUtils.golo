@@ -1,4 +1,4 @@
-module audiostreamerscrobbler.network.NetworkUtils
+module audiostreamerscrobbler.utils.NetworkUtils
 
 import java.net.NetworkInterface
 

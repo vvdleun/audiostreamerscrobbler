@@ -1,7 +1,8 @@
 #!/usr/bin/env golosh
-module Audiostreamerscrobbler
+module audiostreamerscrobbler.Audiostreamerscrobbler
 
 import audiostreamerscrobbler.bluesound.Detector
+import audiostreamerscrobbler.bluesound.Exceptions
 
 
 function main = |args| {
