@@ -1,0 +1,25 @@
+
+plugins {
+    id 'org.golo-lang.golo' version '0.6'
+}
+
+group = 'org.company'
+version = '0.1.0-SNAPSHOT'
+description = "FIXME: description of the project"
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    jcenter()
+    mavenLocal()
+}
+
+dependencies {
+    golo 'org.eclipse.golo:golo:3.2.0'
+}
+
+
+golo {
+    mainModule = 'Audiostreamerscrobbler'
+}
+
