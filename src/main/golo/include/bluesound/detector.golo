@@ -4,25 +4,32 @@ import audiostreamerscrobbler.bluesound.LSDPHandler
 
 let TIMEOUT_SECONDS = 5
 
-struct LSDPPlayer = {
+struct DetectedBlueSoundPlayer = {
 	name,
 	port,
+	model,
+	version,
 	macAddress,
 	ipAddress,
-	supposedlyVersion,
+	LSDPVersionSupposedly,
 	host
 }
 
-function detectBlueSoundPlayers = {
-	let players = list[]
-	queryLSDPPlayers(TIMEOUT_SECONDS, |p, d| {
-		players: add(convertLSDPAnswerToLSDPPlayer(p, d))
-		return true
-	})
-	return players
+function createBlueSoundDetector = {
+	let detector = DynamicObject("BlueSoundDetector"):
+		define("detectPlayer", |this| -> detectBlueSoundPlayer("Woonkamer C368"))
+	return detector
 }
 
-function detectBlueSoundPlayers = |playerNames| {
+local function detectBlueSoundPlayer = |playerName| {
+	let players = detectBlueSoundPlayers(list[playerName])
+	if (players: isEmpty()) {
+		return null
+	}
+	return players: get(0)
+}
+
+local function detectBlueSoundPlayers = |playerNames| {
 	let players = list[]
 	queryLSDPPlayers(TIMEOUT_SECONDS, |p, d| {
 		let player = convertLSDPAnswerToLSDPPlayer(p, d)
@@ -41,11 +48,14 @@ local function convertLSDPAnswerToLSDPPlayer = |p, d| {
 	let mainTable = p: get("tables"): get(0): get(1)
 	let name = mainTable: get("name")
 	let port = mainTable: get("port")
-	return LSDPPlayer(
+
+	return DetectedBlueSoundPlayer(
 		name,
 		port,
+		mainTable: get("model"),
+		mainTable: get("version"),
 		p: get("macAddress"),
 		p: get("ipAddress"),
-		p: get("supposedVersion"),
+		p: get("lsdpVersionSupposedly"),
 		d: getAddress(): toString() + ":" + port)
 }

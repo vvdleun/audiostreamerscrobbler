@@ -5,31 +5,55 @@ import audiostreamerscrobbler.utils.ByteUtils
 import audiostreamerscrobbler.utils.NetworkUtils
 import nl.vincentvanderleun.lsdp.exceptions.{LSDPException, LSDPNoAnswerException}
 
-import java.net.{DatagramPacket, DatagramSocket, SocketTimeoutException}
+import java.lang.Thread
+import java.net.{DatagramPacket, DatagramSocket, SocketTimeoutException, BindException}
 import java.util.Arrays
 
 let LSDP_ANSWER_BUFFER_SIZE = 4096
 let LSDP_DATA_QUERY_PLAYERS = newByteArrayFromUnsignedByteHexStringArray(array["06", "4C", "53", "44", "50", "01", "05", "51", "01", "FF", "FF"])
 let LSDP_DATA_HEADER_ID = newByteArrayFromUnsignedByteHexStringArray(array["4C", "53", "44", "50"])
 let LSDP_PORT = 11430
+let IDLE_SLEEP_TIME = 10
 
 # Sending LSDP queries
 
 function queryLSDPPlayers = |timeout, playerAnswerCallback| {
-	println("Broadcasting...")
 	let inetAddresses = getBroadcastAddresses()
 	return queryLSDPPlayers(inetAddresses, timeout, playerAnswerCallback)
 }
 
 function queryLSDPPlayers = |inetAddresses, timeout, playerAnswerCallback| {
-	let datagramSocket = DatagramSocket(LSDP_PORT)
+	var datagramSocket = null
 
-	foreach inetAddress in inetAddresses {
-		println("Sending to " + inetAddress)
-		sendLSDPQueryPlayers(datagramSocket, inetAddress)
+	var hasPlayerBeenHandled = false
+	while (not hasPlayerBeenHandled) {
+		try {
+			if (datagramSocket == null) {
+				println("Opening socket...")
+				datagramSocket = DatagramSocket(LSDP_PORT)
+			}
+
+			foreach inetAddress in inetAddresses {
+				sendLSDPQueryPlayers(datagramSocket, inetAddress)
+			}
+			hasPlayerBeenHandled = waitForLSDPPlayers(datagramSocket, timeout, playerAnswerCallback)
+		} catch (ex) {
+			case {
+				when ex oftype BindException.class {
+					println("ERROR: Could not bind to LSDP port. Make sure no other BlueSound applications are active on this system.")
+				}
+				otherwise {
+					throw ex
+				}
+			}		
+		} finally {
+			if (not hasPlayerBeenHandled) {
+				println("Sleeping")
+				println(hasPlayerBeenHandled)
+				Thread.sleep(IDLE_SLEEP_TIME * 1_L)
+			}
+		}
 	}
-
-	waitForLSDPPlayers(datagramSocket, timeout, playerAnswerCallback)
 
 	datagramSocket: close()
 }
@@ -51,12 +75,16 @@ local function waitForLSDPPlayers = |datagramSocket, timeoutSeconds, playerAnswe
 	let answerBuffer = newTypedArray(byte.class, LSDP_ANSWER_BUFFER_SIZE)
 	let answerPacket = DatagramPacket(answerBuffer, answerBuffer: length())
 	datagramSocket: setSoTimeout(timeoutSeconds * 1000 )
+	var hasPlayerBeenHandled = false
 	var waitForMorePlayers = true
 	while (waitForMorePlayers) {
 		try {
 			datagramSocket: receive(answerPacket)
 			let player = extractLSDPPlayer(answerPacket)
 			waitForMorePlayers = playerAnswerCallback(player, answerPacket)
+			if (not waitForMorePlayers) {
+				hasPlayerBeenHandled = true
+			}
 		} catch (ex) {
 			case {
 				when ex oftype LSDPException.class {
@@ -70,7 +98,7 @@ local function waitForLSDPPlayers = |datagramSocket, timeoutSeconds, playerAnswe
 					}
 				}
 				when ex oftype SocketTimeoutException.class {
-					println("* Timeout occurred")
+					# println("* Timeout occurred")
 					waitForMorePlayers = false
 				}
 				otherwise {
@@ -78,7 +106,8 @@ local function waitForLSDPPlayers = |datagramSocket, timeoutSeconds, playerAnswe
 				}
 			}
 		}
-	}	
+	}
+	return hasPlayerBeenHandled
 }
 
 local function extractLSDPPlayer = |datagramPacket| {
@@ -104,17 +133,12 @@ local function extractLSDPPlayer = |datagramPacket| {
 		throw LSDPNoAnswerException("LSDP header type was '" + answerType + "' instead of 'A'")
 	}
 	
-	let macAddress = readMacAddress(context)
-	let ipAddress = readIPAddress(context)
-
-	let tables = readTables(context, msgEndOffset)
-	
 	return map[
-		["supposedVersion", version],
+		["lsdpVersionSupposedly", version],
 		["answerType", answerType],
-		["macAddress", macAddress],
-		["ipAddress", ipAddress],
-		["tables", tables]
+		["macAddress", readMacAddress(context)],
+		["ipAddress", readIPAddress(context)],
+		["tables", readTables(context, msgEndOffset)]
 	]
 		
 }
@@ -129,8 +153,7 @@ local function navigateToLDSPHeader = |context| {
 	# Naive search function. Normally the answer should be at byte #1
 	# Byte 0 probably is length of header, but this has not been determined yet
 	for (var idx = 0, idx < context: buffer(): length(), idx = idx + 1) {
-		let b =  unsignedByteFromByte(context: buffer(): get(idx))
-		if (b == unsignedByteFromByte(LSDP_DATA_HEADER_ID: get(0))) {
+		if (context: buffer(): get(idx) == LSDP_DATA_HEADER_ID: get(0)) {
 			let headerBytes = Arrays.copyOfRange(context: buffer(), idx, idx + LSDP_DATA_HEADER_ID: length())
 			# When bytes have been found that start with "LSDP", assume that we have received LSDP-related data
 			if (Arrays.equals(LSDP_DATA_HEADER_ID, headerBytes)) {
@@ -192,8 +215,8 @@ local function readTable = |context| {
 	let keyValuePairs = readUnsignedByte(context)
 	let keyValueMap = map[]
 	foreach (keyValuePair in range(keyValuePairs)) {
-		let key = readStringWithLength(context)
-		let value = readStringWithLength(context)
+		let key = readCountedString(context)
+		let value = readCountedString(context)
 		keyValueMap: put(key, value)
 	}
 	return map[["id1", tableId1], ["id2", tableId2], ["map", keyValueMap]]
@@ -201,7 +224,7 @@ local function readTable = |context| {
 
 # Low level read functions (context management)
 
-local function readStringWithLength = |context| {
+local function readCountedString = |context| {
 	let length = readUnsignedByte(context)
 	return readString(context, length)
 }
@@ -221,10 +244,7 @@ local function readUnsignedByte = |context| {
 }
 
 local function readByte = |context| {
-	let idx = context: index()
-	let value = context: buffer(): get(idx)
-	context: index(idx + 1)
-	return value
+	return readBytes(context, 1): get(0)
 }
 
 local function readBytes = |context, length| {

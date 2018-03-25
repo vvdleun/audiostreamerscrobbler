@@ -2,14 +2,19 @@
 module audiostreamerscrobbler.Audiostreamerscrobbler
 
 import audiostreamerscrobbler.bluesound.Detector
-import audiostreamerscrobbler.bluesound.Exceptions
+import audiostreamerscrobbler.state.DetectPlayerState
+import audiostreamerscrobbler.state.StateManager
+
+import java.lang.Thread
+import java.net.BindException
 
 
 function main = |args| {
-	detectPlayer()
+	let detector = createBlueSoundDetector()
+	let state = createDetectPlayerState(detector)
+	let stateManager = createStateManager(state)
+	while (stateManager: hasState()) {
+		stateManager: run()
+	}
 }
 
-local function detectPlayer = {
-	let players = detectBlueSoundPlayers(list["Woonkamer C368"])
-	println(players)
-}
