@@ -2,7 +2,6 @@ module audiostreamerscrobbler.bluesound.LSDPHandler
 
 import audiostreamerscrobbler.bluesound.LSDPHandler
 import audiostreamerscrobbler.utils.ByteUtils
-import audiostreamerscrobbler.utils.NetworkUtils
 import nl.vincentvanderleun.lsdp.exceptions.{LSDPException, LSDPNoAnswerException}
 
 import java.lang.Thread
@@ -17,11 +16,6 @@ let IDLE_SLEEP_TIME = 10
 
 # Sending LSDP queries
 
-function queryLSDPPlayers = |timeout, playerAnswerCallback| {
-	let inetAddresses = getBroadcastAddresses()
-	return queryLSDPPlayers(inetAddresses, timeout, playerAnswerCallback)
-}
-
 function queryLSDPPlayers = |inetAddresses, timeout, playerAnswerCallback| {
 	var datagramSocket = null
 
@@ -33,6 +27,7 @@ function queryLSDPPlayers = |inetAddresses, timeout, playerAnswerCallback| {
 				datagramSocket = DatagramSocket(LSDP_PORT)
 			}
 
+			println("Querying...")
 			foreach inetAddress in inetAddresses {
 				sendLSDPQueryPlayers(datagramSocket, inetAddress)
 			}
@@ -48,13 +43,11 @@ function queryLSDPPlayers = |inetAddresses, timeout, playerAnswerCallback| {
 			}		
 		} finally {
 			if (not hasPlayerBeenHandled) {
-				println("Sleeping")
-				println(hasPlayerBeenHandled)
-				Thread.sleep(IDLE_SLEEP_TIME * 1_L)
+				Thread.sleep(IDLE_SLEEP_TIME * 1000_L)
 			}
 		}
 	}
-
+	println("Closing socket...")
 	datagramSocket: close()
 }
 

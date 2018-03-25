@@ -1,6 +1,7 @@
 module audiostreamerscrobbler.bluesound.Detector
 
 import audiostreamerscrobbler.bluesound.LSDPHandler
+import audiostreamerscrobbler.utils.NetworkUtils
 
 let TIMEOUT_SECONDS = 5
 
@@ -31,7 +32,9 @@ local function detectBlueSoundPlayer = |playerName| {
 
 local function detectBlueSoundPlayers = |playerNames| {
 	let players = list[]
-	queryLSDPPlayers(TIMEOUT_SECONDS, |p, d| {
+	let inetAddresses = getBroadcastAddresses()
+
+	queryLSDPPlayers(inetAddresses, TIMEOUT_SECONDS, |p, d| {
 		let player = convertLSDPAnswerToLSDPPlayer(p, d)
 		if (not playerNames: contains(player: name())) {
 			return true
