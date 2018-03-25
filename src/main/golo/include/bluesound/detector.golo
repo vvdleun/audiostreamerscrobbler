@@ -5,7 +5,7 @@ import audiostreamerscrobbler.network.NetworkUtils
 import java.net.{DatagramPacket, DatagramSocket, SocketTimeoutException}
 import java.util.Arrays
 
-import nl.vincentvanderleun.byteutils.UnsignedByte
+import nl.vincentvanderleun.utils.ByteUtils
 
 let LSDP_PORT = 11430
 let LSDP_DATA_QUERY_PLAYERS = UnsignedByte.toSignedByteArray("06", "4C", "53", "44", "50", "01", "05", "51", "01", "FF", "FF")
@@ -126,7 +126,7 @@ local function atLeastTwoChars = |s| {
 	while (result: length() < 2) {
 		result = "0" + s
 	}
-	return result
+	return result 
 }
 
 local function compareSubsetArray = |array1, array2, start, length| {

@@ -1,11 +1,12 @@
-
 plugins {
     id 'org.golo-lang.golo' version '0.6'
 }
 
-group = 'org.company'
+apply plugin: 'java'
+
+group = 'nl.vincentvanderleun.audiostreamerscrobbler'
 version = '0.1.0-SNAPSHOT'
-description = "FIXME: description of the project"
+description = "AudioStreamer Scrobbler"
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 

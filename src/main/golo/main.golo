@@ -1,5 +1,5 @@
 #!/usr/bin/env golosh
-module audiostreamerscrobbler
+module Audiostreamerscrobbler
 
 import audiostreamerscrobbler.bluesound.Detector
 
