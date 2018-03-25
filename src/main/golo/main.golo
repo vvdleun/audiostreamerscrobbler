@@ -10,5 +10,6 @@ function main = |args| {
 }
 
 local function detectPlayer = {
-	detectPlayers(["Woonkamer C368"])
+	let players = detectBlueSoundPlayers(list["Woonkamer C368"])
+	println(players)
 }
