@@ -1,7 +1,7 @@
 #!/usr/bin/env golosh
 module audiostreamerscrobbler.Audiostreamerscrobbler
 
-import audiostreamerscrobbler.bluesound.Detector
+import audiostreamerscrobbler.bluesound.BlueSoundDetector
 import audiostreamerscrobbler.bluesound.BlueSoundPlayerFactory
 import audiostreamerscrobbler.state.PlayerDetectorState
 import audiostreamerscrobbler.state.StateManager

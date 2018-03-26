@@ -1,4 +1,4 @@
-module audiostreamerscrobbler.bluesound.Detector
+module audiostreamerscrobbler.bluesound.BlueSoundDetector
 
 import audiostreamerscrobbler.bluesound.LSDPHandler
 import audiostreamerscrobbler.detector.types.DetectorStates

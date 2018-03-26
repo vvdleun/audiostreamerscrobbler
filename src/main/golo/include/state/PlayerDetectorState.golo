@@ -13,7 +13,7 @@ function createPlayerDetectorState = |detector, playerFactory| {
 				return this
 			}
 			
-			// TODO make sure state is DetectorStates.DETECTOR_MONITOR_PLAYER
+			# TODO make sure state is DetectorStates.DETECTOR_MONITOR_PLAYER
 			let detectedPlayer = detectorState: player()
 			
 			println("Found player: " + detectedPlayer)
