@@ -48,7 +48,7 @@ function queryLSDPPlayers = |inetAddresses, timeout, playerAnswerCallback| {
 			}		
 		} finally {
 			if (waitForMorePlayers) {
-				Thread.sleep(IDLE_SLEEP_TIME * 1000_L)
+				Thread.sleep(IDLE_SLEEP_TIME_SECONDS * 1000_L)
 			}
 		}
 	}
@@ -84,7 +84,7 @@ local function waitForLSDPPlayers = |datagramSocket, timeoutSeconds, playerAnswe
 				when ex oftype LSDPException.class {
 					case {
 						when ex oftype LSDPNoAnswerException.class {
-							# println("* Incoming data was not LSDP answer: " + ex: getMessage())
+							println("* Incoming data was not LSDP answer: " + ex: getMessage())
 						}
 						otherwise {
 							println("* Unknown LSDP related error: " + ex: getMessage())
@@ -93,7 +93,8 @@ local function waitForLSDPPlayers = |datagramSocket, timeoutSeconds, playerAnswe
 				}
 				when ex oftype SocketTimeoutException.class {
 					# println("* Timeout occurred")
-					waitForMorePlayers = false
+					# Wait for more players
+					return true
 				}
 				otherwise {
 					throw ex

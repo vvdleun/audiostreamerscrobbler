@@ -2,12 +2,14 @@
 module audiostreamerscrobbler.Audiostreamerscrobbler
 
 import audiostreamerscrobbler.bluesound.Detector
-import audiostreamerscrobbler.state.DetectPlayerState
+import audiostreamerscrobbler.bluesound.BlueSoundPlayerFactory
+import audiostreamerscrobbler.state.PlayerDetectorState
 import audiostreamerscrobbler.state.StateManager
 
 function main = |args| {
 	let detector = createBlueSoundDetector()
-	let state = createDetectPlayerState(detector)
+	let playerFactory = createBlueSoundPlayerFactory()
+	let state = createPlayerDetectorState(detector, playerFactory)
 	let stateManager = createStateManager(state)
 	while (stateManager: hasState()) {
 		stateManager: run()

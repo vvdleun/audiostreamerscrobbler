@@ -1,6 +1,7 @@
 module audiostreamerscrobbler.bluesound.Detector
 
 import audiostreamerscrobbler.bluesound.LSDPHandler
+import audiostreamerscrobbler.detector.types.DetectorStates
 import audiostreamerscrobbler.utils.NetworkUtils
 
 let TIMEOUT_SECONDS = 5
@@ -23,31 +24,30 @@ function createBlueSoundDetector = {
 }
 
 local function detectBlueSoundPlayer = |playerName| {
-	let players = detectBlueSoundPlayers(list[playerName])
-	if (players: isEmpty()) {
-		return null
-	}
-	return players: get(0)
-}
-
-local function detectBlueSoundPlayers = |playerNames| {
 	let players = list[]
 	let inetAddresses = getBroadcastAddresses()
 
 	queryLSDPPlayers(inetAddresses, TIMEOUT_SECONDS, |p, d| {
-		let player = convertLSDPAnswerToBlueSoundPlayer(p, d)
-		if (not playerNames: contains(player: name())) {
+		let player = convertLSDPAnswerToDetectedBlueSoundPlayer(p, d)
+		if (playerName != player: name()) {
+			# Player is not the player that we wanted. Keep searching...
 			return true
 		}
-	
+		
 		players: add(player)
+
+		# We found the requested players...
 		return false
 	})
 
-	return players
+	if (players: isEmpty()) {
+		return DetectorStates.DETECTOR_KEEP_RUNNING()
+	}
+
+	return DetectorStates.DETECTOR_MONITOR_PLAYER(players: get(0))	
 }
 
-local function convertLSDPAnswerToBlueSoundPlayer = |p, d| {
+local function convertLSDPAnswerToDetectedBlueSoundPlayer = |p, d| {
 	let mainTable = p: get("tables"): get(0): get(1)
 	let name = mainTable: get("name")
 	let port = mainTable: get("port")
@@ -60,5 +60,6 @@ local function convertLSDPAnswerToBlueSoundPlayer = |p, d| {
 		p: get("macAddress"),
 		p: get("ipAddress"),
 		p: get("lsdpVersionSupposedly"),
-		d: getAddress(): toString() + ":" + port)
+		d: getAddress()
+	)
 }
