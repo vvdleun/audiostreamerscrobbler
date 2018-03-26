@@ -1,6 +1,5 @@
 module audiostreamerscrobbler.bluesound.LSDPHandler
 
-import audiostreamerscrobbler.bluesound.LSDPHandler
 import audiostreamerscrobbler.utils.ByteUtils
 import nl.vincentvanderleun.lsdp.exceptions.{LSDPException, LSDPNoAnswerException}
 
@@ -8,19 +7,24 @@ import java.lang.Thread
 import java.net.{DatagramPacket, DatagramSocket, SocketTimeoutException, BindException}
 import java.util.Arrays
 
+# Let's hope LSDP answers will not get any bigger than this...
 let LSDP_ANSWER_BUFFER_SIZE = 4096
+# 06 "LSDP" 01 05 "Q" 01 FF FF
 let LSDP_DATA_QUERY_PLAYERS = newByteArrayFromUnsignedByteHexStringArray(array["06", "4C", "53", "44", "50", "01", "05", "51", "01", "FF", "FF"])
+# "LSDP" identification string in header (starts on second byte of LSDP query/answer)
 let LSDP_DATA_HEADER_ID = newByteArrayFromUnsignedByteHexStringArray(array["4C", "53", "44", "50"])
+# UDP port reserved for LSDP protocol
 let LSDP_PORT = 11430
-let IDLE_SLEEP_TIME = 10
+# Amount of seconds that program will sleep after LSDP requests and no answers within timeout specified by the caller 
+let IDLE_SLEEP_TIME_SECONDS = 10
 
 # Sending LSDP queries
 
 function queryLSDPPlayers = |inetAddresses, timeout, playerAnswerCallback| {
 	var datagramSocket = null
 
-	var hasPlayerBeenHandled = false
-	while (not hasPlayerBeenHandled) {
+	var waitForMorePlayers = true
+	while (waitForMorePlayers) {
 		try {
 			if (datagramSocket == null) {
 				println("Opening socket...")
@@ -31,7 +35,8 @@ function queryLSDPPlayers = |inetAddresses, timeout, playerAnswerCallback| {
 			foreach inetAddress in inetAddresses {
 				sendLSDPQueryPlayers(datagramSocket, inetAddress)
 			}
-			hasPlayerBeenHandled = waitForLSDPPlayers(datagramSocket, timeout, playerAnswerCallback)
+
+			waitForMorePlayers = waitForLSDPPlayers(datagramSocket, timeout, playerAnswerCallback)
 		} catch (ex) {
 			case {
 				when ex oftype BindException.class {
@@ -42,7 +47,7 @@ function queryLSDPPlayers = |inetAddresses, timeout, playerAnswerCallback| {
 				}
 			}		
 		} finally {
-			if (not hasPlayerBeenHandled) {
+			if (waitForMorePlayers) {
 				Thread.sleep(IDLE_SLEEP_TIME * 1000_L)
 			}
 		}
@@ -68,16 +73,12 @@ local function waitForLSDPPlayers = |datagramSocket, timeoutSeconds, playerAnswe
 	let answerBuffer = newTypedArray(byte.class, LSDP_ANSWER_BUFFER_SIZE)
 	let answerPacket = DatagramPacket(answerBuffer, answerBuffer: length())
 	datagramSocket: setSoTimeout(timeoutSeconds * 1000 )
-	var hasPlayerBeenHandled = false
 	var waitForMorePlayers = true
 	while (waitForMorePlayers) {
 		try {
 			datagramSocket: receive(answerPacket)
 			let player = extractLSDPPlayer(answerPacket)
 			waitForMorePlayers = playerAnswerCallback(player, answerPacket)
-			if (not waitForMorePlayers) {
-				hasPlayerBeenHandled = true
-			}
 		} catch (ex) {
 			case {
 				when ex oftype LSDPException.class {
@@ -100,7 +101,7 @@ local function waitForLSDPPlayers = |datagramSocket, timeoutSeconds, playerAnswe
 			}
 		}
 	}
-	return hasPlayerBeenHandled
+	return waitForMorePlayers
 }
 
 local function extractLSDPPlayer = |datagramPacket| {
@@ -215,7 +216,7 @@ local function readTable = |context| {
 	return map[["id1", tableId1], ["id2", tableId2], ["map", keyValueMap]]
 }
 
-# Low level read functions (context management)
+# Low level read functions (those do context's index management)
 
 local function readCountedString = |context| {
 	let length = readUnsignedByte(context)
@@ -250,7 +251,7 @@ local function skipBytes = |context, length| {
 	context: index(context: index() + length)
 }
 
-# Random helper functions that should probably not be here...
+# Random helper functions that probably never should have been pur here in the first place...
 
 local function compareSubsetArray = |array1, array2, start, length| {
 	let subset1 = Arrays.copyOfRange(array1, start, length)
@@ -269,4 +270,3 @@ local function addLeadingZeroes = |s, count| {
 	}
 	return result 
 }
-

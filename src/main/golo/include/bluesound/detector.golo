@@ -35,7 +35,7 @@ local function detectBlueSoundPlayers = |playerNames| {
 	let inetAddresses = getBroadcastAddresses()
 
 	queryLSDPPlayers(inetAddresses, TIMEOUT_SECONDS, |p, d| {
-		let player = convertLSDPAnswerToLSDPPlayer(p, d)
+		let player = convertLSDPAnswerToBlueSoundPlayer(p, d)
 		if (not playerNames: contains(player: name())) {
 			return true
 		}
@@ -47,7 +47,7 @@ local function detectBlueSoundPlayers = |playerNames| {
 	return players
 }
 
-local function convertLSDPAnswerToLSDPPlayer = |p, d| {
+local function convertLSDPAnswerToBlueSoundPlayer = |p, d| {
 	let mainTable = p: get("tables"): get(0): get(1)
 	let name = mainTable: get("name")
 	let port = mainTable: get("port")

@@ -5,10 +5,6 @@ import audiostreamerscrobbler.bluesound.Detector
 import audiostreamerscrobbler.state.DetectPlayerState
 import audiostreamerscrobbler.state.StateManager
 
-import java.lang.Thread
-import java.net.BindException
-
-
 function main = |args| {
 	let detector = createBlueSoundDetector()
 	let state = createDetectPlayerState(detector)
@@ -17,4 +13,3 @@ function main = |args| {
 		stateManager: run()
 	}
 }
-
