@@ -93,7 +93,8 @@ local function waitForLSDPPlayers = |datagramSocket, timeoutSeconds, playerAnswe
 				}
 				when ex oftype SocketTimeoutException.class {
 					# println("* Timeout occurred")
-					# Wait for more players
+					# Let queryLSDPPlayers() know it needs to send LSDP query via UDP yet again...
+					# TODO Replace true/false this with LSDPHandlerStates union...
 					return true
 				}
 				otherwise {

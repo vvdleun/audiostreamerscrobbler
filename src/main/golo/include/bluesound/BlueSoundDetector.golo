@@ -1,7 +1,7 @@
-module audiostreamerscrobbler.bluesound.BlueSoundDetector
+module audiostreamerscrobbler.bluesound.BlueSoundPlayerDetector
 
 import audiostreamerscrobbler.bluesound.LSDPHandler
-import audiostreamerscrobbler.detector.types.DetectorStates
+import audiostreamerscrobbler.detector.types.PlayerDetectorStates
 import audiostreamerscrobbler.utils.NetworkUtils
 
 let TIMEOUT_SECONDS = 5
@@ -17,7 +17,7 @@ struct DetectedBlueSoundPlayer = {
 	host
 }
 
-function createBlueSoundDetector = {
+function createBlueSoundPlayerDetector = {
 	let detector = DynamicObject("BlueSoundDetector"):
 		define("detectPlayer", |this| -> detectBlueSoundPlayer("Woonkamer C368"))
 	return detector
@@ -41,10 +41,10 @@ local function detectBlueSoundPlayer = |playerName| {
 	})
 
 	if (players: isEmpty()) {
-		return DetectorStates.DETECTOR_KEEP_RUNNING()
+		return PlayerDetectorStates.playerNotFoundKeepTrying()
 	}
 
-	return DetectorStates.DETECTOR_MONITOR_PLAYER(players: get(0))	
+	return PlayerDetectorStates.playerFound(players: get(0))	
 }
 
 local function convertLSDPAnswerToDetectedBlueSoundPlayer = |p, d| {
@@ -60,6 +60,6 @@ local function convertLSDPAnswerToDetectedBlueSoundPlayer = |p, d| {
 		p: get("macAddress"),
 		p: get("ipAddress"),
 		p: get("lsdpVersionSupposedly"),
-		d: getAddress()
+		d: getAddress(): getHostAddress()
 	)
 }

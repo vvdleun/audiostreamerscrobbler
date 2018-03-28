@@ -1,16 +1,16 @@
 #!/usr/bin/env golosh
 module audiostreamerscrobbler.Audiostreamerscrobbler
 
-import audiostreamerscrobbler.bluesound.BlueSoundDetector
-import audiostreamerscrobbler.bluesound.BlueSoundPlayerFactory
+import audiostreamerscrobbler.bluesound.BlueSoundPlayerDetector
+import audiostreamerscrobbler.bluesound.BlueSoundPlayer
 import audiostreamerscrobbler.state.PlayerDetectorState
 import audiostreamerscrobbler.state.StateManager
 
 function main = |args| {
-	let detector = createBlueSoundDetector()
+	let detector = createBlueSoundPlayerDetector()
 	let playerFactory = createBlueSoundPlayerFactory()
-	let state = createPlayerDetectorState(detector, playerFactory)
-	let stateManager = createStateManager(state)
+	let initialState = createPlayerDetectorState(detector, playerFactory)
+	let stateManager = createStateManager(initialState)
 	while (stateManager: hasState()) {
 		stateManager: run()
 	}

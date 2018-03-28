@@ -1,7 +1,9 @@
 module audiostreamerscrobbler.state.PlayerDetectorState
 
-import audiostreamerscrobbler.detector.types.DetectorStates
-import audiostreamerscrobbler.state.MonitorPlayerState
+import audiostreamerscrobbler.detector.types.PlayerDetectorStates
+import audiostreamerscrobbler.player.Player
+import audiostreamerscrobbler.state.PlayerMonitorState
+import audiostreamerscrobbler.state.types.StateStates
 
 function createPlayerDetectorState = |detector, playerFactory| {
 	let state = DynamicObject("DetectPlayerState"):
@@ -9,20 +11,21 @@ function createPlayerDetectorState = |detector, playerFactory| {
 		define("_playerFactory", playerFactory):
 		define("run", |this| {
 			let detectorState = this: _detector(): detectPlayer()
-			if (detectorState == DetectorStates.DETECTOR_KEEP_RUNNING()) {
-				return this
+			if (detectorState == PlayerDetectorStates.playerNotFoundKeepTrying()) {
+				return StateStates.RepeatLastState()
 			}
 			
-			# TODO make sure state is DetectorStates.DETECTOR_MONITOR_PLAYER
+			# TODO make sure state is PlayerDetectorStates.playerFound()
 			let detectedPlayer = detectorState: player()
 			
 			println("Found player: " + detectedPlayer)
 			
-			let player = this: _playerFactory(): createPlayer(detectedPlayer)
+			let player = createPlayer(this: _playerFactory(): createPlayer(detectedPlayer))
 			
 			println("AudioScrobbler player: " + player)
 			
-			return createMonitorPlayerState(player)
+			let nextState = createPlayerMonitorState(player)
+			return StateStates.NewState(nextState)
 		})
 
 	return state
