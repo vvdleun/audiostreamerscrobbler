@@ -1,7 +1,8 @@
 module audiostreamerscrobbler.monitor
 
 union MonitorStates = {
-	MONITOR_KEEP_RUNNING
+	MONITOR_PLAYER
+	MONITOR_SONG = { Song }
 	MONITOR_LOST_PLAYER
-	MONITOR_SCROBBLE = { song }
+	MONITOR_SCROBBLE = { Song }
 }
