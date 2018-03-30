@@ -19,7 +19,7 @@ function createPlayerDetectorState = |detector| {
 			
 			let player = createPlayer(playerImpl)
 			
-			println("AudioScrobbler player: " + player)
+			println("Found player: " + player)
 			
 			let nextState = createPlayerMonitorState(player)
 			return StateStates.NewState(nextState)

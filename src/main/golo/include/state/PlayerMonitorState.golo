@@ -54,7 +54,7 @@ local function runMonitorIteration = |monitor, playerMonitor| {
 	try {
 		let monitorState = _runMonitorIteration(monitor, playerMonitor)
 		if not monitorState: isMONITOR_IGNORE_ITERATION() {
-			println("Resetting ioErrors")
+			# println("Resetting ioErrors")
 			monitor: ioErrors(0)
 		}
 		return monitorState

@@ -38,9 +38,9 @@ local function monitorPlayer = |monitor| {
 
 local function requestPlayerState = |monitor| {
 	let url = createUrl(monitor)
-	println("Requesting " + url)
+	# println("Requesting " + url)
 	let res = doHttpGetRequest(url, REQUEST_TIMEOUT, |i| -> parseBlueSoundStatusXML(i))
-	println(res)
+	# println(res)
 	return res
 }
 

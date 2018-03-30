@@ -27,11 +27,11 @@ function queryLSDPPlayers = |inetAddresses, timeout, playerAnswerCallback| {
 	while (waitForMorePlayers) {
 		try {
 			if (datagramSocket == null) {
-				println("Opening socket...")
+				# println("Opening socket...")
 				datagramSocket = DatagramSocket(LSDP_PORT)
 			}
 
-			println("Querying...")
+			# println("Querying...")
 			foreach inetAddress in inetAddresses {
 				sendLSDPQueryPlayers(datagramSocket, inetAddress)
 			}
@@ -52,7 +52,7 @@ function queryLSDPPlayers = |inetAddresses, timeout, playerAnswerCallback| {
 			}
 		}
 	}
-	println("Closing socket...")
+	# println("Closing socket...")
 	datagramSocket: close()
 }
 
@@ -84,10 +84,10 @@ local function waitForLSDPPlayers = |datagramSocket, timeoutSeconds, playerAnswe
 				when ex oftype LSDPException.class {
 					case {
 						when ex oftype LSDPNoAnswerException.class {
-							println("* Incoming data was not LSDP answer: " + ex: getMessage())
+							# println("* Incoming data was not LSDP answer: " + ex: getMessage())
 						}
 						otherwise {
-							println("* Unknown LSDP related error: " + ex: getMessage())
+							# println("* Unknown LSDP related error: " + ex: getMessage())
 						}
 					}
 				}
