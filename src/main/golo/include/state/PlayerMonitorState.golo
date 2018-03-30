@@ -10,12 +10,17 @@ import java.time.{Instant, Duration}
 
 let MonitorCallLimitterEnabled = monitorCallLimiterDecorator(10000)
 
+let POSITION_ERROR_TOLERANCE_SECONDS = 5
+let LAST_FM_MINIMAL_LISTENING_SECONDS = 4 * 60
+
 function createPlayerMonitorState = |player| {
 	let state = DynamicObject("PlayerMonitorState"):
 		define("player", player):
 		define("song", null):
-		define("position", null):
 		define("lastCall", null):
+		define("position", null):
+		define("startPosition", null):
+		define("isScrobbled", false):
 		define("run", |this| -> runMonitorPlayerState(this))
 	return state
 }
@@ -40,14 +45,26 @@ local function runMonitorIteration = |monitor, playerMonitor| {
 	if (playerMonitorState: isMONITOR_SONG()) {
 		let song = playerMonitorState: Song()
 
-		if not validateArtistAndSong(song) {
+		if not isSongScrobblable(song) {
 			return MonitorStates.MONITOR_PLAYER()
 		}
-		
-		if (isSongChanged(monitor, song)) or (isSongPositionChangedByUser(monitor, song)) {
-			println("Reset song...")
+
+		# Update state of monitor
+			
+		if (isSongChanged(monitor, song)) {
+			# TODO Try to determine whether previous song should be scrobbled
+			# if it was not already?!
+			println("New song: " + song)
 			resetSong(monitor, song)
-	 	}
+	 	} else if (isSongPositionChangedByUser(monitor, song)) {
+			println("Song position changed by user. Reset positions.")
+			resetSongPositionsOnly(monitor, song)
+		} else if (isCandidateForNewScrobble(monitor, song)) {
+			if (isNewScrobble(monitor, song)) {
+				println("NEW SCROBBLE!")
+				monitor: isScrobbled(true)
+			}
+		}
 
 		monitor: position(song: position())
 		monitor: lastCall(Instant.now())
@@ -56,13 +73,34 @@ local function runMonitorIteration = |monitor, playerMonitor| {
 	return playerMonitorState
 }
 
-local function validateArtistAndSong = |song| {
+# All checks used in main loop iteration
+
+local function isSongScrobblable = |song| {
 	if (song is null) {
 		raise("Internal error: Monitor requested to monitor song, but song was null")
 	}
-	
+
+	# Artist and song title must be known
 	if (isNullOrEmpty(song: artist()) or isNullOrEmpty(song: name())) {
-		println("Unknown artist or song name. Ignored.")
+		# println("Unknown artist or song name. Ignored.")
+		return false
+	}
+	
+	# Artist and song title must be known
+	if (isNullOrEmpty(song: artist()) or isNullOrEmpty(song: name())) {
+		# println("Unknown artist or song name. Ignored.")
+		return false
+	}
+
+	# Position and length as well
+	if (song: position() is null or song: length() is null) {
+		# println("Unknown song position or song length. Ignored.")
+		return false
+	}
+
+	# Is song duration long enough? (as dictated by Last FM)
+	if (song: length() < 30) {
+		# println("Song is too short to be scrobbled")
 		return false
 	}
 	
@@ -86,20 +124,51 @@ local function isSongPositionChangedByUser = |monitor, song| {
 	let timeDiff = Duration.between(lastCall, currentCall): getSeconds()
 
 	let expectedPosition = monitor: position() + timeDiff
+
+ 	# println(expectedPosition + " seconds expected vs " + song: position() + " seconds real")
 	
- 	println(expectedPosition + " seconds expected vs " + song: position() + " seconds real")
+	let wasPositionModified = _isCurrentPositionModified(song: position(), expectedPosition)
 	
-	let isPosInRange = range(song: position() - 5_L, song: position() + 6_L): encloses(expectedPosition)
-	println("In range: " + isPosInRange)
-	
-	return not isPosInRange
+	# println("Was position modified by user: " + wasPositionModified)
+	return wasPositionModified	
 }
 
-local function resetSong = |monitor, song| {
-	println("SONG CHANGED: " + song)
-	monitor: song(song)
-	monitor: position(song: position())
+local function _isCurrentPositionModified = |currentPosition, expectedPosition| {
+	let tolerance = POSITION_ERROR_TOLERANCE_SECONDS * 1_L
+	let toleranceRange = range(currentPosition - tolerance, currentPosition + tolerance + 1)
+	return not toleranceRange: encloses(expectedPosition)
 }
+
+local function isCandidateForNewScrobble = |monitor, song| {
+	# Is song already scrobbled?
+	if (monitor: isScrobbled()) {
+		# println("Song is already scrobbled")
+		return false
+	}
+	return true
+}
+
+local function isNewScrobble = |monitor, song| {
+	let listenedSeconds = song: position() - monitor: startPosition()
+	println("Listened for " + listenedSeconds + " seconds")
+	return (listenedSeconds > (song: length() / 2) or (listenedSeconds >= LAST_FM_MINIMAL_LISTENING_SECONDS))
+}
+
+# All actions taken in main loop iteration
+
+local function resetSong = |monitor, song| {
+	# println("SONG CHANGED: " + song)
+	monitor: song(song)
+	monitor: isScrobbled(false)
+	resetSongPositionsOnly(monitor, song)
+}
+
+local function resetSongPositionsOnly = |monitor, song| {
+	monitor: position(song: position())
+	monitor: startPosition(song: position())
+}
+
+# Helper functions that should yet again probably not have been here in the first place
 
 local function isNullOrEmpty = |v| {
 	return v is null or v: isEmpty()

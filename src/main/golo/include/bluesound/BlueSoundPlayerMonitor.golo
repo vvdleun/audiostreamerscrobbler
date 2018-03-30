@@ -21,7 +21,7 @@ function createBlueSoundPlayerMonitor = |player| {
 
 local function monitorPlayer = |monitor| {
 	let status = requestPlayerState(monitor)
-
+	
 	validateStatus(status)
 
 	monitor: _etag(status: etag())
@@ -37,8 +37,10 @@ local function monitorPlayer = |monitor| {
 
 local function requestPlayerState = |monitor| {
 	let url = createUrl(monitor)
-	println("Requesting " + url)
-	return doHttpGetRequest(url, |i| -> parseBlueSoundStatusXML(i))
+	# println("Requesting " + url)
+	let res = doHttpGetRequest(url, |i| -> parseBlueSoundStatusXML(i))
+	# println(res)
+	return res
 }
 
 local function validateStatus = |status| {
@@ -49,7 +51,7 @@ local function validateStatus = |status| {
 }
 
 local function isPlayerPlaying = |status| {
-	return status: state() == "play"
+	return status: state() == "play" or status: state() == "stream"
 }
 
 local function createUrl = |monitor| {
