@@ -8,8 +8,7 @@ import audiostreamerscrobbler.state.StateManager
 
 function main = |args| {
 	let detector = createBlueSoundPlayerDetector()
-	let playerFactory = createBlueSoundPlayerFactory()
-	let initialState = createPlayerDetectorState(detector, playerFactory)
+	let initialState = createPlayerDetectorState(detector)
 	let stateManager = createStateManager(initialState)
 	while (stateManager: hasState()) {
 		stateManager: run()

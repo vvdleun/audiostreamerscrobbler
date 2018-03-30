@@ -18,12 +18,9 @@ local function getPlayerTypeID = |playerType| {
 function createPlayer = |playerImpl| {
 	let id = getPlayerTypeID(playerImpl: playerType()) + "/" + playerImpl: name()
 	let player = DynamicObject("PlayerProxy"):
-		define("_impl", playerImpl):
+		define("impl", playerImpl):
 		define("id", id):
 		fallback(DynamicObject.delegate(playerImpl))
 
-	# Lock because the usage playerImpl instead of this: _impl() in the fallback
-	player: freeze()
-	
 	return player
 }

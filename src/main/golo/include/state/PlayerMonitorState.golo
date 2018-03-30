@@ -2,11 +2,13 @@ module audiostreamerscrobbler.state.PlayerMonitorState
 
 import audiostreamerscrobbler.monitor.types.MonitorStates
 import audiostreamerscrobbler.state.monitor.MonitorCallLimiterDecorator
+import audiostreamerscrobbler.state.PlayerDetectorState
 import audiostreamerscrobbler.state.StateManager
 import audiostreamerscrobbler.state.types.StateStates
 
 import java.lang.Thread
 import java.time.{Instant, Duration}
+import java.io.IOException
 
 let MonitorCallLimitterEnabled = monitorCallLimiterDecorator(10000)
 
@@ -21,6 +23,7 @@ function createPlayerMonitorState = |player| {
 		define("position", null):
 		define("startPosition", null):
 		define("isScrobbled", false):
+		define("ioErrors", 0):
 		define("run", |this| -> runMonitorPlayerState(this))
 	return state
 }
@@ -30,16 +33,57 @@ local function runMonitorPlayerState = |monitor| {
 	let playerMonitor = player: createMonitor()
 
 	var monitorState = MonitorStates.MONITOR_PLAYER()
-	while (monitorState == MonitorStates.MONITOR_PLAYER() or monitorState: isMONITOR_SONG()) {
+	while (_keepMonitorRunning(monitorState)) {
 		monitorState = runMonitorIteration(monitor, playerMonitor)
 	}
 
+	if (monitorState: isMONITOR_LOST_PLAYER()) {
+		let detector = monitorState: Player(): createDetector()
+		return StateStates.NewState(createPlayerDetectorState(detector))
+	}
+	
 	# Scrobbling state is not ready yet...
 	return StateStates.HaltProgram()
 }
 
-@MonitorCallLimitterEnabled
+local function _keepMonitorRunning = |monitorState| {
+	return (monitorState: isMONITOR_PLAYER() or monitorState: isMONITOR_SONG() or monitorState: isMONITOR_IGNORE_ITERATION())
+}
+
 local function runMonitorIteration = |monitor, playerMonitor| {
+	try {
+		let monitorState = _runMonitorIteration(monitor, playerMonitor)
+		if not monitorState: isMONITOR_IGNORE_ITERATION() {
+			println("Resetting ioErrors")
+			monitor: ioErrors(0)
+		}
+		return monitorState
+	} catch(ex) {
+		println("Error occurred: " + ex)
+		case {
+			when ex oftype IOException.class {
+				println("I/O exception ocurred: " + ex)
+				let ioErrors = monitor: ioErrors() + 1
+				monitor: ioErrors(ioErrors)
+				
+				println("Times occurred: " + ioErrors)
+				if (ioErrors >= 3) {
+					println("Giving up...")
+					return MonitorStates.MONITOR_LOST_PLAYER(monitor: player())
+				}
+			}
+			otherwise {
+				throw(ex)
+				println("Ignoring for now...")
+			}
+		}
+		return monitorState.MONITOR_PLAYER()
+	}
+}
+
+
+@MonitorCallLimitterEnabled
+local function _runMonitorIteration = |monitor, playerMonitor| {
 	let playerMonitorState = playerMonitor: monitorPlayer()
 	
 	if (playerMonitorState: isMONITOR_SONG()) {

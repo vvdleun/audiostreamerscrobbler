@@ -6,6 +6,7 @@ import audiostreamerscrobbler.types.Song
 import audiostreamerscrobbler.utils.RequestUtils
 
 let REQUEST_WITH_ETAG_TIMEOUT = 60
+let REQUEST_TIMEOUT = REQUEST_WITH_ETAG_TIMEOUT + 10
 
 function createBlueSoundPlayerMonitor = |player| {
 	let statusUrl = "http://" + player: _blueSound(): host() + ":" + player: _blueSound(): port() + "/Status"
@@ -37,9 +38,9 @@ local function monitorPlayer = |monitor| {
 
 local function requestPlayerState = |monitor| {
 	let url = createUrl(monitor)
-	# println("Requesting " + url)
-	let res = doHttpGetRequest(url, |i| -> parseBlueSoundStatusXML(i))
-	# println(res)
+	println("Requesting " + url)
+	let res = doHttpGetRequest(url, REQUEST_TIMEOUT, |i| -> parseBlueSoundStatusXML(i))
+	println(res)
 	return res
 }
 
