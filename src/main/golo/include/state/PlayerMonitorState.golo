@@ -81,7 +81,6 @@ local function runMonitorIteration = |monitor, playerMonitor| {
 	}
 }
 
-
 @MonitorCallLimitterEnabled
 local function _runMonitorIteration = |monitor, playerMonitor| {
 	let playerMonitorState = playerMonitor: monitorPlayer()
@@ -93,12 +92,11 @@ local function _runMonitorIteration = |monitor, playerMonitor| {
 			return MonitorStates.MONITOR_PLAYER()
 		}
 
-		# Update state of monitor
-			
+		# Update state of monitor			
 		if (isSongChanged(monitor, song)) {
 			# TODO Try to determine whether previous song should be scrobbled
 			# if it was not already?!
-			println("New song: " + song)
+			println("New song detected: " + song)
 			resetSong(monitor, song)
 	 	} else if (isSongPositionChangedByUser(monitor, song)) {
 			println("Song position changed by user. Reset positions.")
@@ -195,7 +193,7 @@ local function isCandidateForNewScrobble = |monitor, song| {
 local function isNewScrobble = |monitor, song| {
 	let listenedSeconds = song: position() - monitor: startPosition()
 	println("Listened for " + listenedSeconds + " seconds")
-	return (listenedSeconds > (song: length() / 2) or (listenedSeconds >= LAST_FM_MINIMAL_LISTENING_SECONDS))
+	return (listenedSeconds >= (song: length() / 2) or (listenedSeconds >= LAST_FM_MINIMAL_LISTENING_SECONDS))
 }
 
 # All actions taken in main loop iteration
