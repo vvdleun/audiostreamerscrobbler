@@ -28,7 +28,7 @@ function monitorCallLimiterDecorator = |milliSeconds| {
 					if (waitInterval > 0_L) {
 						Thread.sleep(waitInterval)
 					}
-					return MonitorStateTypes.MONITOR_IGNORE_ITERATION()
+					return MonitorStateTypes.MonitorRetry()
 				}
 			}
 

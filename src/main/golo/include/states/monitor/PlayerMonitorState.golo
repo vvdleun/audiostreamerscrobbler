@@ -1,8 +1,8 @@
 module audiostreamerscrobbler.states.monitor.PlayerMonitorState
 
+import audiostreamerscrobbler.states.detector.PlayerDetectorState
 import audiostreamerscrobbler.states.monitor.types.MonitorStateTypes
 import audiostreamerscrobbler.states.monitor.MonitorCallLimiterDecorator
-import audiostreamerscrobbler.states.PlayerDetectorState
 import audiostreamerscrobbler.states.StateManager
 import audiostreamerscrobbler.states.types.StateTypes
 
@@ -32,13 +32,13 @@ local function runMonitorPlayerState = |monitor| {
 	let player = monitor: player()
 	let playerMonitor = player: createMonitor()
 
-	var monitorState = MonitorStateTypes.MONITOR_PLAYER()
+	var monitorState = MonitorStateTypes.MonitorPlayer()
 	while (_keepMonitorRunning(monitorState)) {
 		monitorState = runMonitorIteration(monitor, playerMonitor)
 	}
 
-	if (monitorState: isMONITOR_LOST_PLAYER()) {
-		let detector = monitorState: Player(): createDetector()
+	if (monitorState: isMonitorLostPlayer()) {
+		let detector = player: createDetector()
 		return StateTypes.NewState(createPlayerDetectorState(detector))
 	}
 	
@@ -47,13 +47,13 @@ local function runMonitorPlayerState = |monitor| {
 }
 
 local function _keepMonitorRunning = |monitorState| {
-	return (monitorState: isMONITOR_PLAYER() or monitorState: isMONITOR_SONG() or monitorState: isMONITOR_IGNORE_ITERATION())
+	return (monitorState: isMonitorPlayer() or monitorState: isMonitorSong() or monitorState: isMonitorRetry())
 }
 
 local function runMonitorIteration = |monitor, playerMonitor| {
 	try {
 		let monitorState = _runMonitorIteration(monitor, playerMonitor)
-		if not monitorState: isMONITOR_IGNORE_ITERATION() {
+		if not monitorState: isMonitorRetry() {
 			# println("Resetting ioErrors")
 			monitor: ioErrors(0)
 		}
@@ -69,7 +69,7 @@ local function runMonitorIteration = |monitor, playerMonitor| {
 				println("Times occurred: " + ioErrors)
 				if (ioErrors >= 3) {
 					println("Giving up...")
-					return MonitorStates.MONITOR_LOST_PLAYER(monitor: player())
+					return MonitorStates.MonitorLostPlayer()
 				}
 			}
 			otherwise {
@@ -77,7 +77,7 @@ local function runMonitorIteration = |monitor, playerMonitor| {
 				println("Ignoring for now...")
 			}
 		}
-		return monitorState.MONITOR_PLAYER()
+		return monitorState.MonitorPlayer()
 	}
 }
 
@@ -85,11 +85,11 @@ local function runMonitorIteration = |monitor, playerMonitor| {
 local function _runMonitorIteration = |monitor, playerMonitor| {
 	let playerMonitorState = playerMonitor: monitorPlayer()
 	
-	if (playerMonitorState: isMONITOR_SONG()) {
+	if (playerMonitorState: isMonitorSong()) {
 		let song = playerMonitorState: Song()
 
 		if not isSongScrobblable(song) {
-			return MonitorStates.MONITOR_PLAYER()
+			return MonitorStates.MonitorPlayer()
 		}
 
 		# Update state of monitor			

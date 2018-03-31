@@ -29,11 +29,11 @@ local function monitorPlayer = |monitor| {
 
 	if (not isPlayerPlaying(status)) {
 		# Let monitor know that player is not playing a song
-		return MonitorStateTypes.MONITOR_PLAYER()
+		return MonitorStateTypes.MonitorPlayer()
 	}
 
 	let song = convertPlayerStatusToSong(status)
-	return MonitorStateTypes.MONITOR_SONG(song)
+	return MonitorStateTypes.MonitorSong(song)
 }
 
 local function requestPlayerState = |monitor| {
