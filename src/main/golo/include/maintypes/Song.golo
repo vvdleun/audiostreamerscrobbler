@@ -1,4 +1,4 @@
-module audiostreamerscrobbler
+module audiostreamerscrobbler.maintypes.Song
 
 struct Song = {
 	name,

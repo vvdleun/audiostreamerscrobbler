@@ -3,8 +3,8 @@ module audiostreamerscrobbler.Audiostreamerscrobbler
 
 import audiostreamerscrobbler.bluesound.BlueSoundPlayerDetector
 import audiostreamerscrobbler.bluesound.BlueSoundPlayer
-import audiostreamerscrobbler.state.PlayerDetectorState
-import audiostreamerscrobbler.state.StateManager
+import audiostreamerscrobbler.states.detector.PlayerDetectorState
+import audiostreamerscrobbler.states.StateManager
 
 function main = |args| {
 	let detector = createBlueSoundPlayerDetector()

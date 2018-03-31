@@ -2,7 +2,7 @@ module audiostreamerscrobbler.bluesound.BlueSoundPlayer
 
 import audiostreamerscrobbler.bluesound.BlueSoundPlayerDetector
 import audiostreamerscrobbler.bluesound.BlueSoundPlayerMonitor
-import audiostreamerscrobbler.player.Player.types.PlayerTypes
+import audiostreamerscrobbler.maintypes.Player.types.PlayerTypes
 
 function createBlueSoundPlayerImpl = |detectedPlayer| {
 	println("Creating BlueSound player...")

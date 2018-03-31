@@ -1,6 +1,6 @@
-module audiostreamerscrobbler.state.StateManager
+module audiostreamerscrobbler.states.StateManager
 
-import audiostreamerscrobbler.state.types.StateStates
+import audiostreamerscrobbler.states.types.StateStates
 
 function createStateManager = |firstState| {
 	let stateManager = DynamicObject("StateManager"):

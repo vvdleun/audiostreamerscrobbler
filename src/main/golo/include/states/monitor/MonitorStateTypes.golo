@@ -1,6 +1,7 @@
-module audiostreamerscrobbler.monitor
+module audiostreamerscrobbler.states.monitor
 
-union MonitorStates = {
+# MonitorStates
+union MonitorStateTypes = {
 	MONITOR_IGNORE_ITERATION
 	MONITOR_PLAYER
 	MONITOR_SONG = { Song }

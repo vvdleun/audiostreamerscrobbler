@@ -2,7 +2,7 @@ module audiostreamerscrobbler.bluesound.BlueSoundPlayerDetector
 
 import audiostreamerscrobbler.bluesound.BlueSoundPlayer
 import audiostreamerscrobbler.bluesound.LSDPHandler
-import audiostreamerscrobbler.detector.types.PlayerDetectorStates
+import audiostreamerscrobbler.states.detector.types.DetectorStateTypes
 import audiostreamerscrobbler.utils.NetworkUtils
 
 let TIMEOUT_SECONDS = 5
@@ -42,11 +42,11 @@ local function detectBlueSoundPlayer = |playerName| {
 	})
 
 	if (players: isEmpty()) {
-		return PlayerDetectorStates.playerNotFoundKeepTrying()
+		return DetectorStateTypes.playerNotFoundKeepTrying()
 	}
 
 	let blueSoundPlayerImpl = createBlueSoundPlayerImpl(players: get(0))
-	return PlayerDetectorStates.playerFound(blueSoundPlayerImpl)	
+	return DetectorStateTypes.playerFound(blueSoundPlayerImpl)	
 }
 
 local function convertLSDPAnswerToDetectedBlueSoundPlayer = |p, d| {

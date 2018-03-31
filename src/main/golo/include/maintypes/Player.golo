@@ -1,4 +1,4 @@
-module audiostreamerscrobbler.player.Player
+module audiostreamerscrobbler.maintypes.Player
 
 union PlayerTypes = {
 	BLUESOUND

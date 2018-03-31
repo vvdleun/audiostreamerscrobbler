@@ -1,10 +1,10 @@
-module audiostreamerscrobbler.state.PlayerMonitorState
+module audiostreamerscrobbler.states.monitor.PlayerMonitorState
 
-import audiostreamerscrobbler.monitor.types.MonitorStates
-import audiostreamerscrobbler.state.monitor.MonitorCallLimiterDecorator
-import audiostreamerscrobbler.state.PlayerDetectorState
-import audiostreamerscrobbler.state.StateManager
-import audiostreamerscrobbler.state.types.StateStates
+import audiostreamerscrobbler.states.monitor.types.MonitorStateTypes
+import audiostreamerscrobbler.states.monitor.MonitorCallLimiterDecorator
+import audiostreamerscrobbler.states.PlayerDetectorState
+import audiostreamerscrobbler.states.StateManager
+import audiostreamerscrobbler.states.types.StateTypes
 
 import java.lang.Thread
 import java.time.{Instant, Duration}
@@ -32,18 +32,18 @@ local function runMonitorPlayerState = |monitor| {
 	let player = monitor: player()
 	let playerMonitor = player: createMonitor()
 
-	var monitorState = MonitorStates.MONITOR_PLAYER()
+	var monitorState = MonitorStateTypes.MONITOR_PLAYER()
 	while (_keepMonitorRunning(monitorState)) {
 		monitorState = runMonitorIteration(monitor, playerMonitor)
 	}
 
 	if (monitorState: isMONITOR_LOST_PLAYER()) {
 		let detector = monitorState: Player(): createDetector()
-		return StateStates.NewState(createPlayerDetectorState(detector))
+		return StateTypes.NewState(createPlayerDetectorState(detector))
 	}
 	
 	# Scrobbling state is not ready yet...
-	return StateStates.HaltProgram()
+	return StateTypes.HaltProgram()
 }
 
 local function _keepMonitorRunning = |monitorState| {

@@ -1,8 +1,8 @@
 module audiostreamerscrobbler.bluesound.BlueSoundPlayerMonitor
 
 import audiostreamerscrobbler.bluesound.BlueSoundStatusXMLParser
-import audiostreamerscrobbler.monitor.types.MonitorStates
-import audiostreamerscrobbler.types.Song
+import audiostreamerscrobbler.states.monitor.types.MonitorStateTypes
+import audiostreamerscrobbler.maintypes.Song.types.Song
 import audiostreamerscrobbler.utils.RequestUtils
 
 let REQUEST_WITH_ETAG_TIMEOUT = 60
@@ -29,11 +29,11 @@ local function monitorPlayer = |monitor| {
 
 	if (not isPlayerPlaying(status)) {
 		# Let monitor know that player is not playing a song
-		return MonitorStates.MONITOR_PLAYER()
+		return MonitorStateTypes.MONITOR_PLAYER()
 	}
 
 	let song = convertPlayerStatusToSong(status)
-	return MonitorStates.MONITOR_SONG(song)
+	return MonitorStateTypes.MONITOR_SONG(song)
 }
 
 local function requestPlayerState = |monitor| {
