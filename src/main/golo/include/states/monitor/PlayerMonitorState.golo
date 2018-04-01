@@ -6,6 +6,10 @@ import audiostreamerscrobbler.states.monitor.MonitorCallLimiterDecorator
 import audiostreamerscrobbler.states.StateManager
 import audiostreamerscrobbler.states.types.StateTypes
 
+import audiostreamerscrobbler.states.scrobbler.types.ScrobblerActionTypes
+import audiostreamerscrobbler.states.scrobbler.ScrobblerState
+import audiostreamerscrobbler.scrobbler.GnuFmScrobbler
+
 import java.lang.Thread
 import java.time.{Instant, Duration}
 import java.io.IOException
@@ -14,6 +18,13 @@ let MonitorCallLimitterEnabled = monitorCallLimiterDecorator(10000)
 
 let POSITION_ERROR_TOLERANCE_SECONDS = 5
 let LAST_FM_MINIMAL_LISTENING_SECONDS = 4 * 60
+
+union MonitorStateActions = {
+	KeepMonitoring = { ClearErrors }
+	NewSong = { Song }
+	NewScrobble = { Song }
+	LostPlayer
+}
 
 function createPlayerMonitorState = |player| {
 	let state = DynamicObject("PlayerMonitorState"):
@@ -32,32 +43,38 @@ local function runMonitorPlayerState = |monitor| {
 	let player = monitor: player()
 	let playerMonitor = player: createMonitor()
 
-	var monitorState = MonitorStateTypes.MonitorPlayer()
-	while (_keepMonitorRunning(monitorState)) {
-		monitorState = runMonitorIteration(monitor, playerMonitor)
+	var monitorAction = MonitorStateTypes.KeepMonitoring(true)
+	while (monitorAction: isKeepMonitoring()) {
+		monitorAction = runMonitorIteration(monitor, playerMonitor)
 	}
 
-	if (monitorState: isMonitorLostPlayer()) {
+	if (monitorAction: isLostPlayer()) {
 		let detector = player: createDetector()
 		return StateTypes.NewState(createPlayerDetectorState(detector))
+	} else if (monitorAction: isNewSong()) {
+		let scrobblers = [createGnuFmScrobbler("192.168.178.109/nixtape", "a", "b", "c")]
+		let nextState = createScrobblerState(monitor, monitorAction: Song(), scrobblers, ScrobblerActionTypes.UpdatePlayingNow())
+		return StateTypes.NewState(nextState)
+	} else if (monitorAction: isNewScrobble()) {
+		let scrobblers = [createGnuFmScrobbler("192.168.178.109/nixtape", "a", "b", "c")]
+		println(scrobblers)
+		let nextState = createScrobblerState(monitor, monitorAction: Song(), scrobblers, ScrobblerActionTypes.Scrobble())
+		println(nextState)
+		return StateTypes.NewState(nextState)
 	}
-	
-	# Scrobbling state is not ready yet...
+	println("INTERNAL ERROR: MONITOR RETURNED UNKNOWN ACTION")
 	return StateTypes.HaltProgram()
 }
 
-local function _keepMonitorRunning = |monitorState| {
-	return (monitorState: isMonitorPlayer() or monitorState: isMonitorSong() or monitorState: isMonitorRetry())
-}
 
 local function runMonitorIteration = |monitor, playerMonitor| {
 	try {
-		let monitorState = _runMonitorIteration(monitor, playerMonitor)
-		if not monitorState: isMonitorRetry() {
+		let monitorAction = _runMonitorIteration(monitor, playerMonitor)
+		if (monitorAction: isKeepMonitoring() and monitorAction: ClearErrors()) {
 			# println("Resetting ioErrors")
 			monitor: ioErrors(0)
 		}
-		return monitorState
+		return monitorAction
 	} catch(ex) {
 		println("Error occurred: " + ex)
 		case {
@@ -69,7 +86,7 @@ local function runMonitorIteration = |monitor, playerMonitor| {
 				println("Times occurred: " + ioErrors)
 				if (ioErrors >= 3) {
 					println("Giving up...")
-					return MonitorStates.MonitorLostPlayer()
+					return MonitorStateActions.LostPlayer()
 				}
 			}
 			otherwise {
@@ -77,7 +94,7 @@ local function runMonitorIteration = |monitor, playerMonitor| {
 				println("Ignoring for now...")
 			}
 		}
-		return monitorState.MonitorPlayer()
+		return MonitorStateActions.KeepMonitoring(false)
 	}
 }
 
@@ -85,34 +102,36 @@ local function runMonitorIteration = |monitor, playerMonitor| {
 local function _runMonitorIteration = |monitor, playerMonitor| {
 	let playerMonitorState = playerMonitor: monitorPlayer()
 	
+	var action = MonitorStateActions.KeepMonitoring(true)
+	
 	if (playerMonitorState: isMonitorSong()) {
 		let song = playerMonitorState: Song()
 
-		if not isSongScrobblable(song) {
-			return MonitorStates.MonitorPlayer()
-		}
-
-		# Update state of monitor			
-		if (isSongChanged(monitor, song)) {
-			# TODO Try to determine whether previous song should be scrobbled
-			# if it was not already?!
-			println("New song detected: " + song)
-			resetSong(monitor, song)
-	 	} else if (isSongPositionChangedByUser(monitor, song)) {
-			println("Song position changed by user. Reset positions.")
-			resetSongPositionsOnly(monitor, song)
-		} else if (isCandidateForNewScrobble(monitor, song)) {
-			if (isNewScrobble(monitor, song)) {
-				println("NEW SCROBBLE!")
-				monitor: isScrobbled(true)
+		if isSongScrobblable(song) {
+			# Update state of monitor		
+			if (isSongChanged(monitor, song)) {
+				# TODO Try to determine whether previous song should be scrobbled
+				# when it was not?!
+				println("New song detected: " + song)
+				resetSong(monitor, song)			
+				action = MonitorStateActions.NewSong(song)
+			} else if (isSongPositionChangedByUser(monitor, song)) {
+				println("Song position changed by user. Reset positions.")
+				resetSongPositionsOnly(monitor, song)
+			} else if (isCandidateForNewScrobble(monitor, song)) {
+				if (isNewScrobble(monitor, song)) {
+					println("NEW SCROBBLE!")
+					action = MonitorStateActions.NewScrobble(song)
+					monitor: isScrobbled(true)
+				}
 			}
-		}
 
-		monitor: position(song: position())
-		monitor: lastCall(Instant.now())
+			monitor: position(song: position())
+			monitor: lastCall(Instant.now())
+		}
 	}
 	
-	return playerMonitorState
+	return action
 }
 
 # All checks used in main loop iteration

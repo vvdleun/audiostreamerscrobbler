@@ -1,6 +1,6 @@
 module audiostreamerscrobbler.states.monitor.MonitorCallLimiterDecorator
 
-import audiostreamerscrobbler.states.monitor.types.MonitorStateTypes
+import audiostreamerscrobbler.states.monitor.PlayerMonitorState.types.MonitorStateActions
 
 import java.lang.Thread
 import java.time.{Instant, Duration}
@@ -28,7 +28,7 @@ function monitorCallLimiterDecorator = |milliSeconds| {
 					if (waitInterval > 0_L) {
 						Thread.sleep(waitInterval)
 					}
-					return MonitorStateTypes.MonitorRetry()
+					return MonitorStateActions.KeepMonitoring(false)
 				}
 			}
 

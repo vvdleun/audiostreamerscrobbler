@@ -4,14 +4,15 @@ import nl.vincentvanderleun.utils.ByteUtils
 import audiostreamerscrobbler.utils.RequestUtils
 
 import java.awt.Desktop
-import java.io.{BufferedReader, InputStreamReader, IOException}
+import java.io.{BufferedReader, InputStreamReader}
 import java.lang.Thread
 import java.net.URI
 import java.security.MessageDigest
-import java.util.Collections
-import java.util.stream.Collectors
-import java.util.TreeSet
+import java.util.{Calendar, Collections, stream.Collectors, TimeZone, TreeSet}
 
+
+let DEFAULT_ENCODING = "UTF-8"
+let DEFAULT_TIMEOUT_SECONDS = 10
 let API_URL_PATH = "2.0/"
 
 function createGnuFmScrobbler = |nixtapeUrl, apiKey, apiSecret, sessionKey| {
@@ -20,7 +21,9 @@ function createGnuFmScrobbler = |nixtapeUrl, apiKey, apiSecret, sessionKey| {
 		define("_apiKey", apiKey):
 		define("_apiSecret", apiSecret):
 		define("_sessionKey", sessionKey):
-		define("updateNowPlaying", |this, song| -> updateNowPlaying(this: _url(), song, this: apiKey(), this: apiSecret(), this: sessionKey()))
+		define("updateNowPlaying", |this, song| -> updateNowPlaying(this, song)):
+		define("scrobble", |this, song| -> scrobbleSong(this, song))
+	return scrobbler
 }
 
 function authorizeAccountAndGetSessionKey = |nixtapeUrl, apiKey, apiSecret| {
@@ -39,27 +42,62 @@ function authorizeAccountAndGetSessionKey = |nixtapeUrl, apiKey, apiSecret| {
 		readln()
 	} catch(ex) {
 		println("It seems the input channel is not available to the application. The application will wait 2 minutes to give you the chance to login.")
-		println("After 2 minutes, the program will try to retrieve to continue the authorization process")
-		Thread.sleep(60_L * 2 * 1000)
+		println("After 3 minutes, the program will try to retrieve to continue the authorization process")
+		Thread.sleep(60_L * 3 * 1000)
 	}
+
 	let session = requestGetSessionKey(nixtapeUrl, authToken, apiKey, apiSecret)
+
 	return session: get("session"): get("key")
 }
 
 # Scrobbler object helpers
 
-function updateNowPlaying = |nixtapeUrl, song, apiKey, apiSecret, sessionKey| {
-	requestPostUpdateNowPlaying(nixtapeUrl, apiKey, apiSecret)
+local function updateNowPlaying = |scrobbler, song| {
+	requestPostUpdateNowPlaying(scrobbler: _url(), song, scrobbler: _apiKey(), scrobbler: _apiSecret(), scrobbler: _sessionKey())
+}
+
+local function scrobbleSong = |scrobbler, song| {
+	let timestamp = _createTimestamp(song)
+	requestPostScrobble(scrobbler: _url(), song, timestamp, scrobbler: _apiKey(), scrobbler: _apiSecret(), scrobbler: _sessionKey())
+}
+
+local function _createTimestamp = |song| {
+	let utcCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+	let seconds = utcCalendar: getTimeInMillis() / 1000
+	return seconds - song: position()
+}
+
+# Higher-level HTTP requests functions
+
+local function requestPostScrobble = |nixtapeUrl, song, timestamp, apiKey, apiSecret, sessionKey| {
+	let url = createApiPostUrl(nixtapeUrl)
+	doHttpPostRequest(
+		url,
+		DEFAULT_TIMEOUT_SECONDS,
+		|o| {
+			let postParams = createParamsWithSignature(
+					_addSong(map[
+						["method", "track.scrobble"],
+						["timestamp", timestamp],
+						["api_key", apiKey],
+						["sk", sessionKey],
+						["format", "json"]], song), apiSecret)
+			o: write(postParams: getBytes(DEFAULT_ENCODING))
+		},
+		|i| { 
+			let reader = BufferedReader(InputStreamReader(i, "UTF-8"))
+			return JSON.parse(reader: lines(): collect(Collectors.joining("\n")))
+		})
+
 }
 
 
-# High-level HTTP requests functions
-
 function requestPostUpdateNowPlaying = |nixtapeUrl, song, apiKey, apiSecret, sessionKey| {
-	let url = createUpdateNowPlayingParams(nixtapeUrl)
-	let output = doHttpPostRequest(
+	let url = createApiPostUrl(nixtapeUrl)
+	doHttpPostRequest(
 		url,
-		10,
+		DEFAULT_TIMEOUT_SECONDS,
 		|o| {
 			let postParams = createParamsWithSignature(
 					_addSong(map[
@@ -67,13 +105,12 @@ function requestPostUpdateNowPlaying = |nixtapeUrl, song, apiKey, apiSecret, ses
 						["api_key", apiKey],
 						["sk", sessionKey],
 						["format", "json"]], song), apiSecret)
-			o: write(postParams: getBytes("UTF-8"))
+			o: write(postParams: getBytes(DEFAULT_ENCODING))
 		},
 		|i| { 
 			let reader = BufferedReader(InputStreamReader(i, "UTF-8"))
 			return JSON.parse(reader: lines(): collect(Collectors.joining("\n")))
 		})
-	println(output)
 }
 
 local function _addSong = |postParams, song| {
@@ -101,10 +138,6 @@ local function requestGetAuthToken = |nixtapeUrl, apiKey, apiSecret|	{
 
 
 # High-level URL creation functions
-
-local function createUpdateNowPlayingParams = |nixTapeUrl| {
-	return createApiPostUrl(nixTapeUrl)
-}
 
 local function createGetSessionKeyUrl = |nixtapeUrl, authToken, apiKey, apiSecret| {
 	let sessionValues = map[["method", "auth.getSession"], ["token", authToken], ["api_key", apiKey], ["format", "json"]]
@@ -155,8 +188,8 @@ local function createApiSignature = |params, secret| {
 # Low-level URL creation functions
 
 local function createApiPostUrl = |url| {
-	let url2 = createFormattedUrl(url, API_URL_PATH)
-	return url2: substring(0, url2: length() - 1)
+	let urlTemp = createFormattedUrl(url, API_URL_PATH)
+	return urlTemp: substring(0, urlTemp: length() - 1)
 }
 
 local function createApiUrl = |url| {
