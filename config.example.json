@@ -1,0 +1,12 @@
+{
+	"player": {
+		"type": "bluesound",
+		"name": "Woonkamer C368"
+	},
+	"scrobblers": {
+		"gnufm": {
+			"urlNixTape": "192.168.178.109/nixtape",
+			"sessionKey": "PASTE_GNU_FM_SESSION_KEY_HERE"
+		}
+	}
+}
