@@ -8,8 +8,6 @@ import audiostreamerscrobbler.states.StateManager
 
 import java.util.Arrays
 
-let SCROBBLER_NAMES = ["gnufm"]
-
 function main = |args| {
 	run(args)
 }
@@ -52,13 +50,13 @@ local function handleCommandLineOptions = |args| {
 	if (parser: parseNext() == "--authorize") {
 		let service = parser: parseNext()
 		if (service == null) {
-			println("Syntax: Audiostreamerscrobbler --authorize [" + SCROBBLER_NAMES: join("|") + "]") 
+			println("Syntax: Audiostreamerscrobbler --authorize [" + getScrobblerKeyNames(): join("|") + "]") 
 			return true
 		}
 		let scrobblersFactory = createScrobblersFactory()
 		let authorizer = scrobblersFactory: createScrobblerAuthorizer(service)
 		if (authorizer == null) {
-			println("Specified scrobbler service '" + service + "' is unknown. Known services are: " + SCROBBLER_NAMES: join("/")) 
+			println("Specified scrobbler service '" + service + "' is unknown. Known services are: " + getScrobblerKeyNames(): join("/")) 
 			return true
 		}
 
