@@ -1,12 +1,23 @@
 {
 	"player": {
 		"type": "bluesound",
-		"name": "Woonkamer C368"
+		"name": "NAME OF YOUR BLUESOUND DEVICE HERE"
 	},
 	"scrobblers": {
+		"lastfm": {
+			"enabled": true,
+			"apiKey": "",
+			"apiSecret": "",
+			"sessionKey": ""
+		},
+		"librefm": {
+			"enabled": true,
+			"sessionKey": ""
+		},
 		"gnufm": {
-			"urlNixTape": "192.168.178.109/nixtape",
-			"sessionKey": "PASTE_GNU_FM_SESSION_KEY_HERE"
+			"enabled": true,
+			"nixtapeUrl": "",
+			"sessionKey": ""
 		}
 	}
 }
