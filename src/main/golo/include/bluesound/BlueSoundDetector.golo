@@ -42,11 +42,11 @@ local function detectBlueSoundPlayer = |playerName| {
 	})
 
 	if (players: isEmpty()) {
-		return DetectorStateTypes.playerNotFoundKeepTrying()
+		return DetectorStateTypes.PlayerNotFoundKeepTrying()
 	}
 
 	let blueSoundPlayerImpl = createBlueSoundPlayerImpl(players: get(0))
-	return DetectorStateTypes.playerFound(blueSoundPlayerImpl)	
+	return DetectorStateTypes.PlayerFound(blueSoundPlayerImpl)	
 }
 
 local function convertLSDPAnswerToDetectedBlueSoundPlayer = |p, d| {

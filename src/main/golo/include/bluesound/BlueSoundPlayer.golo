@@ -1,6 +1,5 @@
 module audiostreamerscrobbler.bluesound.BlueSoundPlayer
 
-import audiostreamerscrobbler.bluesound.BlueSoundPlayerDetector
 import audiostreamerscrobbler.bluesound.BlueSoundPlayerMonitor
 import audiostreamerscrobbler.maintypes.Player.types.PlayerTypes
 
@@ -11,8 +10,7 @@ function createBlueSoundPlayerImpl = |detectedPlayer| {
 		define("_blueSound", detectedPlayer):
 		define("name", detectedPlayer: name()):
 		define("playerType", PlayerTypes.BLUESOUND()):
-		define("createMonitor", |this| -> createBlueSoundPlayerMonitor(this)):
-		define("createDetector", |this| -> createBlueSoundPlayerDetector(this: name()))
+		define("createMonitor", |this| -> createBlueSoundPlayerMonitor(this))
 		
 	return player		
 }

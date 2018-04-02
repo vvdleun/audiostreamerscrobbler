@@ -1,45 +1,44 @@
 module audiostreamerscrobbler.states.scrobbler.ScrobblerState
 
-import audiostreamerscrobbler.maintypes.Config
-import audiostreamerscrobbler.scrobbler.GnuFmScrobbler
 import audiostreamerscrobbler.states.types.StateTypes
 
-
-function createScrobblerState = |previousState, scrobblerAction| {
-	let config = getConfig()
-	let scrobblers = createScrobblers(config)
-	let song = scrobblerAction: Song()
-	
+function createScrobblerState = |previousState, scrobblersFactory, scrobblerAction| {
 	let state = DynamicObject("ScrobblerState"):
 		define("previousState", previousState):
-		define("song", song):
-		define("scrobblers", scrobblers):
+		define("scrobblersFactory", scrobblersFactory):
 		define("action", scrobblerAction):
-		define("run", |this| -> runScrobblerAction(this))
+		define("run", |this| -> runScrobblerState(this))
 	return state
 }
 
-local function createScrobblers = |config| {
-	let scrobblers = list[]
-	if (config: get("scrobblers"): containsKey("gnufm")) {
-		let gnuFmConfig = config: get("scrobblers"): get("gnufm")
-		let gnuFmScrobbler = createGnuFmScrobbler(gnuFmConfig: get("nixtapeUrl"), gnuFmConfig: get("sessionKey"))
-		scrobblers: add(gnuFmScrobbler)
-	}
-	return scrobblers 
+local function runScrobblerState = |scrobblerState| {
+	let scrobblersFactory = scrobblerState: scrobblersFactory()
+	let scrobblers = scrobblersFactory: createScrobblers()
+	runScrobblerAction(scrobblers, scrobblerState: action())
+	return StateTypes.NewState(scrobblerState: previousState())
 }
 
-local function runScrobblerAction = |scrobblerState| {
-	scrobblerState: scrobblers(): each(|scrobbler| {
-		println("scrobbler action: " + scrobblerState: action())
-		if (scrobblerState: action(): isUpdatePlayingNow()) {
-			println("a")
-			scrobbler: updateNowPlaying(scrobblerState: song())
-		} else {
-			println("b")
-			scrobbler: scrobble(scrobblerState: song())
-		}
-	})
-	return StateTypes.NewState(scrobblerState: previousState())
+local function runScrobblerAction = |scrobblers, action| {
+	let song = action: Song()
+	if (action: isUpdatePlayingNow()) {
+		println("Update playing now...")
+		updateNowPlaying(scrobblers, song)
+	} else if (action: isScrobble()) {
+		println("Scrobbling...")
+		scrobble(scrobblers, song)
+	} else {
+		raise("Internal error: unknown action: " + action)
+	}
+}
 
+local function updateNowPlaying = |scrobblers, song| {
+	scrobblers: each(|scrobbler| {
+		scrobbler: updateNowPlaying(song)
+	})
+}
+
+local function scrobble = |scrobblers, song| {
+	scrobblers: each(|scrobbler| {
+		scrobbler: scrobble(song)
+	})
 }
