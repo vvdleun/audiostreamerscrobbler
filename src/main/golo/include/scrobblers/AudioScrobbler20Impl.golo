@@ -27,7 +27,7 @@ function createAudioScrobbler20Impl = |apiUrl, apiKey, apiSecret, sessionKey| {
 
 function createAudioScrobbler20AuthorizeHelper = |configKey, apiUrl, authorizeUrl, apiKey, apiSecret| {
 	let authorizeHelper = DynamicObject("AudioScrobbler20AuthorizeHelper"):
-		define("_configKey", configKey)
+		define("_configKey", configKey):
 		define("_apiUrl", apiUrl):
 		define("_authorizeUrl", authorizeUrl):
 		define("_apiKey", apiKey):
@@ -40,12 +40,9 @@ function createAudioScrobbler20AuthorizeHelper = |configKey, apiUrl, authorizeUr
 
 local function authorizeAccountAndGetSessionKey = |authHelper| {
 	let configKey = authHelper: _configKey()
-	let authorizeUrl = authHelper: _authorizeUrl()
 	let apiUrl = authHelper: _apiUrl()
 	let apiKey = authHelper: _apiKey()
 	let apiSecret = authHelper: _apiSecret()
-
-	let authToken = requestGetAuthToken(apiUrl, apiKey, apiSecret)
 
 	if (not Desktop.isDesktopSupported()) {
 		println("A desktop GUI Internet browser is required to finish this procedure.")
@@ -53,6 +50,9 @@ local function authorizeAccountAndGetSessionKey = |authHelper| {
 		return
 	}
 
+	let authToken = requestGetAuthToken(apiUrl, apiKey, apiSecret)
+
+	let authorizeUrl = createAuthorizeUrl(authHelper: _authorizeUrl(), apiKey, authToken)
 	Desktop.getDesktop(): browse(URI(authorizeUrl))
 	try {
 		println("Press enter once you have authorized the client.")

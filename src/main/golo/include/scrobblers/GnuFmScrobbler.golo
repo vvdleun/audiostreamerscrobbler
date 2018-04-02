@@ -16,10 +16,10 @@ function createGnuFmScrobbler = |nixtapeUrl, sessionKey| {
 	return createAudioScrobbler20Impl(apiUrl, API_KEY, API_NOT_SO_SECRET, sessionKey)
 }
 
-function createGnuFmAuthorizeHelper = |nixtapeUrl| {
+function createGnuFmAuthorizor = |configKey, nixtapeUrl| {
 	let apiUrl = createApiUrl(nixtapeUrl)
 	let authorizeUrl = createAuthorizeUrl(nixtapeUrl)
-	return createAudioScrobbler20AuthorizeHelper(apiUrl, authorizeUrl, API_KEY, API_NOT_SO_SECRET)
+	return createAudioScrobbler20AuthorizeHelper(configKey, apiUrl, authorizeUrl, API_KEY, API_NOT_SO_SECRET)
 }
 
 function getApiKeyAndSecret = {

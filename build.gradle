@@ -1,14 +1,18 @@
 plugins {
     id 'org.golo-lang.golo' version '0.6'
+	id 'com.github.johnrengelman.shadow' version '2.0.3'
 }
 
 apply plugin: 'java'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 group = 'nl.vincentvanderleun.audiostreamerscrobbler'
 version = '0.1.0-SNAPSHOT'
 description = "AudioStreamer Scrobbler"
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
+
+mainClassName = 'audiostreamerscrobbler.Audiostreamerscrobbler'
 
 repositories {
     jcenter()
@@ -19,6 +23,13 @@ dependencies {
     golo 'org.eclipse.golo:golo:3.2.0'
 }
 
-golo {
-    mainModule = 'audiostreamerscrobbler.Audiostreamerscrobbler'
+jar {
+    manifest {
+        attributes 'Main-Class': mainClassName
+    }
 }
+
+golo {
+    mainModule = mainClassName
+}
+
