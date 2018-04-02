@@ -15,11 +15,11 @@ let DEFAULT_ENCODING = "UTF-8"
 let DEFAULT_TIMEOUT_SECONDS = 10
 let API_URL_PATH = "2.0/"
 
-function createGnuFmScrobbler = |nixtapeUrl, apiKey, apiSecret, sessionKey| {
+function createGnuFmScrobbler = |nixtapeUrl, sessionKey| {
 	let scrobbler = DynamicObject("GnuFMScrobbler"):
 		define("_url", nixtapeUrl):
-		define("_apiKey", apiKey):
-		define("_apiSecret", apiSecret):
+		define("_apiKey", "5190DEE005D346288EE891733C4F510A"):
+		define("_apiSecret", "05FF369157CF42C1B566D3389CFD16D1"):
 		define("_sessionKey", sessionKey):
 		define("updateNowPlaying", |this, song| -> updateNowPlaying(this, song)):
 		define("scrobble", |this, song| -> scrobbleSong(this, song))

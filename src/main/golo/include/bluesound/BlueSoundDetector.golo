@@ -18,9 +18,9 @@ struct DetectedBlueSoundPlayer = {
 	host
 }
 
-function createBlueSoundPlayerDetector = {
+function createBlueSoundPlayerDetector = |playerName| {
 	let detector = DynamicObject("BlueSoundDetector"):
-		define("detectPlayer", |this| -> detectBlueSoundPlayer("Woonkamer C368"))
+		define("detectPlayer", |this| -> detectBlueSoundPlayer(playerName))
 	return detector
 }
 

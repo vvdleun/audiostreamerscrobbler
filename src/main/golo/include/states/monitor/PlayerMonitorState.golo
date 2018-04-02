@@ -8,7 +8,6 @@ import audiostreamerscrobbler.states.types.StateTypes
 
 import audiostreamerscrobbler.states.scrobbler.types.ScrobblerActionTypes
 import audiostreamerscrobbler.states.scrobbler.ScrobblerState
-import audiostreamerscrobbler.scrobbler.GnuFmScrobbler
 
 import java.lang.Thread
 import java.time.{Instant, Duration}
@@ -52,14 +51,10 @@ local function runMonitorPlayerState = |monitor| {
 		let detector = player: createDetector()
 		return StateTypes.NewState(createPlayerDetectorState(detector))
 	} else if (monitorAction: isNewSong()) {
-		let scrobblers = [createGnuFmScrobbler("192.168.178.109/nixtape", "a", "b", "c")]
-		let nextState = createScrobblerState(monitor, monitorAction: Song(), scrobblers, ScrobblerActionTypes.UpdatePlayingNow())
+		let nextState = createScrobblerState(monitor, ScrobblerActionTypes.UpdatePlayingNow(monitorAction: Song()))
 		return StateTypes.NewState(nextState)
 	} else if (monitorAction: isNewScrobble()) {
-		let scrobblers = [createGnuFmScrobbler("192.168.178.109/nixtape", "a", "b", "c")]
-		println(scrobblers)
-		let nextState = createScrobblerState(monitor, monitorAction: Song(), scrobblers, ScrobblerActionTypes.Scrobble())
-		println(nextState)
+		let nextState = createScrobblerState(monitor, ScrobblerActionTypes.Scrobble(monitorAction: Song()))
 		return StateTypes.NewState(nextState)
 	}
 	println("INTERNAL ERROR: MONITOR RETURNED UNKNOWN ACTION")

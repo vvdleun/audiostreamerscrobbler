@@ -12,7 +12,7 @@ function createBlueSoundPlayerImpl = |detectedPlayer| {
 		define("name", detectedPlayer: name()):
 		define("playerType", PlayerTypes.BLUESOUND()):
 		define("createMonitor", |this| -> createBlueSoundPlayerMonitor(this)):
-		define("createDetector", |this| -> createBlueSoundPlayerDetector())
+		define("createDetector", |this| -> createBlueSoundPlayerDetector(this: name()))
 		
 	return player		
 }

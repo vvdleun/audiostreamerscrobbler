@@ -1,6 +1,6 @@
 module audiostreamerscrobbler.states.scrobbler
 
 union ScrobblerActionTypes = {
-	UpdatePlayingNow
-	Scrobble
+	UpdatePlayingNow = { Song }
+	Scrobble = { Song }
 }
