@@ -6,7 +6,7 @@ This program is not ready for primetime yet, it's under heavy development. At th
 
 To experiment with it, you'll need Gradle.
 
-`gradle compile build
+    gradle compile build
 
 In the build/libs subdirectory, you'll find a audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar file that you can run with the `java -jar audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar` command. But be advised that you'll need to do some manual configuration first.
 
@@ -70,7 +70,7 @@ you won't be able to retrieve the API key/secret in your account screen, so if y
 	
 Put the API key and secret in the correct fields in the config.json file, then run the following command on a machine that has a desktop GUI browser:
 
-`java -jar audiostreamerscrobbler --authorize lastfm
+    java -jar audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar --authorize lastfm
 
 This will start a browser. If you are not logged in to Last FM, you are asked to log in. After logging in, Last FM will ask you whether you want to authorize the application. If this is what you want, click Yes. Then open the console window and press Enter, to let the application know that you have authorized the application. It will then continue the authorization process. Finally, it will show the value for the session key. Copy and paste it and place it in the "sessionKey" value in the config.json's "lastfm" entry.
 	
@@ -80,7 +80,7 @@ Libre FM is an alternative for Last FM. It is basically a rebranded GNU FM (see 
 
 If you want to use AudioStreamerScrobbler with Libre FM, make sure that the "librefm" entry in the config.json file has the "enabled" key set to value "true". Then run the following command on a terminal that has access to a GUI desktop browser:
 
-`java -jar audiostreamerscrobbler --authorize librefm
+    java -jar audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar --authorize librefm
 
 This will start a browser. If you are not logged in to Libre FM, you are asked to log in. After logging in, Libre FM will ask you whether you want to authorize the application. If this is what you want, click Yes. Note that at the time of writing, AudioStreamerScrobbler is not known by Libe FM, so it will show as an unknown client for the time being. After this,  open the console window and press Enter, to let the application know that you have authorized the application. It will then continue the authorization process. Finally, it will show the value for the session key. Copy and paste it and place it in the "sessionKey" value in the config.json's "librefm" entry.
 
@@ -96,7 +96,7 @@ Also, you'll need to enter the URL to GNU FM. At this time, GNU FM consists of t
 
 Then run the following command on a terminal that has access to a GUI desktop browser:
 
-`java -jar audiostreamerscrobbler --authorize gnufm
+    java -jar audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar --authorize gnufm
 
 This will start a browser. If you are not logged in to GNU FM, you are asked to log in. After logging in, GNU FM will ask you whether you want to authorize the application. If this is what you want, click Yes. Note that at the time of writing, AudioStreamerScrobbler is not known by GNU FM, so it will show as an unknown client for the time being. After this,  open the console window and press Enter, to let the application know that you have authorized the application. It will then continue the authorization process. Finally, it will show the value for the session key. Copy and paste it and place it in the "sessionKey" value in the config.json's "librefm" entry.
 
