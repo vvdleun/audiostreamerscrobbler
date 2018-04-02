@@ -11,7 +11,6 @@ import java.security.MessageDigest
 import java.util.{Calendar, Collections, stream.Collectors, TimeZone, TreeSet}
 
 let DEFAULT_ENCODING = "UTF-8"
-let DEFAULT_TIMEOUT_SECONDS = 10
 
 function createAudioScrobbler20Impl = |apiUrl, apiKey, apiSecret, sessionKey| {
 	let scrobbler = DynamicObject("AudioScrobbler20Impl"):
@@ -51,7 +50,9 @@ local function authorizeAccountAndGetSessionKey = |authHelper| {
 	}
 
 	let authToken = requestGetAuthToken(apiUrl, apiKey, apiSecret)
-
+	println("Retrieved token: " + authToken)
+	println("Your default desktop GUI browser has been opened. Login and when prompted, authorize the application.")
+	
 	let authorizeUrl = createAuthorizeUrl(authHelper: _authorizeUrl(), apiKey, authToken)
 	Desktop.getDesktop(): browse(URI(authorizeUrl))
 	try {
@@ -63,11 +64,9 @@ local function authorizeAccountAndGetSessionKey = |authHelper| {
 		Thread.sleep(60_L * 3 * 1000)
 	}
 
-	println(authToken)
 	let session = requestGetSessionKey(apiUrl, authToken, apiKey, apiSecret)
 
 	let sessionKey = session: get("session"): get("key")
-	println("Copy and paste this Session Key to the '" + configKey + "' entry in the config.json file: " + sessionKey)
 }
 
 # Scrobbler object helpers
@@ -90,9 +89,7 @@ local function _createTimestamp = |song| {
 # Higher-level HTTP requests functions
 
 local function requestPostScrobble = |apiUrl, song, timestamp, apiKey, apiSecret, sessionKey| {
-	println(apiUrl)
-	println(song)
-	println(doHttpPostRequestAndReturnJSON(
+	doHttpPostRequestAndReturnJSON(
 		apiUrl,
 		|o| {
 			let postParams = createParamsWithSignature(
@@ -103,7 +100,7 @@ local function requestPostScrobble = |apiUrl, song, timestamp, apiKey, apiSecret
 						["sk", sessionKey],
 						["format", "json"]], song), apiSecret)
 			o: write(postParams: getBytes(DEFAULT_ENCODING))
-		}))
+		})
 }
 
 function requestPostUpdateNowPlaying = |apiUrl, song, apiKey, apiSecret, sessionKey| {
@@ -148,9 +145,7 @@ local function requestGetAuthToken = |apiUrl, apiKey, apiSecret|	{
 
 local function createGetSessionKeyUrl = |apiUrl, authToken, apiKey, apiSecret| {
 	let sessionValues = map[["method", "auth.getSession"], ["token", authToken], ["api_key", apiKey], ["format", "json"]]
-	let res = apiUrl + "?" + createParamsWithSignature(sessionValues, apiSecret)
-	println(res)
-	return res
+	return apiUrl + "?" + createParamsWithSignature(sessionValues, apiSecret)
 }
 
 local function createAuthorizeUrl = |authorizeUrl, apiKey, authToken| {
@@ -158,13 +153,8 @@ local function createAuthorizeUrl = |authorizeUrl, apiKey, authToken| {
 	return authorizeUrl + "?" + createParams(authValues)
 }
 
-
 local function createGetAuthTokenUrl = |apiUrl, apiKey, apiSecret| {
 	let apiValues = map[["method", "auth.gettoken"], ["api_key", apiKey], ["format", "json"]]
-	println("values")
-	println(apiValues)
-	println(apiSecret)
-	
 	return apiUrl + "?" + createParamsWithSignature(apiValues, apiSecret)
 }
 
@@ -186,19 +176,14 @@ local function createParams = |params| {
 local function createApiSignature = |params, secret| {
 	let apiSignature = StringBuilder()
 	let orderedKeys = list[es: key() foreach es in params: entrySet() when es: key() != "format"]: order()
-	println("Ordered keys: " + orderedKeys)
 	apiSignature: append([e + params: get(e): toString() foreach e in orderedKeys]: join(""))
-	println(apiSignature)
 	apiSignature: append(secret)
-	println(apiSignature)
 	
 	let md5HashBytes = MessageDigest.getInstance("MD5"): digest(apiSignature: toString(): getBytes("UTF-8"))	
-	println(md5HashBytes)
 	
 	let md5StringArray = [
 		Integer.toString(toUnsignedByte(md5HashBytes: get(i)) + 256, 16): substring(1) foreach i in range(md5HashBytes: length())
 	]
-	println(md5StringArray)
 	
 	return md5StringArray: join("")
 }
