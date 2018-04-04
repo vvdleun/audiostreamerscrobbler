@@ -51,12 +51,12 @@ local function runMonitorPlayerState = |monitorState| {
 		let scrobblersAction = match {
 			when (monitorAction: isNewSong()) then ScrobblerActionTypes.UpdatePlayingNow(song)
 			when (monitorAction: isNewScrobble()) then ScrobblerActionTypes.Scrobble(song)
-			otherwise raise "Internal error: Unknown scrobbler monitor action '" + monitorAction + "'"
+			otherwise raise("Internal error: Unknown scrobbler monitor action '" + monitorAction + "'")
 		}
 		return PlayerThreadStates.ScrobbleAction(scrobblersAction, monitorState)
 	}
 
-	raise "Internal error: Unknown monitor action: '" + monitorAction + "'"
+	raise("Internal error: Unknown monitor action: '" + monitorAction + "'")
 }
 
 
