@@ -1,28 +1,18 @@
 module audiostreamerscrobbler.states.StateManager
 
-import audiostreamerscrobbler.states.types.StateStates
-
-function createStateManager = |firstState| {
+function createStateManager = |initialStateType, stateFactoryCallback| {
 	let stateManager = DynamicObject("StateManager"):
-		define("_state", firstState):
+		define("_stateType", initialStateType):
 		define("run", |this| {
-			let nextState = this: _state(): run()
-			case {
-				when nextState: isNewState() {
-					this: _state(nextState: state())
-				}
-				when nextState: isHaltProgram() {
-					# TODO this sucks...
-					this: _state(null)
-				}
-				when nextState: isRepeatLastState() {
-				}
-				otherwise {
-					raise("Unknown state state!!!")
+			while (true) {
+				let state = stateFactoryCallback(this: _stateType())		
+				let nextState = state: run()
+				this: _stateType(nextState)
+				if (nextState is null) {
+					return
 				}
 			}
-		}):
-		define("hasState", |this| -> this: _state() isnt null)
+		})
 	
 	return stateManager
 }

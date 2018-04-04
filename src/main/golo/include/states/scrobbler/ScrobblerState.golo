@@ -1,12 +1,12 @@
 module audiostreamerscrobbler.states.scrobbler.ScrobblerState
 
-import audiostreamerscrobbler.states.types.StateTypes
+import audiostreamerscrobbler.states.types.PlayerThreadStates
 
-function createScrobblerState = |previousState, scrobblersFactory, scrobblerAction| {
+function createScrobblerState = |scrobblersFactory, scrobblerAction, monitorState| {
 	let state = DynamicObject("ScrobblerState"):
-		define("previousState", previousState):
 		define("scrobblersFactory", scrobblersFactory):
 		define("action", scrobblerAction):
+		define("monitorState", monitorState):
 		define("run", |this| -> runScrobblerState(this))
 	return state
 }
@@ -15,7 +15,7 @@ local function runScrobblerState = |scrobblerState| {
 	let scrobblersFactory = scrobblerState: scrobblersFactory()
 	let scrobblers = scrobblersFactory: createScrobblers()
 	runScrobblerAction(scrobblers, scrobblerState: action())
-	return StateTypes.NewState(scrobblerState: previousState())
+	return PlayerThreadStates.PreviousState(scrobblerState: monitorState())
 }
 
 local function runScrobblerAction = |scrobblers, action| {

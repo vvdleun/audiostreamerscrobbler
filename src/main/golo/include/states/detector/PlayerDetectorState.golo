@@ -1,14 +1,12 @@
 module audiostreamerscrobbler.states.detector.PlayerDetectorState
 
-import audiostreamerscrobbler.states.detector.types.DetectorStateTypes
 import audiostreamerscrobbler.maintypes.Player
-import audiostreamerscrobbler.states.monitor.PlayerMonitorState
-import audiostreamerscrobbler.states.types.StateTypes
+import audiostreamerscrobbler.states.detector.types.DetectorStateTypes
+import audiostreamerscrobbler.states.types.PlayerThreadStates
 
-function createPlayerDetectorState = |playerDetectorFactory, scrobblersFactory| {
+function createPlayerDetectorState = |playerDetectorFactory| {
 	let state = DynamicObject("DetectPlayerState"):
 		define("_playerDetectorFactory", playerDetectorFactory):
-		define("_scrobblersFactory", scrobblersFactory):
 		define("run", |this| -> runPlayerDetectorState(this))
 
 	return state
@@ -16,25 +14,20 @@ function createPlayerDetectorState = |playerDetectorFactory, scrobblersFactory| 
 
 local function runPlayerDetectorState = |playerDetectorState| {
 	let playerDetectorFactory = playerDetectorState: _playerDetectorFactory()
-	let scrobblersFactory = playerDetectorState: _scrobblersFactory()
-
 	let detector = playerDetectorFactory: createPlayerDetector()
 
-	let detectorState = detector: detectPlayer()
-	if (detectorState: isPlayerNotFoundKeepTrying()) {
-		return StateTypes.NewState(playerDetectorState)
+	while (true) {
+		let detectorState = detector: detectPlayer()
+		
+		if (detectorState: isPlayerFound()) {
+			let playerImpl = detectorState: Player()
+			
+			let player = createPlayer(playerImpl)
+			println("Found player: " + player)
+			
+			return PlayerThreadStates.MonitorPlayer(player)
+		}
 
-	} else if (detectorState: isPlayerFound()) {
-		let playerImpl = detectorState: Player()
-		
-		let player = createPlayer(playerImpl)
-		println("Found player: " + player)
-		
-		let nextState = createPlayerMonitorState(player, playerDetectorFactory, scrobblersFactory)
-		return StateTypes.NewState(nextState)
+		raise("Internal error: unknown Player Detector state: " + detectorState)
 	}
-	raise("Internal error: unknown Player Detector state: " + detectorState)
-
 } 
-
-

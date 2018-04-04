@@ -1,12 +1,9 @@
 module audiostreamerscrobbler.states.monitor.PlayerMonitorState
 
-import audiostreamerscrobbler.states.detector.PlayerDetectorState
 import audiostreamerscrobbler.states.monitor.types.MonitorStateTypes
 import audiostreamerscrobbler.states.monitor.MonitorCallLimiterDecorator
 import audiostreamerscrobbler.states.scrobbler.types.ScrobblerActionTypes
-import audiostreamerscrobbler.states.scrobbler.ScrobblerState
-import audiostreamerscrobbler.states.StateManager
-import audiostreamerscrobbler.states.types.StateTypes
+import audiostreamerscrobbler.states.types.PlayerThreadStates
 
 import java.lang.Thread
 import java.time.{Instant, Duration}
@@ -24,11 +21,9 @@ union MonitorStateActions = {
 	LostPlayer
 }
 
-function createPlayerMonitorState = |player, playerDetectorFactory, scrobblersFactory| {
+function createPlayerMonitorState = |player| {
 	let state = DynamicObject("PlayerMonitorState"):
 		define("player", player):
-		define("playerDetectorFactory", playerDetectorFactory):
-		define("scrobblersFactory", scrobblersFactory):
 		define("song", null):
 		define("lastCall", null):
 		define("position", null):
@@ -49,24 +44,19 @@ local function runMonitorPlayerState = |monitorState| {
 	}
 
 	if (monitorAction: isLostPlayer()) {
-		let playerDetectorFactory = monitorState: playerDetectorFactory()
-		let scrobblersFactory = monitorState: scrobblersFactory()
-		return StateTypes.NewState(createPlayerDetectorState(playerDetectorFactory, scrobblersFactory))
+		return PlayerThreadStates.DetectPlayer()
+
 	} else if (monitorAction: isNewSong() or monitorAction: isNewScrobble()) {
 		let song = monitorAction: Song()
-		let scrobblersFactory = monitorState: scrobblersFactory()
-		var scrobblersAction = null
-		if (monitorAction: isNewSong()) {
-			scrobblersAction = ScrobblerActionTypes.UpdatePlayingNow(song)
-		} else {
-			scrobblersAction = ScrobblerActionTypes.Scrobble(song)
+		let scrobblersAction = match {
+			when (monitorAction: isNewSong()) then ScrobblerActionTypes.UpdatePlayingNow(song)
+			when (monitorAction: isNewScrobble()) then ScrobblerActionTypes.Scrobble(song)
+			otherwise raise "Internal error: Unknown scrobbler monitor action '" + monitorAction + "'"
 		}
-		let scrobblerUpdatePlayingNowState = createScrobblerState(monitorState, scrobblersFactory, scrobblersAction)
-		return StateTypes.NewState(scrobblerUpdatePlayingNowState)
+		return PlayerThreadStates.ScrobbleAction(scrobblersAction, monitorState)
 	}
 
-	println("Internal error: Unknown monitor action: " + monitorAction)
-	return StateTypes.HaltProgram()
+	raise "Internal error: Unknown monitor action: '" + monitorAction + "'"
 }
 
 
@@ -82,19 +72,18 @@ local function runMonitorIteration = |monitorState, playerMonitor| {
 		println("Error occurred: " + ex)
 		case {
 			when ex oftype IOException.class {
-				println("I/O exception ocurred: " + ex)
 				let ioErrors = monitorState: ioErrors() + 1
 				monitorState: ioErrors(ioErrors)
 				
-				println("Times occurred: " + ioErrors)
+				println("I/O error occurred: " + ioErrors + " time(s)")
 				if (ioErrors >= 3) {
 					println("Giving up...")
 					return MonitorStateActions.LostPlayer()
 				}
 			}
 			otherwise {
+				# println("Ignoring for now...")
 				throw(ex)
-				println("Ignoring for now...")
 			}
 		}
 		return MonitorStateActions.KeepMonitoring(false)

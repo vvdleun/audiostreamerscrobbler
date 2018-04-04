@@ -3,8 +3,12 @@ module audiostreamerscrobbler.Audiostreamerscrobbler
 
 import audiostreamerscrobbler.factories.PlayerDetectorFactory
 import audiostreamerscrobbler.factories.ScrobblersFactory
+import audiostreamerscrobbler.maintypes.Player.types.PlayerTypes
 import audiostreamerscrobbler.states.detector.PlayerDetectorState
+import audiostreamerscrobbler.states.monitor.PlayerMonitorState
+import audiostreamerscrobbler.states.scrobbler.ScrobblerState
 import audiostreamerscrobbler.states.StateManager
+import audiostreamerscrobbler.states.types.PlayerThreadStates
 
 import java.util.Arrays
 
@@ -18,17 +22,20 @@ local function run = |args| {
 		return
 	}
 
-	let playerDetectorFactory = createPlayerDetectorFactory()
-	let scrobblersFactory = createScrobblersFactory()
+	let initialState = PlayerThreadStates.DetectPlayer()
+	let stateManager = createStateManager(initialState, |stateType| {
+		# Create requested state
+		let state = match {
+			when stateType: isDetectPlayer() then createPlayerDetectorState(createPlayerDetectorFactory())
+			when stateType: isMonitorPlayer() then createPlayerMonitorState(stateType: player())
+			when stateType: isScrobbleAction() then createScrobblerState(createScrobblersFactory(), stateType: action(), stateType: monitorState())
+			when stateType: isPreviousState() then stateType: state()
+			otherwise raise("Internal error: unknown request PlayerThreadState state: " + stateType)
+		}
+		return state
+	})
 	
-	let initialState = createPlayerDetectorState(playerDetectorFactory, scrobblersFactory)
-	let stateManager = createStateManager(initialState)
-
-	while (stateManager: hasState()) {
-		stateManager: run()
-	}
-
-	
+	stateManager: run()
 }
 
 local function handleCommandLineOptions = |args| {

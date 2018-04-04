@@ -9,7 +9,7 @@ function createBlueSoundPlayerImpl = |detectedPlayer| {
 	let player = DynamicObject("BlueSoundPlayer"):
 		define("_blueSound", detectedPlayer):
 		define("name", detectedPlayer: name()):
-		define("playerType", PlayerTypes.BLUESOUND()):
+		define("playerType", PlayerTypes.BlueSound()):
 		define("createMonitor", |this| -> createBlueSoundPlayerMonitor(this))
 		
 	return player		
