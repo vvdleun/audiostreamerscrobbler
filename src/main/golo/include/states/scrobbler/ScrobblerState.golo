@@ -14,7 +14,9 @@ function createScrobblerState = |scrobblersFactory, scrobblerAction, monitorStat
 local function runScrobblerState = |scrobblerState| {
 	let scrobblersFactory = scrobblerState: scrobblersFactory()
 	let scrobblers = scrobblersFactory: createScrobblers()
+
 	runScrobblerAction(scrobblers, scrobblerState: action())
+
 	return PlayerThreadStates.PreviousState(scrobblerState: monitorState())
 }
 

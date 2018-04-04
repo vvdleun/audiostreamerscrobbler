@@ -3,7 +3,6 @@ module audiostreamerscrobbler.Audiostreamerscrobbler
 
 import audiostreamerscrobbler.factories.PlayerDetectorFactory
 import audiostreamerscrobbler.factories.ScrobblersFactory
-import audiostreamerscrobbler.maintypes.Player.types.PlayerTypes
 import audiostreamerscrobbler.states.detector.PlayerDetectorState
 import audiostreamerscrobbler.states.monitor.PlayerMonitorState
 import audiostreamerscrobbler.states.scrobbler.ScrobblerState
@@ -22,14 +21,11 @@ local function run = |args| {
 		return
 	}
 
-	let initialState = PlayerThreadStates.DetectPlayer()
-	let stateManager = createStateManager(initialState, |stateType| {
+	let stateManager = createStateManager(PlayerThreadStates.DetectPlayer(), |stateType| {
 		# Create requested state
 		let state = match {
-			when stateType: isDetectPlayer() then createPlayerDetectorState(createPlayerDetectorFactory())
-			when stateType: isMonitorPlayer() then createPlayerMonitorState(stateType: player())
-			when stateType: isScrobbleAction() then createScrobblerState(createScrobblersFactory(), stateType: action(), stateType: monitorState())
-			when stateType: isPreviousState() then stateType: state()
+			when stateType: isDetectPlayer() then createPlayerDetectorState(createPlayerDetectorFactory(): createPlayerDetector())
+			when stateType: isMonitorPlayer() then createPlayerMonitorState(stateType: player(), createScrobblersFactory(): createScrobblers())
 			otherwise raise("Internal error: unknown request PlayerThreadState state: " + stateType)
 		}
 		return state

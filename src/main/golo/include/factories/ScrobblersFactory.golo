@@ -4,6 +4,7 @@ import audiostreamerscrobbler.factories.Config
 import audiostreamerscrobbler.scrobbler.GnuFmScrobbler
 import audiostreamerscrobbler.scrobbler.LastFmScrobbler
 import audiostreamerscrobbler.scrobbler.LibreFmScrobbler
+import audiostreamerscrobbler.scrobbler.Scrobblers
 
 let CONFIG_KEY_LAST_FM = "lastfm"
 let CONFIG_KEY_LIBRE_FM = "librefm"
@@ -18,13 +19,13 @@ function createScrobblersFactory = {
 
 	let scrobblersFactory = DynamicObject("ScrobblersFactory"):
 		define("_config", config):
-		define("createScrobblers", |this| -> createScrobblers(this: _config())):
+		define("createScrobblers", |this| -> createConfiguredScrobblers(this: _config())):
 		define("createScrobblerAuthorizer", |this, configKey| -> createScrobblerAuthorizer(configKey, this: _config()))
 	
 	return scrobblersFactory
 }
 
-local function createScrobblers = |config| {
+local function createConfiguredScrobblers = |config| {
 	let scrobblers = list[]
 
 	let scrobblersConfig = config: get("scrobblers")
@@ -37,8 +38,8 @@ local function createScrobblers = |config| {
 	if (isScrobblerEnabled(scrobblersConfig, CONFIG_KEY_GNU_FM)) {
 		scrobblers: add(createGnuFMScrobblerInstance(scrobblersConfig))
 	}
-
-	return scrobblers 
+	
+	return createScrobblers([s foreach s in scrobblers])
 }
 
 local function createScrobblerAuthorizer = |configKey, config| {

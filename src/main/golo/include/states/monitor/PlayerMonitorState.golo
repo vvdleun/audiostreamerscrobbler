@@ -2,7 +2,6 @@ module audiostreamerscrobbler.states.monitor.PlayerMonitorState
 
 import audiostreamerscrobbler.states.monitor.types.MonitorStateTypes
 import audiostreamerscrobbler.states.monitor.MonitorCallLimiterDecorator
-import audiostreamerscrobbler.states.scrobbler.types.ScrobblerActionTypes
 import audiostreamerscrobbler.states.types.PlayerThreadStates
 
 import java.lang.Thread
@@ -21,9 +20,10 @@ union MonitorStateActions = {
 	LostPlayer
 }
 
-function createPlayerMonitorState = |player| {
+function createPlayerMonitorState = |player, scrobblers| {
 	let state = DynamicObject("PlayerMonitorState"):
 		define("player", player):
+		define("scrobblers", scrobblers):
 		define("song", null):
 		define("lastCall", null):
 		define("position", null):
@@ -37,28 +37,32 @@ function createPlayerMonitorState = |player| {
 local function runMonitorPlayerState = |monitorState| {
 	let player = monitorState: player()
 	let playerMonitor = player: createMonitor()
+	let scrobblers = monitorState: scrobblers()
 
-	var monitorAction = MonitorStateTypes.KeepMonitoring(true)
-	while (monitorAction: isKeepMonitoring()) {
-		monitorAction = runMonitorIteration(monitorState, playerMonitor)
-	}
+	while (true) {
+		let monitorAction = runMonitorIteration(monitorState, playerMonitor)
 
-	if (monitorAction: isLostPlayer()) {
-		return PlayerThreadStates.DetectPlayer()
-
-	} else if (monitorAction: isNewSong() or monitorAction: isNewScrobble()) {
-		let song = monitorAction: Song()
-		let scrobblersAction = match {
-			when (monitorAction: isNewSong()) then ScrobblerActionTypes.UpdatePlayingNow(song)
-			when (monitorAction: isNewScrobble()) then ScrobblerActionTypes.Scrobble(song)
-			otherwise raise("Internal error: Unknown scrobbler monitor action '" + monitorAction + "'")
+		case {
+			when monitorAction: isKeepMonitoring() {
+			}
+			when monitorAction: isLostPlayer() {
+				return PlayerThreadStates.DetectPlayer()
+			}
+			when monitorAction: isNewSong() {
+				let song = monitorAction: Song()
+				scrobblers: updatePlayingNow(song)
+			}
+			when monitorAction: isNewScrobble() {
+				let song = monitorAction: Song()
+				scrobblers: scrobble(song)
+			}
+			otherwise {
+				raise("Unknown monitor action: " + monitorAction)
+			}
 		}
-		return PlayerThreadStates.ScrobbleAction(scrobblersAction, monitorState)
 	}
-
-	raise("Internal error: Unknown monitor action: '" + monitorAction + "'")
+	raise("Internal error: unexpected exit infinite loop?!")
 }
-
 
 local function runMonitorIteration = |monitorState, playerMonitor| {
 	try {

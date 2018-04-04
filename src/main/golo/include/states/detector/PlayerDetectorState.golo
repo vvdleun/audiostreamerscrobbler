@@ -1,20 +1,18 @@
 module audiostreamerscrobbler.states.detector.PlayerDetectorState
 
 import audiostreamerscrobbler.maintypes.Player
-import audiostreamerscrobbler.states.detector.types.DetectorStateTypes
 import audiostreamerscrobbler.states.types.PlayerThreadStates
 
-function createPlayerDetectorState = |playerDetectorFactory| {
+function createPlayerDetectorState = |playerDetector| {
 	let state = DynamicObject("DetectPlayerState"):
-		define("_playerDetectorFactory", playerDetectorFactory):
+		define("_playerDetector", playerDetector):
 		define("run", |this| -> runPlayerDetectorState(this))
 
 	return state
 }
 
 local function runPlayerDetectorState = |playerDetectorState| {
-	let playerDetectorFactory = playerDetectorState: _playerDetectorFactory()
-	let detector = playerDetectorFactory: createPlayerDetector()
+	let detector = playerDetectorState: _playerDetector()
 
 	while (true) {
 		let detectorState = detector: detectPlayer()
