@@ -2,6 +2,8 @@ module audiostreamerscrobbler.scrobbler.GnuFmScrobbler
 
 import audiostreamerscrobbler.scrobbler.AudioScrobbler20Impl
 
+let SCROBBLER_NAME = "GnuFM"
+
 let API_KEY = "5190DEE005D346288EE891733C4F510A"
 let API_NOT_SO_SECRET = "05FF369157CF42C1B566D3389CFD16D1"
 
@@ -10,7 +12,7 @@ let API_AUTH_PATH = "api/auth/"
 
 function createGnuFmScrobbler = |nixtapeUrl, sessionKey| {
 	let apiUrl = createApiUrl(nixtapeUrl)
-	return createAudioScrobbler20Impl(apiUrl, API_KEY, API_NOT_SO_SECRET, sessionKey)
+	return createAudioScrobbler20Impl(SCROBBLER_NAME, apiUrl, API_KEY, API_NOT_SO_SECRET, sessionKey)
 }
 
 function createGnuFmAuthorizor = |configKey, nixtapeUrl| {

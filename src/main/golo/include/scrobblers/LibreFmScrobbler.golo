@@ -3,6 +3,8 @@ module audiostreamerscrobbler.scrobbler.LibreFmScrobbler
 import audiostreamerscrobbler.scrobbler.AudioScrobbler20Impl
 import audiostreamerscrobbler.scrobbler.GnuFmScrobbler
 
+let SCROBBLER_NAME = "LibreFM"
+
 let API_URL = "https://libre.fm/2.0/"
 let AUTH_URL = "https://libre.fm/api/auth/"
 
@@ -12,7 +14,7 @@ function createLibreFmScrobbler = |sessionKey| {
 	let apiKey = apiKeyAndApiSecret: get(0)
 	let apiSecret = apiKeyAndApiSecret: get(1)
 
-	return createAudioScrobbler20Impl(API_URL, apiKey, apiSecret, sessionKey)
+	return createAudioScrobbler20Impl(SCROBBLER_NAME, API_URL, apiKey, apiSecret, sessionKey)
 }
 
 function createLibreFmAuthorizor = |configKey| {

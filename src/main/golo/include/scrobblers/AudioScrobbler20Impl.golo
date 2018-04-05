@@ -12,14 +12,15 @@ import java.util.{Calendar, Collections, stream.Collectors, TimeZone, TreeSet}
 
 let DEFAULT_ENCODING = "UTF-8"
 
-function createAudioScrobbler20Impl = |apiUrl, apiKey, apiSecret, sessionKey| {
+function createAudioScrobbler20Impl = |name, apiUrl, apiKey, apiSecret, sessionKey| {
 	let scrobbler = DynamicObject("AudioScrobbler20Impl"):
 		define("_apiUrl", apiUrl):
 		define("_apiKey", apiKey):
 		define("_apiSecret", apiSecret):
 		define("_sessionKey", sessionKey):
+		define("name", name):
 		define("updateNowPlaying", |this, song| -> updateNowPlaying(this, song)):
-		define("scrobble", |this, song| -> scrobbleSong(this, song))
+		define("scrobble", |this, utcCalendar, song| -> scrobbleSong(this, utcCalendar, song))
 
 	return scrobbler
 }
@@ -75,15 +76,14 @@ local function updateNowPlaying = |scrobbler, song| {
 	requestPostUpdateNowPlaying(scrobbler: _apiUrl(), song, scrobbler: _apiKey(), scrobbler: _apiSecret(), scrobbler: _sessionKey())
 }
 
-local function scrobbleSong = |scrobbler, song| {
-	let timestamp = _createTimestamp(song)
+local function scrobbleSong = |scrobbler, utcCalendar, song| {
+	let timestamp = _createTimestamp(utcCalendar)
 	requestPostScrobble(scrobbler: _apiUrl(), song, timestamp, scrobbler: _apiKey(), scrobbler: _apiSecret(), scrobbler: _sessionKey())
 }
 
-local function _createTimestamp = |song| {
-	let utcCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-	let seconds = utcCalendar: getTimeInMillis() / 1000
-	return seconds - song: position()
+local function _createTimestamp = |utcCalendar| {
+	# AudioScrobbler 2.0 uses UTC timestamp in seconds
+	return utcCalendar: getTimeInMillis() / 1000
 }
 
 # Higher-level HTTP requests functions
