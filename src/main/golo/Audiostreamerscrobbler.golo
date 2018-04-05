@@ -23,9 +23,11 @@ local function run = |args| {
 
 	let stateManager = createStateManager(PlayerThreadStates.DetectPlayer(), |stateType| {
 		# Create requested state
+		let createPlayerDetector = -> createPlayerDetectorFactory(): createPlayerDetector()
+		let createScrobblers = -> createScrobblersFactory(): createScrobblers()
 		let state = match {
-			when stateType: isDetectPlayer() then createPlayerDetectorState(createPlayerDetectorFactory(): createPlayerDetector())
-			when stateType: isMonitorPlayer() then createPlayerMonitorState(stateType: player(), createScrobblersFactory(): createScrobblers())
+			when stateType: isDetectPlayer() then createPlayerDetectorState(createPlayerDetector())
+			when stateType: isMonitorPlayer() then createPlayerMonitorState(stateType: player(), createScrobblers())
 			otherwise raise("Internal error: unknown request PlayerThreadState state: " + stateType)
 		}
 		return state
@@ -35,7 +37,7 @@ local function run = |args| {
 }
 
 local function handleCommandLineOptions = |args| {
-	let parser = DynamicObject("ArgsParser"):
+	let parser = DynamicObject("VerySimpleArgsParser"):
 		define("_args", args):
 		define("_index", 0):
 		define("parseNext", |this| {
