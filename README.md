@@ -18,7 +18,7 @@ Support for ListenBrainz (https://listenbrainz.org) is planned as well.
 
 The program is intended to be used 24/7 on Raspberry pi-alike devices, although the program has not been tested on those small computers yet. Hopefully BlueSound and Yamaha will one day implement native Last FM support in their streaming platforms, but until that time you'll be able to use this workaround. As it is unlikely that those  companies will offer compatibility with the alternative scrobbler services, this program could still be useful, even when official Last FM support will be available.
 
-AudioStreamerScrobbler was written in , [Golo, a lesser known dynamic language that runs on the Java Virtual Machine (JVM)](http://golo-lang.org). It was a design goal to write as much code in Golo as possible and not to use additional Java dependencies. We'll see how that wil turn out on the longer run. I had to write some code in Java to work around omissions in the Golo run-time library, but luckily Gradle takes care of those complexities when building the project. Although I am not the biggest fan of dynamic languages, I really started to like Golo while I was developing this program. In my opinion it's a nice, small and clean language, with a surprisingly powerful run-time library.
+AudioStreamerScrobbler was written in [Eclipse Golo, a lesser known dynamic language that runs on the Java Virtual Machine (JVM)](http://golo-lang.org). It was a design goal to write as much code in Golo as possible and not to use additional Java dependencies (unless very unpractical). We'll see how that wil turn out on the longer run. I had to write some code in Java to work around omissions in the Golo run-time library, but luckily Gradle takes care of those complexities when building the project. Although I'm personally not the biggest fan of dynamic languages, I really started to like Golo while I was developing this program. In my opinion it's a nice, small and clean language, with a surprisingly powerful run-time library.
 
 ## Requirements
 
@@ -28,7 +28,7 @@ Since this is a alpha pre-release, the program must be compiled before it can be
 
     gradle build
 
-In the build/libs subdirectory, you'll find a audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar file that you can run with the `java -jar audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar` command. But be advised that you'll need to do some manual configuration first. The installation procedure
+In the build/libs subdirectory, you'll find a audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar file that you can run with the `java -jar audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar` command. But be advised that you'll need to do some manual configuration first. This will be explained in the next section.
 
 ## Installation
 
@@ -58,6 +58,8 @@ Copy the audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar file to a directory that 
         }
     }
 
+This format will change once multiple players and more type of players are supported. I'll make sure this README.md file will always contain an up-to-date example.
+	
 ### Setting up the player
 
 At this time, the program can monitor exactly one BlueSound player. It should also be compatible with the new third party BlueOS powered devices that have appeared on the market, but this has not been tested yet. Enter the name of your device in the config.json's "name" field in the "player" section. 
@@ -92,7 +94,7 @@ If you want to use AudioStreamerScrobbler with Libre FM, make sure that the "lib
 
     java -jar audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar --authorize librefm
 
-This will start a browser. If you are not logged in to Libre FM, you are asked to log in. After logging in, Libre FM will ask you whether you want to authorize the application. If this is what you want, click Yes. Note that at the time of writing, AudioStreamerScrobbler is not known by Libe FM, so it will show as an unknown client for the time being. After this, open the console window that runs AudioStreamerScrobbler and press Enter, to let the application know that you have authorized the application. It will then continue the authorization process. Finally, it will show the value for the session key. Copy and paste it and place it in the "sessionKey" value in the config.json's "librefm" entry.
+See the Last FM entry for more detailed instructions on the authorization process, the process is very much the same with Libre FM. Note that at the time of writing, AudioStreamerScrobbler client is not known by Libe FM, so it will show as an unknown client/API keys for the time being. After authorizing, just copy and paste it and place the returned session key in the "sessionKey" value in the config.json's "librefm" entry.
 
 #### GNU FM
 
@@ -110,14 +112,16 @@ After all this, run the following command on a terminal that has access to a GUI
 
     java -jar audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar --authorize gnufm
 
-This will start your internet browser. If you are not logged in to GNU FM, you are asked to log in. After logging in, GNU FM will ask you whether you want to authorize the application. If this is what you want, click Yes. Note that at the time of writing, AudioStreamerScrobbler is not known by GNU FM, so it will show as an unknown client for the time being. After this, open the console window and press Enter, to let the application know that you have authorized the application. It will then continue the authorization process. Finally, it will show the value for the session key. Copy and paste it and place it in the "sessionKey" value in the config.json's "gnufm" entry.
-
+See the Last FM entry for more detailed instructions on the authorization process, the process is very much the same with GNU FM. Note that at the time of writing, AudioStreamerScrobbler client is not known by GNU FM, so it will show as an unknown client/API keys for the time being. After authorizing, just copy and paste it and place the returned session key in the "sessionKey" value in the config.json's "gnufm" entry.
+	
 #### ListenBrainz
 
-Support will be coming soon, it is at the top of my priority list.
+Support will be coming soon, it is very high on my priority list.
 
 ## Plans
 
-First I want to make the application as stable as possible and add ListenBrainz support. Then I'd want to add Yamaha MusicCast support (as I use both BlueSound and MusicCast devices in my home). Then the time will be right to make the program multi-threaded, so that it will be able to monitor multiple players at once.
+First I want to make the application as stable as possible (that includes having a buffer for failed scrobble attempts and periodic retries) and add ListenBrainz support. Then I'd want to add Yamaha MusicCast support (as I use both BlueSound and MusicCast devices in my home). Then the time will be right to make the program multi-threaded, so that it will be able to monitor multiple players (of multiple types) at once. Ideally I'd like to add HEOS support as well, please let me know if there's any demand for those and/or any other brands.
 
-On the longer term I'd like to add advanced grouping possibilities, so that different group of devices can scrobble to different accounts on different services. Time will tell if this application will ever get that advanced.
+On the longer term I'd like to add more advanced grouping possibilities, so that different group of devices can scrobble to different accounts on different services. Time will tell if this application will ever get that advanced.
+
+Right now I mostly concentrate on features that I'll use myself, but if there's demand I'd love to switch priorities.
