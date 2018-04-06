@@ -3,6 +3,7 @@ module audiostreamerscrobbler.scrobbler.AudioScrobbler20Impl
 import nl.vincentvanderleun.utils.ByteUtils
 import audiostreamerscrobbler.utils.RequestUtils
 
+import gololang.IO
 import java.awt.Desktop
 import java.io.{BufferedReader, InputStreamReader}
 import java.lang.Thread

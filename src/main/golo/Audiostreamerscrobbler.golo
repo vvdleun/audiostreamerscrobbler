@@ -5,7 +5,6 @@ import audiostreamerscrobbler.factories.PlayerDetectorFactory
 import audiostreamerscrobbler.factories.ScrobblersFactory
 import audiostreamerscrobbler.states.detector.PlayerDetectorState
 import audiostreamerscrobbler.states.monitor.PlayerMonitorState
-import audiostreamerscrobbler.states.scrobbler.ScrobblerState
 import audiostreamerscrobbler.states.StateManager
 import audiostreamerscrobbler.states.types.PlayerThreadStates
 

@@ -20,7 +20,7 @@ repositories {
 }
 
 dependencies {
-    golo 'org.eclipse.golo:golo:3.2.0'
+    golo 'org.eclipse.golo:golo:3.3.0-M1'
 }
 
 jar {
