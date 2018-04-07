@@ -11,7 +11,6 @@ function createScrobblers = |scrobblers| {
 					scrobbler: updateNowPlaying(song)
 				} catch(ex) {
 					println("Could not update Playing Now for service '" + scrobbler: name() + "': " + ex)
-					throw(ex)
 				}
 			})
 		}):
