@@ -5,7 +5,7 @@ import audiostreamerscrobbler.states.monitor.MonitorCallLimiterDecorator
 import audiostreamerscrobbler.states.types.PlayerThreadStates
 
 import java.lang.Thread
-import java.time.{Instant, Duration}
+import java.time.{Duration, Instant}
 import java.io.IOException
 
 let MonitorCallLimitterEnabled = monitorCallLimiterDecorator(10000)

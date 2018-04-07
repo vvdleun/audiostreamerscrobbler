@@ -6,9 +6,9 @@ import audiostreamerscrobbler.scrobbler.LastFmScrobbler
 import audiostreamerscrobbler.scrobbler.LibreFmScrobbler
 import audiostreamerscrobbler.scrobbler.Scrobblers
 
-let CONFIG_KEY_LAST_FM = "lastfm"
-let CONFIG_KEY_LIBRE_FM = "librefm"
-let CONFIG_KEY_GNU_FM = "gnufm"
+let CONFIG_KEY_LAST_FM = getLastFmId()
+let CONFIG_KEY_LIBRE_FM = getLibreFmId()
+let CONFIG_KEY_GNU_FM = getGnuFmId()
 
 let SCROBBLER_NAMES = [CONFIG_KEY_LAST_FM, CONFIG_KEY_GNU_FM, CONFIG_KEY_LIBRE_FM]
 
@@ -27,7 +27,7 @@ function createScrobblersFactory = {
 
 local function createConfiguredScrobblers = |config| {
 	let scrobblers = list[]
-
+	
 	let scrobblersConfig = config: get("scrobblers")
 	if (isScrobblerEnabled(scrobblersConfig, CONFIG_KEY_LAST_FM)) {
 		scrobblers: add(createLastFMScrobblerInstance(scrobblersConfig))
@@ -76,7 +76,7 @@ local function createLastFMAuthorizerInstance = |scrobblersConfig| {
 
 	let apiKey = lastFmConfig: get("apiKey") 
 	let apiSecret = lastFmConfig: get("apiSecret") 
-	return createLastFmAuthorizer(CONFIG_KEY_LAST_FM, apiKey, apiSecret) 
+	return createLastFmAuthorizer(apiKey, apiSecret) 
 }
 
 # Libre FM
@@ -87,7 +87,7 @@ local function createLibreFMScrobblerInstance = |scrobblersConfig| {
 }
 
 local function createLibreFMAuthorizerInstance = |scrobblersConfig| {
-	return createLibreFmAuthorizor(CONFIG_KEY_LIBRE_FM) 
+	return createLibreFmAuthorizor() 
 }
 
 # GNU FM
@@ -102,5 +102,5 @@ local function createGnuFMAuthorizerInstance = |scrobblersConfig| {
 	if (gnuFmConfig: get("nixtapeUrl") is null) {
 		throw "ERROR: Scrobbler 'gnufm' is not configured in config.json. Entry 'urlNixtape' in 'gnufm' entry must be filled before authorization can take place."
 	}
-	return createGnuFmAuthorizor(CONFIG_KEY_GNU_FM, gnuFmConfig: get("nixtapeUrl")) 
+	return createGnuFmAuthorizor(gnuFmConfig: get("nixtapeUrl")) 
 }

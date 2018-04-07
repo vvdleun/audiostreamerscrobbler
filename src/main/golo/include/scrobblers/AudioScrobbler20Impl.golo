@@ -13,26 +13,26 @@ import java.util.{Calendar, Collections, stream.Collectors, TimeZone, TreeSet}
 
 let DEFAULT_ENCODING = "UTF-8"
 
-function createAudioScrobbler20Impl = |name, apiUrl, apiKey, apiSecret, sessionKey| {
+function createAudioScrobbler20Impl = |id, apiUrl, apiKey, apiSecret, sessionKey| {
 	let scrobbler = DynamicObject("AudioScrobbler20Impl"):
 		define("_apiUrl", apiUrl):
 		define("_apiKey", apiKey):
 		define("_apiSecret", apiSecret):
 		define("_sessionKey", sessionKey):
-		define("name", name):
+		define("id", id):
 		define("updateNowPlaying", |this, song| -> updateNowPlaying(this, song)):
 		define("scrobble", |this, utcCalendar, song| -> scrobbleSong(this, utcCalendar, song))
 
 	return scrobbler
 }
 
-function createAudioScrobbler20AuthorizeHelper = |configKey, apiUrl, authorizeUrl, apiKey, apiSecret| {
+function createAudioScrobbler20AuthorizeHelper = |id, apiUrl, authorizeUrl, apiKey, apiSecret| {
 	let authorizeHelper = DynamicObject("AudioScrobbler20AuthorizeHelper"):
-		define("_configKey", configKey):
 		define("_apiUrl", apiUrl):
 		define("_authorizeUrl", authorizeUrl):
 		define("_apiKey", apiKey):
 		define("_apiSecret", apiSecret):
+		define("id", id):
 		define("authorize", |this| -> authorizeAccountAndGetSessionKey(this))
 	return authorizeHelper
 }
@@ -40,14 +40,14 @@ function createAudioScrobbler20AuthorizeHelper = |configKey, apiUrl, authorizeUr
 # Authorize Helper
 
 local function authorizeAccountAndGetSessionKey = |authHelper| {
-	let configKey = authHelper: _configKey()
+	let id = authHelper: id()
 	let apiUrl = authHelper: _apiUrl()
 	let apiKey = authHelper: _apiKey()
 	let apiSecret = authHelper: _apiSecret()
 
 	if (not Desktop.isDesktopSupported()) {
 		println("A desktop GUI Internet browser is required to finish this procedure.")
-		println("You can run this procedure on any machine, just copy and paste the returned session key to the '" + configKey + "' entry in the config.json file.")
+		println("You can run this procedure on any machine, just copy and paste the returned session key to the '" + id + "' entry in the config.json file.")
 		return
 	}
 
