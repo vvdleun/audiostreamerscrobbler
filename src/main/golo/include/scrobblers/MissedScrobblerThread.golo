@@ -121,23 +121,4 @@ local function _scrobbleMissingScrobbles = |handler| {
 		let scrobbler = handler: _scrobblers(): get(scrobblerId)
 		scrobbler: scrobbleAll(scrobbles)
 	})
-} 
-
-function main = |args| {
-	let s1 = DynamicObject():
-		define("getId", |this| -> "xxxx")
-	let s2 = DynamicObject():
-		define("getId", |this| -> "yyy")
-
-	let handler = createMissedScrobblerHandlerThread(100, 2, [s1, s2])
-	handler: start()
-
-	foreach i in range(10000) {
-		handler: addMissedScrobble([s1, s2], "nu", "prachtig lied " + i)
-		Thread.sleep(15_L)
-	}
-	
-	Thread.sleep(60000_L * 5)
-	
-	handler: stop()
 }
