@@ -10,9 +10,9 @@ let CONFIG_KEY_LAST_FM = getLastFmId()
 let CONFIG_KEY_LIBRE_FM = getLibreFmId()
 let CONFIG_KEY_GNU_FM = getGnuFmId()
 
-let SCROBBLER_NAMES = [CONFIG_KEY_LAST_FM, CONFIG_KEY_GNU_FM, CONFIG_KEY_LIBRE_FM]
+let SCROBBLER_IDS = [CONFIG_KEY_LAST_FM, CONFIG_KEY_GNU_FM, CONFIG_KEY_LIBRE_FM]
 
-function getScrobblerKeyNames = -> SCROBBLER_NAMES
+function getScrobblerKeyNames = -> SCROBBLER_IDS
 
 function createScrobblersFactory = {
 	let config = getConfig()
@@ -20,6 +20,7 @@ function createScrobblersFactory = {
 	let scrobblersFactory = DynamicObject("ScrobblersFactory"):
 		define("_config", config):
 		define("createScrobblers", |this| -> createConfiguredScrobblers(this: _config())):
+		define("createScrobbler", |this, id| -> createConfiguredScrobbler(id, this: _config())):
 		define("createScrobblerAuthorizer", |this, configKey| -> createScrobblerAuthorizer(configKey, this: _config()))
 	
 	return scrobblersFactory
@@ -29,17 +30,28 @@ local function createConfiguredScrobblers = |config| {
 	let scrobblers = list[]
 	
 	let scrobblersConfig = config: get("scrobblers")
-	if (isScrobblerEnabled(scrobblersConfig, CONFIG_KEY_LAST_FM)) {
-		scrobblers: add(createLastFMScrobblerInstance(scrobblersConfig))
-	}
-	if (isScrobblerEnabled(scrobblersConfig, CONFIG_KEY_LIBRE_FM)) {
-		scrobblers: add(createLibreFMScrobblerInstance(scrobblersConfig))
-	}
-	if (isScrobblerEnabled(scrobblersConfig, CONFIG_KEY_GNU_FM)) {
-		scrobblers: add(createGnuFMScrobblerInstance(scrobblersConfig))
-	}
+	SCROBBLER_IDS: each(|s| {
+		let scrobbler = createConfiguredScrobbler(scrobblersConfig, s)
+		if (scrobbler != null) {
+			scrobblers: add(scrobbler)
+		}			
+	})
 	
-	return createScrobblers([s foreach s in scrobblers])
+	return [s foreach s in scrobblers]
+}
+
+local function createConfiguredScrobbler = |scrobblersConfig, id| {
+	if (id == CONFIG_KEY_LAST_FM and isScrobblerEnabled(scrobblersConfig, CONFIG_KEY_LAST_FM)) {
+		return createLastFMScrobblerInstance(scrobblersConfig)
+	}
+	if (id == CONFIG_KEY_LIBRE_FM and isScrobblerEnabled(scrobblersConfig, CONFIG_KEY_LIBRE_FM)) {
+		return createLibreFMScrobblerInstance(scrobblersConfig)
+	}
+	if (id == CONFIG_KEY_GNU_FM and isScrobblerEnabled(scrobblersConfig, CONFIG_KEY_GNU_FM)) {
+		return createGnuFMScrobblerInstance(scrobblersConfig)
+	}
+
+	return null
 }
 
 local function createScrobblerAuthorizer = |configKey, config| {

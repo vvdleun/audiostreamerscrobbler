@@ -3,6 +3,8 @@ module audiostreamerscrobbler.Audiostreamerscrobbler
 
 import audiostreamerscrobbler.factories.PlayerDetectorFactory
 import audiostreamerscrobbler.factories.ScrobblersFactory
+import audiostreamerscrobbler.scrobbler.MissedScrobblerHandler
+import audiostreamerscrobbler.scrobbler.ScrobblersHandler
 import audiostreamerscrobbler.states.detector.PlayerDetectorState
 import audiostreamerscrobbler.states.monitor.PlayerMonitorState
 import audiostreamerscrobbler.states.StateManager
@@ -20,13 +22,18 @@ local function run = |args| {
 		return
 	}
 
+	# Create and start thread that periodically tries to scrobble scrobbles that were not accepted previously
+	let scrobblers = createScrobblersFactory(): createScrobblers()
+	let missedScrobblesHandler = createMissedScrobblerHandlerThread(100, 60, scrobblers)
+	missedScrobblesHandler: start()
+	
 	let stateManager = createStateManager(PlayerThreadStates.DetectPlayer(), |stateType| {
 		# Create requested state
 		let createPlayerDetector = -> createPlayerDetectorFactory(): createPlayerDetector()
-		let createScrobblers = -> createScrobblersFactory(): createScrobblers()
+		let createHandlerWithScrobblers = -> createScrobblersHandler(createScrobblersFactory(): createScrobblers(), missedScrobblesHandler)
 		let state = match {
 			when stateType: isDetectPlayer() then createPlayerDetectorState(createPlayerDetector())
-			when stateType: isMonitorPlayer() then createPlayerMonitorState(stateType: player(), createScrobblers())
+			when stateType: isMonitorPlayer() then createPlayerMonitorState(stateType: player(), createHandlerWithScrobblers())
 			otherwise raise("Internal error: unknown request PlayerThreadState state: " + stateType)
 		}
 		return state
