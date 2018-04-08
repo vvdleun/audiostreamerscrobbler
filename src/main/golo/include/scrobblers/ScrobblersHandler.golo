@@ -1,8 +1,10 @@
-module audiostreamerscrobbler.scrobbler.Scrobblers
+module audiostreamerscrobbler.scrobbler.ScrobblersHandler
+
+import audiostreamerscrobbler.maintypes.Scrobble
 
 import java.util.{Calendar, TimeZone}
 
-function createScrobblers = |scrobblers| {
+function createScrobblersHandler = |scrobblers, missedScrobblesHandler| {
 	let scrobblersInstance = DynamicObject("Scrobblers"):
 		define("_scrobblers", scrobblers):
 		define("updatePlayingNow", |this, song| {
@@ -10,14 +12,20 @@ function createScrobblers = |scrobblers| {
 				try {
 					scrobbler: updateNowPlaying(song)
 				} catch(ex) {
-					println("Could not update Playing Now for service '" + scrobbler: name() + "': " + ex)
+					println("Could not update Playing Now for service '" + scrobbler: id() + "': " + ex)
 				}
 			})
 		}):
 		define("scrobble", |this, song| {
 			this: _scrobblers(): each(|scrobbler| {
 				let utcTimestamp = _createTimestamp(song: position())
-				scrobbler: scrobble(utcTimestamp, song)
+				let scrobbledSong = Scrobble(utcTimestamp, song)
+				try {
+					scrobbler: scrobble(scrobbledSong)
+				} catch(ex) {
+					# TODO use the missedScrobblesHandler...
+					throw(ex)
+				}
 			})
 		})
 		

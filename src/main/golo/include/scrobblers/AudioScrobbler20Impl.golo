@@ -21,7 +21,8 @@ function createAudioScrobbler20Impl = |id, apiUrl, apiKey, apiSecret, sessionKey
 		define("_sessionKey", sessionKey):
 		define("id", id):
 		define("updateNowPlaying", |this, song| -> updateNowPlaying(this, song)):
-		define("scrobble", |this, utcCalendar, song| -> scrobbleSong(this, utcCalendar, song))
+		define("scrobble", |this, scrobbledSong| -> scrobbleSong(this, scrobbledSong)):
+		define("scrobbleAll", |this, scrobbles| -> scrobbleAll(this, scrobbles))
 
 	return scrobbler
 }
@@ -77,7 +78,10 @@ local function updateNowPlaying = |scrobbler, song| {
 	requestPostUpdateNowPlaying(scrobbler: _apiUrl(), song, scrobbler: _apiKey(), scrobbler: _apiSecret(), scrobbler: _sessionKey())
 }
 
-local function scrobbleSong = |scrobbler, utcCalendar, song| {
+local function scrobbleSong = |scrobbler, scrobbledSong| {
+	println("Scrobbling to " + scrobbler: id() + "...")
+	let song = scrobbledSong: song()
+	let utcCalendar = scrobbledSong: utcTimestamp()
 	let timestamp = _createTimestamp(utcCalendar)
 	requestPostScrobble(scrobbler: _apiUrl(), song, timestamp, scrobbler: _apiKey(), scrobbler: _apiSecret(), scrobbler: _sessionKey())
 }
@@ -85,6 +89,10 @@ local function scrobbleSong = |scrobbler, utcCalendar, song| {
 local function _createTimestamp = |utcCalendar| {
 	# AudioScrobbler 2.0 uses UTC timestamp in seconds
 	return utcCalendar: getTimeInMillis() / 1000
+}
+
+local function scrobbleAll = |scrobbler, scrobbles| {
+	println("Scrobbling previous scrobbles...")
 }
 
 # Higher-level HTTP requests functions
