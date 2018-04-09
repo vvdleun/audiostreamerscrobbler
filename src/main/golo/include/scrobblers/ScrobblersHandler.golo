@@ -19,9 +19,8 @@ function createScrobblersHandler = |scrobblers, missedScrobblesHandler| {
 		define("scrobble", |this, song| {
 			this: _scrobblers(): each(|scrobbler| {
 				let utcTimestamp = _createTimestamp(song: position())
-				let scrobbledSong = Scrobble(utcTimestamp, song)
 				try {
-					scrobbler: scrobble(scrobbledSong)
+					scrobbler: scrobble(Scrobble(utcTimestamp, song))
 				} catch(ex) {
 					# TODO use the missedScrobblesHandler...
 					throw(ex)

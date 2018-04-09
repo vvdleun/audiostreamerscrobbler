@@ -21,7 +21,7 @@ function createAudioScrobbler20Impl = |id, apiUrl, apiKey, apiSecret, sessionKey
 		define("_sessionKey", sessionKey):
 		define("id", id):
 		define("updateNowPlaying", |this, song| -> updateNowPlaying(this, song)):
-		define("scrobble", |this, scrobbledSong| -> scrobbleSong(this, scrobbledSong)):
+		define("scrobble", |this, scrobble| -> scrobbleSong(this, scrobble)):
 		define("scrobbleAll", |this, scrobbles| -> scrobbleAll(this, scrobbles))
 
 	return scrobbler
@@ -78,37 +78,50 @@ local function updateNowPlaying = |scrobbler, song| {
 	requestPostUpdateNowPlaying(scrobbler: _apiUrl(), song, scrobbler: _apiKey(), scrobbler: _apiSecret(), scrobbler: _sessionKey())
 }
 
-local function scrobbleSong = |scrobbler, scrobbledSong| {
-	println("Scrobbling to " + scrobbler: id() + "...")
-	let song = scrobbledSong: song()
-	let utcCalendar = scrobbledSong: utcTimestamp()
-	let timestamp = _createTimestamp(utcCalendar)
-	requestPostScrobble(scrobbler: _apiUrl(), song, timestamp, scrobbler: _apiKey(), scrobbler: _apiSecret(), scrobbler: _sessionKey())
-}
+local function scrobbleSong = |scrobbler, scrobble| {
+	let apiUrl = scrobbler: _apiUrl()
+	let apiKey = scrobbler: _apiKey()
+	let apiSecret = scrobbler: _apiSecret()
+	let sessionKey = scrobbler: _sessionKey()
 
-local function _createTimestamp = |utcCalendar| {
-	# AudioScrobbler 2.0 uses UTC timestamp in seconds
-	return utcCalendar: getTimeInMillis() / 1000
+	requestPostScrobbles(apiUrl, [scrobble], apiKey, apiSecret, sessionKey)
 }
 
 local function scrobbleAll = |scrobbler, scrobbles| {
-	println("Scrobbling previous scrobbles...")
+	let apiUrl = scrobbler: _apiUrl()
+	let apiKey = scrobbler: _apiKey()
+	let apiSecret = scrobbler: _apiSecret()
+	let sessionKey = scrobbler: _sessionKey()
+
+	requestPostScrobbles(apiUrl, scrobbles, apiKey, apiSecret, sessionKey)
 }
 
 # Higher-level HTTP requests functions
 
-local function requestPostScrobble = |apiUrl, song, timestamp, apiKey, apiSecret, sessionKey| {
+local function requestPostScrobbles = |apiUrl, scrobbles, apiKey, apiSecret, sessionKey| {
 	doHttpPostRequestAndReturnJSON(
 		apiUrl,
 		|o| {
-			let postParams = createParamsWithSignature(
-					_addSong(map[
-						["method", "track.scrobble"],
-						["timestamp", timestamp],
-						["api_key", apiKey],
-						["sk", sessionKey],
-						["format", "json"]], song), apiSecret)
-			o: write(postParams: getBytes(DEFAULT_ENCODING))
+			let postParams = map[
+				["method", "track.scrobble"],
+				["api_key", apiKey],
+				["sk", sessionKey],
+				["format", "json"]]
+
+			if (scrobbles: size() == 1) {
+				let scrobble = scrobbles: get(0)
+				_addScrobble(postParams, scrobble)
+			} else {
+				range(scrobbles): each(|idx| {
+					let scrobble = scrobbles: get(idx)
+					let arrayIndex = "[" + idx: toString() + "]"
+					_addScrobble(postParams, scrobble, arrayIndex)
+				})
+			}
+			
+			let postParamsWithSignature = createParamsWithSignature(postParams, apiSecret)
+			println(postParamsWithSignature)
+			o: write(postParamsWithSignature: getBytes(DEFAULT_ENCODING))
 		})
 }
 
@@ -116,27 +129,47 @@ function requestPostUpdateNowPlaying = |apiUrl, song, apiKey, apiSecret, session
 	doHttpPostRequestAndReturnJSON(
 		apiUrl,
 		|o| {
-			let postParams = createParamsWithSignature(
-					_addSong(map[
-						["method", "track.updateNowPlaying"],
-						["api_key", apiKey],
-						["sk", sessionKey],
-						["format", "json"]], song), apiSecret)
-			o: write(postParams: getBytes(DEFAULT_ENCODING))
+			let postParams = map[
+				["method", "track.updateNowPlaying"],
+				["api_key", apiKey],
+				["sk", sessionKey],
+				["format", "json"]]
+
+			_addSong(postParams, song)
+				
+			let postParamsWithSignature = createParamsWithSignature(postParams, apiSecret)
+			println(postParamsWithSignature)
+			o: write(postParamsWithSignature: getBytes(DEFAULT_ENCODING))
 		})
 }
 
+local function _addScrobble = |postParams, scrobble| {
+	# Single scrobble, so no array index suffix
+	_addScrobble(postParams, scrobble, "")
+}
+
+local function _addScrobble = |postParams, scrobble, suffix| {
+	_addSong(postParams, scrobble: song(), suffix)
+	postParams: put("timestamp" + suffix, _createTimestamp(scrobble: utcTimestamp()))
+}
+
 local function _addSong = |postParams, song| {
-	let paramsWithSong = map[[es: key(), es: value()] foreach es in postParams: entrySet()]
+	# Single song, so no array index suffix
+	_addSong(postParams, song, "")
+}
 
-	paramsWithSong: put("track", song: name())
-	paramsWithSong: put("artist", song: artist())
-	paramsWithSong: put("duration", song: length())
+local function _addSong = |postParams, song, suffix| {
+	postParams: put("track" + suffix, song: name())
+	postParams: put("artist" + suffix, song: artist())
+	postParams: put("duration" + suffix, song: length())
 	if (not song: album(): isEmpty()) {
-		paramsWithSong: put("album", song: album())
+		postParams: put("album" + suffix, song: album())
 	}
+}
 
-	return paramsWithSong
+local function _createTimestamp = |utcCalendar| {
+	# AudioScrobbler 2.0 uses UTC timestamp in seconds
+	return utcCalendar: getTimeInMillis() / 1000
 }
 
 local function requestGetSessionKey = |apiUrl, authToken, apiKey, apiSecret| {
