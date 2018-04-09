@@ -75,16 +75,16 @@ local function authorizeAccountAndGetSessionKey = |authHelper| {
 # Scrobbler object helpers
 
 local function updateNowPlaying = |scrobbler, song| {	
-	requestPostUpdateNowPlaying(scrobbler: _apiUrl(), song, scrobbler: _apiKey(), scrobbler: _apiSecret(), scrobbler: _sessionKey())
-}
-
-local function scrobbleSong = |scrobbler, scrobble| {
 	let apiUrl = scrobbler: _apiUrl()
 	let apiKey = scrobbler: _apiKey()
 	let apiSecret = scrobbler: _apiSecret()
 	let sessionKey = scrobbler: _sessionKey()
 
-	requestPostScrobbles(apiUrl, [scrobble], apiKey, apiSecret, sessionKey)
+	requestPostUpdateNowPlaying(apiUrl, song, apiKey, apiSecret, sessionKey)
+}
+
+local function scrobbleSong = |scrobbler, scrobble| {
+	scrobbleAll(scrobbler, [scrobble])
 }
 
 local function scrobbleAll = |scrobbler, scrobbles| {
@@ -109,9 +109,12 @@ local function requestPostScrobbles = |apiUrl, scrobbles, apiKey, apiSecret, ses
 				["format", "json"]]
 
 			if (scrobbles: size() == 1) {
+				# Just one song, do not add array notation
 				let scrobble = scrobbles: get(0)
 				_addScrobble(postParams, scrobble)
 			} else {
+				# Multiple songs, add array index "[<index>]" to each scrobble
+				# TODO: chunk of up to 50 entries at a time!
 				range(scrobbles): each(|idx| {
 					let scrobble = scrobbles: get(idx)
 					let arrayIndex = "[" + idx: toString() + "]"
