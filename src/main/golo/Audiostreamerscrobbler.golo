@@ -25,7 +25,7 @@ local function run = |args| {
 	# Create and start thread that periodically tries to scrobble scrobbles that were not accepted previously
 	# TODO make this configurable...
 	let scrobblers = createScrobblersFactory(): createScrobblers()
-	let missedScrobblesHandler = createMissedScrobblerHandlerThread(100, 10 * 60, scrobblers)
+	let missedScrobblesHandler = createMissedScrobblerHandlerThread(100, 60 * 60, scrobblers)
 	missedScrobblesHandler: start()
 	
 	let stateManager = createStateManager(PlayerThreadStates.DetectPlayer(), |stateType| {

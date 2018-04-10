@@ -125,7 +125,6 @@ local function requestPostScrobbles = |apiUrl, scrobbles, apiKey, apiSecret, ses
 				})
 
 				let postParamsWithSignature = createParamsWithSignature(postParams, apiSecret)
-				println(postParamsWithSignature)
 				o: write(postParamsWithSignature: getBytes(DEFAULT_ENCODING))
 			})
 		})
@@ -144,7 +143,6 @@ function requestPostUpdateNowPlaying = |apiUrl, song, apiKey, apiSecret, session
 			_addSong(postParams, song)
 				
 			let postParamsWithSignature = createParamsWithSignature(postParams, apiSecret)
-			println(postParamsWithSignature)
 			o: write(postParamsWithSignature: getBytes(DEFAULT_ENCODING))
 		})
 }
