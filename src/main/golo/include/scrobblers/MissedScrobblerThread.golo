@@ -69,11 +69,11 @@ local function _createMissedScrobbleRunThread = |handler| {
 	return Thread(runnable)
 }
 
-local function scheduleAddScrobble = |handler, scrobblerIds, scrobble| {
+local function scheduleAddScrobble = |handler, scrobblerId, scrobble| {
 	if (not handler: _isRunning(): get()) {
 		raise("Internal error: MissingScrobblerThread is not running")
 	}
-	handler: _port(): send(AddMissedScrobbleMsg(scrobblerIds, scrobble))
+	handler: _port(): send(AddMissedScrobbleMsg(scrobblerId, scrobble))
 }
 
 local function scheduleScrobbleAction = |handler| {
@@ -93,32 +93,42 @@ local function stopScrobblerHandler = |handler| {
 local function portIncomingMsgHandler = |handler, msg| {
 	case {
 		when msg: isAddMissedScrobbleMsg() {
-			# println("Adding scrobble...")
 			_addScrobbles(handler, msg)
 		}
 		when msg: isScrobbleMissedScrobblesMsg() {
-			# println("\n\n\nscrobbling...")
-			# scrobbles: clear()
+			try {
+				_scrobbleMissingScrobbles(handler)
+			} catch (ex) {
+				println("COULD NOT RE-SCROBBLE: " + ex)
+			}
 		}
 		otherwise {
 			raise("Internal error, unknown message passed: " + msg)
 		}
 	}
-	# println(scrobbles)
 }
 
 local function _addScrobbles = |handler, msg| {
 	let scrobblerId = msg: scrobblerId()
 	let scrobbles = handler: _scrobbles()
-	scrobbles: putIfAbsent(scrobblerId, set[])
-	scrobbles: get(scrobblerId): add(msg: scrobble())
+	if (scrobbles: size() < handler: _size()) {
+		scrobbles: putIfAbsent(scrobblerId, set[])
+		scrobbles: get(scrobblerId): add(msg: scrobble())
+	} else {
+		println("SCROBBLE WILL BE LOST: TOO MANY SCROBBLES IN QUEUE")
+	}
 }
 
 local function _scrobbleMissingScrobbles = |handler| {
 	handler: _scrobbles(): entrySet(): each(|es| {
 		let scrobblerId = es: getKey()
 		let scrobbles = es: getValue()
-		let scrobbler = handler: _scrobblers(): get(scrobblerId)
-		scrobbler: scrobbleAll(scrobbles)
+		if (scrobbles: size() > 0) {
+			println("\n* Re-scrobbling " + scrobbles: size() + " songs to " + scrobblerId + "...")
+			let scrobbler = handler: _scrobblers(): get(scrobblerId)
+			scrobbler: scrobbleAll(scrobbles)
+			println("* Done\n")
+		}
 	})
+	handler: _scrobbles(): clear()
 }

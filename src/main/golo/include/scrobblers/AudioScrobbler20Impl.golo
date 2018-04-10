@@ -12,6 +12,7 @@ import java.security.MessageDigest
 import java.util.{Calendar, Collections, stream.Collectors, TimeZone, TreeSet}
 
 let DEFAULT_ENCODING = "UTF-8"
+let MAX_SCROBBLES = 50
 
 function createAudioScrobbler20Impl = |id, apiUrl, apiKey, apiSecret, sessionKey| {
 	let scrobbler = DynamicObject("AudioScrobbler20Impl"):
@@ -35,6 +36,7 @@ function createAudioScrobbler20AuthorizeHelper = |id, apiUrl, authorizeUrl, apiK
 		define("_apiSecret", apiSecret):
 		define("id", id):
 		define("authorize", |this| -> authorizeAccountAndGetSessionKey(this))
+
 	return authorizeHelper
 }
 
@@ -102,29 +104,30 @@ local function requestPostScrobbles = |apiUrl, scrobbles, apiKey, apiSecret, ses
 	doHttpPostRequestAndReturnJSON(
 		apiUrl,
 		|o| {
-			let postParams = map[
-				["method", "track.scrobble"],
-				["api_key", apiKey],
-				["sk", sessionKey],
-				["format", "json"]]
+			divideListInChunks(list[s foreach s in scrobbles], MAX_SCROBBLES): each(|chunk| {
+				let postParams = map[
+					["method", "track.scrobble"],
+					["api_key", apiKey],
+					["sk", sessionKey],
+					["format", "json"]]
 
-			if (scrobbles: size() == 1) {
-				# Just one song, do not add array notation
-				let scrobble = scrobbles: get(0)
-				_addScrobble(postParams, scrobble)
-			} else {
-				# Multiple songs, add array index "[<index>]" to each scrobble
-				# TODO: chunk of up to 50 entries at a time!
-				range(scrobbles): each(|idx| {
-					let scrobble = scrobbles: get(idx)
-					let arrayIndex = "[" + idx: toString() + "]"
-					_addScrobble(postParams, scrobble, arrayIndex)
+				# Add scrobbles to postParams
+				range(chunk: size()): each(|idx| {
+					if (chunk: size() == 1) {
+						# Just one song, do not add array notation
+						_addScrobble(postParams, chunk: get(0))
+					} else {
+						# Multiple songs, add array index "[<index>]" to each scrobble
+						let scrobble = chunk: get(idx)
+						let arrayIndex = "[" + idx: toString() + "]"
+						_addScrobble(postParams, scrobble, arrayIndex)
+					}
 				})
-			}
-			
-			let postParamsWithSignature = createParamsWithSignature(postParams, apiSecret)
-			println(postParamsWithSignature)
-			o: write(postParamsWithSignature: getBytes(DEFAULT_ENCODING))
+
+				let postParamsWithSignature = createParamsWithSignature(postParams, apiSecret)
+				println(postParamsWithSignature)
+				o: write(postParamsWithSignature: getBytes(DEFAULT_ENCODING))
+			})
 		})
 }
 
@@ -185,7 +188,6 @@ local function requestGetAuthToken = |apiUrl, apiKey, apiSecret|	{
 	return doHttpGetRequestAndReturnJSON(url): get("token")
 }
 
-
 # High-level URL creation functions
 
 local function createGetSessionKeyUrl = |apiUrl, authToken, apiKey, apiSecret| {
@@ -231,4 +233,24 @@ local function createApiSignature = |params, secret| {
 	]
 	
 	return md5StringArray: join("")
+}
+
+local function divideListInChunks = |fullList, chunkSize| {
+	# TODO refactor this @#$$^%^
+	if (fullList: size() == 0 or chunkSize <= 0) {
+		return list[]
+	}
+
+	let chunks = list[list[]]
+	while (fullList: size() > 0) {
+		let lastChunk = chunks: get(chunks: size() - 1)
+		if (lastChunk: size() >= chunkSize) {
+			chunks: add(list[])
+			continue
+		}
+		
+		let item = fullList: pop()
+		lastChunk: add(item)
+	}
+	return chunks
 }

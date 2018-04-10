@@ -19,11 +19,19 @@ function createScrobblersHandler = |scrobblers, missedScrobblesHandler| {
 		define("scrobble", |this, song| {
 			this: _scrobblers(): each(|scrobbler| {
 				let utcTimestamp = _createTimestamp(song: position())
+				let scrobble = Scrobble(utcTimestamp, song)
 				try {
-					scrobbler: scrobble(Scrobble(utcTimestamp, song))
+					scrobbler: scrobble(scrobble)
 				} catch(ex) {
-					# TODO use the missedScrobblesHandler...
-					throw(ex)
+					case {
+						when ex oftype java.net.SocketException.class or ex oftype java.net.SocketTimeoutException.class {
+							println("Could not scrobble to service '" + scrobbler: id() + "': " + ex)
+							missedScrobblesHandler: addMissedScrobble(scrobbler: id(), scrobble)
+						}
+						otherwise {
+							println("IGNORE UNKNOWN ERROR WHILE SCROBBLING TO SERVICE " + scrobbler: id() + ": " + ex)
+						}
+					}
 				}
 			})
 		})
