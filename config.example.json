@@ -23,7 +23,7 @@
 	"settings": {
 		"errorHandling": {
 			"maxSongs": 100,
-			"retryIntervalMinutes": 30,
+			"retryIntervalMinutes": 30
 		}
 	}	
 }
