@@ -2,13 +2,14 @@
 module audiostreamerscrobbler.Audiostreamerscrobbler
 
 import audiostreamerscrobbler.factories.PlayerDetectorFactory
+import audiostreamerscrobbler.factories.ScrobblerErrorHandlerFactory
 import audiostreamerscrobbler.factories.ScrobblersFactory
-import audiostreamerscrobbler.scrobbler.MissedScrobblerHandler
 import audiostreamerscrobbler.scrobbler.ScrobblersHandler
 import audiostreamerscrobbler.states.detector.PlayerDetectorState
 import audiostreamerscrobbler.states.monitor.PlayerMonitorState
 import audiostreamerscrobbler.states.StateManager
 import audiostreamerscrobbler.states.types.PlayerThreadStates
+import audiostreamerscrobbler.utils.VerySimpleArgsParser
 
 import java.util.Arrays
 
@@ -22,16 +23,14 @@ local function run = |args| {
 		return
 	}
 
-	# Create and start thread that periodically tries to scrobble scrobbles that were not accepted previously
-	# TODO make this configurable...
 	let scrobblers = createScrobblersFactory(): createScrobblers()
-	let missedScrobblesHandler = createMissedScrobblerHandlerThread(100, 60 * 60, scrobblers)
-	missedScrobblesHandler: start()
+	let missedScrobblerHandler = createScrobblerErrorHandlerFactory(scrobblers): createScrobblerErrorHandler()
+	missedScrobblerHandler: start()
 	
 	let stateManager = createStateManager(PlayerThreadStates.DetectPlayer(), |stateType| {
 		# Create requested state
 		let createPlayerDetector = -> createPlayerDetectorFactory(): createPlayerDetector()
-		let createHandlerWithScrobblers = -> createScrobblersHandler(createScrobblersFactory(): createScrobblers(), missedScrobblesHandler)
+		let createHandlerWithScrobblers = -> createScrobblersHandler(createScrobblersFactory(): createScrobblers(), missedScrobblerHandler)
 		let state = match {
 			when stateType: isDetectPlayer() then createPlayerDetectorState(createPlayerDetector())
 			when stateType: isMonitorPlayer() then createPlayerMonitorState(stateType: player(), createHandlerWithScrobblers())
@@ -44,20 +43,7 @@ local function run = |args| {
 }
 
 local function handleCommandLineOptions = |args| {
-	let parser = DynamicObject("VerySimpleArgsParser"):
-		define("_args", args):
-		define("_index", 0):
-		define("parseNext", |this| {
-			let index = this: _index()
-			let args = this: _args()
-			if (index >= args: length()) {
-				return null
-			}
-			let v = args: get(index)
-			this: _index(index + 1)
-			return v
-		})
-
+	let parser = createVerySimpleArgsParser(args)
 		
 	if (parser: parseNext() == "--authorize") {
 		let service = parser: parseNext()

@@ -112,7 +112,7 @@ local function createGnuFMScrobblerInstance = |scrobblersConfig| {
 local function createGnuFMAuthorizerInstance = |scrobblersConfig| {
 	let gnuFmConfig = scrobblersConfig: get(GNU_FM_ID)
 	if (gnuFmConfig: get("nixtapeUrl") is null) {
-		throw "ERROR: Scrobbler 'gnufm' is not configured in config.json. Entry 'urlNixtape' in 'gnufm' entry must be filled before authorization can take place."
+		throw "ERROR: Scrobbler 'gnufm' is not configured in config.json. Entry 'nixtapeUrl' in 'gnufm' entry must be filled before authorization can take place."
 	}
 	return createGnuFmAuthorizor(gnuFmConfig: get("nixtapeUrl")) 
 }

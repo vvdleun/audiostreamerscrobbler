@@ -2,7 +2,7 @@
 
 ## Warning: ALPHA version
 
-This program is not ready for prime time yet, it's under heavy development. At this time it can only monitor 1 chosen BlueSound device and the program crashes when a scrobbler service does not accept the HTTP request for whatever reason.
+This program is not ready for prime time yet, it's under heavy development. At this time it can only monitor 1 chosen BlueSound device and the program does not handle all scrobbler service errors well (it should no longer crash when errors occur, though and handle many error situations correctly).
 
 Note that the program uses the undocumented LSDP protocol to detect BlueSound players that are powered on. I could only test it with my BlueSound player, which is the built-in streamer (internal BlueOS 2 MDC upgrade card) in my - lovely! - NAD C368 amplifier. Therefore I don't know yet whether it will work on other players, like BlueSound's more popular wi-fi speakers, or their Node range of products.
 
@@ -55,6 +55,12 @@ Copy the audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar file to a directory that 
                 "nixtapeUrl": "192.168.178.109/nixtape",
                 "sessionKey": ""
             },
+        },
+        "settings": {
+            "errorHandling": {
+                "maxSongs": 100,
+                "retryIntervalMinutes": 30
+            }
         }
     }
 
@@ -117,6 +123,12 @@ See the Last FM entry for more detailed instructions on the authorization proces
 #### ListenBrainz
 
 Support will be coming soon, it is very high on my priority list.
+
+### Configuring scrobble errors parameters
+
+As this program was created for Raspberry pi-alike devices, it currently can only register songs that could not be scrobbled in volatile memory (storing them on the filesystem will damage SD cards on the long run). This means that the program will not persist them and when quitting the application before it had a chance to scrobble the songs, those scrobbles will be lost forever.
+
+You can choose how many songs it can store per scrobbler by setting the desired amount in the "maxSongs" entry. You can also configure the interval on which it will try to scrobble those songs by setting the ""retryIntervalMinutes" entry in the confgiuration file. This interval is always specified in minutes.
 
 ## Plans
 

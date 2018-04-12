@@ -1,7 +1,7 @@
 {
 	"player": {
 		"type": "bluesound",
-		"name": "NAME OF YOUR BLUESOUND DEVICE HERE"
+		"name": "YOUR DEVICE NAME HERE"
 	},
 	"scrobblers": {
 		"lastfm": {
@@ -19,5 +19,11 @@
 			"nixtapeUrl": "",
 			"sessionKey": ""
 		}
-	}
+	},
+	"settings": {
+		"errorHandling": {
+			"maxSongs": 100,
+			"retryIntervalMinutes": 30,
+		}
+	}	
 }
