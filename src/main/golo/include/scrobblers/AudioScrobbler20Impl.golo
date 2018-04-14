@@ -7,7 +7,7 @@ import gololang.IO
 import java.awt.Desktop
 import java.io.{BufferedReader, InputStreamReader}
 import java.lang.Thread
-import java.net.URI
+import java.net.{URI, URLEncoder}
 import java.security.MessageDigest
 import java.util.{Calendar, Collections, stream.Collectors, TimeZone, TreeSet}
 
@@ -141,7 +141,7 @@ function requestPostUpdateNowPlaying = |apiUrl, song, apiKey, apiSecret, session
 				["format", "json"]]
 
 			_addSong(postParams, song)
-				
+
 			let postParamsWithSignature = createParamsWithSignature(postParams, apiSecret)
 			o: write(postParamsWithSignature: getBytes(DEFAULT_ENCODING))
 		})
@@ -215,7 +215,9 @@ local function createParamsWithSignature = |params, apiSecret| {
 }
 
 local function createParams = |params| {
-	return [es: key() + "=" + es: value() foreach es in params: entrySet()]: join("&")
+	let urlEncode = |v| -> URLEncoder.encode(v: toString(), DEFAULT_ENCODING)
+
+	return [es: key() + "=" + urlEncode(es: value()) foreach es in params: entrySet()]: join("&")
 }
 
 local function createApiSignature = |params, secret| {
