@@ -13,7 +13,7 @@ function createPlayerDetectorState = |playerDetector| {
 
 local function runPlayerDetectorState = |playerDetectorState| {
 	let detector = playerDetectorState: _playerDetector()
-
+	println("Looking for players...")
 	while (true) {
 		let detectorState = detector: detectPlayer()
 		

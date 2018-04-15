@@ -1,7 +1,9 @@
 module audiostreamerscrobbler.scrobbler.AudioScrobbler20Impl
 
-import nl.vincentvanderleun.utils.ByteUtils
 import audiostreamerscrobbler.utils.RequestUtils
+
+import nl.vincentvanderleun.scrobbler.exceptions.ScrobblerException
+import nl.vincentvanderleun.utils.ByteUtils
 
 import gololang.IO
 import java.awt.Desktop
@@ -13,6 +15,7 @@ import java.util.{Calendar, Collections, stream.Collectors, TimeZone, TreeSet}
 
 let DEFAULT_ENCODING = "UTF-8"
 let MAX_SCROBBLES = 50
+let ERROR_CODES_RETRY = list["8", "11", "16", "29"]
 
 function createAudioScrobbler20Impl = |id, apiUrl, apiKey, apiSecret, sessionKey| {
 	let scrobbler = DynamicObject("AudioScrobbler20Impl"):
@@ -95,13 +98,35 @@ local function scrobbleAll = |scrobbler, scrobbles| {
 	let apiSecret = scrobbler: _apiSecret()
 	let sessionKey = scrobbler: _sessionKey()
 
-	requestPostScrobbles(apiUrl, scrobbles, apiKey, apiSecret, sessionKey)
+	var result = null
+	try {
+		result = requestPostScrobbles(apiUrl, scrobbles, apiKey, apiSecret, sessionKey)
+	} catch(ex) {
+		# ScrobblerHandler should take care of network errors
+		case {
+			when ex oftype nl.vincentvanderleun.utils.exceptions.HttpRequestException.class {
+				throw(ScrobblerException(ex, true))
+			}
+			otherwise {
+				throw(ex)
+			}
+		}
+	}
+
+	if (result isnt null) {
+		if result: containsKey("error") {
+			let errorCode = result: get("error"): toString()
+			let retryLater = ERROR_CODES_RETRY: contains(errorCode)
+			let msg = result: getOrElse("message", "null")
+			throw(ScrobblerException("Reported AudioScrobbler 2.0 API error code: '" + errorCode + "', message='" + msg + "'", retryLater))
+		}
+	}
 }
 
 # Higher-level HTTP requests functions
 
 local function requestPostScrobbles = |apiUrl, scrobbles, apiKey, apiSecret, sessionKey| {
-	doHttpPostRequestAndReturnJSON(
+	return doHttpPostRequestAndReturnJSON(
 		apiUrl,
 		|o| {
 			divideListInChunks(list[s foreach s in scrobbles], MAX_SCROBBLES): each(|chunk| {

@@ -27,14 +27,11 @@ function createScrobblersHandler = |scrobblers, missedScrobblesHandler| {
 					try {
 						scrobbler: scrobble(scrobble)
 					} catch(ex) {
-						case {
-							when ex oftype java.net.SocketException.class or ex oftype java.net.SocketTimeoutException.class {
-								println("Could not scrobble to service '" + scrobbler: id() + "': " + ex)
-								missedScrobblesHandler: addMissedScrobble(scrobbler: id(), scrobble)
-							}
-							otherwise {
-								println("IGNORE UNKNOWN ERROR WHILE SCROBBLING TO SERVICE " + scrobbler: id() + ": " + ex)
-							}
+						if (shouldRetryScrobble(ex)) {
+							println("Could not scrobble to service '" + scrobbler: id() + "' will try later. Reason: " + ex)
+							missedScrobblesHandler: addMissedScrobble(scrobbler: id(), scrobble)
+						} else {
+							println("Unknown error occured, Scrobble will be lost for:  " + scrobbler: id() + ". Reason: " + ex)
 						}
 					}
 				})
@@ -42,6 +39,20 @@ function createScrobblersHandler = |scrobblers, missedScrobblesHandler| {
 		})
 		
 	return scrobblersInstance
+}
+
+local function shouldRetryScrobble = |ex| {
+	case {
+		when ex oftype java.net.SocketException.class or ex oftype java.net.SocketTimeoutException.class {
+			return true
+		}
+		when ex oftype nl.vincentvanderleun.scrobbler.exceptions.ScrobblerException.class {
+			return ex: shouldRetryLater()
+		}
+		otherwise {
+			return false
+		}
+	}
 }
 
 local function _createTimestamp = |songPosition| {
