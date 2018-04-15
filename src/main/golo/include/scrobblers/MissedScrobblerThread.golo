@@ -2,8 +2,10 @@ module audiostreamerscrobbler.scrobbler.MissedScrobblerHandler
 
 import gololang.concurrent.workers.WorkerEnvironment
 import java.lang.Thread
+import java.util.{Calendar, TimeZone}
 import java.util.concurrent
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.TimeUnit
 
 union MissedScrobblerActions = {
 	AddMissedScrobbleMsg = {scrobblerId, scrobble}
@@ -23,14 +25,14 @@ function createMissedScrobblerHandlerThread = |size, interval, scrobblers| {
 		define("_scrobblers", scrobblersMap):
 		define("_scrobbles", null):
 		define("_scheduleScrobbleAction", |this| -> scheduleScrobbleAction(this)):
-		define("start", |this| -> startScrobblerHandler(this)):
-		define("stop", |this| -> stopScrobblerHandler(this)):
+		define("start", |this| -> initAndStartScrobblerHandler(this)):
+		define("stop", |this| -> scheduleScrobbleStop(this)):
 		define("addMissedScrobble", |this, scrobblerIds, scrobble| -> scheduleAddScrobble(this, scrobblerIds, scrobble))
 
 	return missedScrobblerHandler
 }
 
-local function startScrobblerHandler = |handler| {
+local function initAndStartScrobblerHandler = |handler| {
 	if (handler: _thread() isnt null) {
 		raise("Internal error: scrobble missing task thread was already running")
 	}
@@ -84,7 +86,7 @@ local function scheduleScrobbleAction = |handler| {
 	handler: _port(): send(ScrobbleMissedScrobblesMsg())	
 }
 
-local function stopScrobblerHandler = |handler| {
+local function scheduleScrobbleStop = |handler| {
 	handler: _isRunning(): set(false)
 }
 
@@ -126,9 +128,17 @@ local function _scrobbleMissingScrobbles = |handler| {
 		if (scrobbles: size() > 0) {
 			println("\n* Re-scrobbling " + scrobbles: size() + " songs to " + scrobblerId + "...")
 			let scrobbler = handler: _scrobblers(): get(scrobblerId)
-			scrobbler: scrobbleAll(scrobbles)
+			let filteredScrobbles = scrobbles: filter(|s| -> daysBetweenNowAndDate(s: utcTimestamp()) <= scrobbler: minimalDaysOld())
+			scrobbler: scrobbleAll(filteredScrobbles)
 			println("* Done\n")
 		}
 	})
 	handler: _scrobbles(): clear()
+}
+
+local function daysBetweenNowAndDate = |d| {
+	let dateNow = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+	
+	let diff = dateNow: getTimeInMillis() - d: getTimeInMillis()
+    return TimeUnit.DAYS(): convert(diff, TimeUnit.MILLISECONDS())
 }

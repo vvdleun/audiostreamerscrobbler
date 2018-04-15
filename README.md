@@ -2,9 +2,13 @@
 
 ## Warning: ALPHA version
 
-This program is not ready for prime time yet, it's under heavy development. At this time it can only monitor 1 chosen BlueSound device and the program does not handle all scrobbler service errors well (it should no longer crash when errors occur, though and handle many error situations correctly).
+This program is not ready for prime time yet, it's under heavy development. At this time it can only monitor 1 chosen BlueSound device ~~and the program does not handle all scrobbler service errors well (it should no longer crash when errors occur, though and handle many error situations correctly).~~ *UPDATE*: the program should now react correctly to errors that occur during scrobbling. As discussed later, it has a buffer that will be filled with scrobbles that could not be scrobbled successfully (but only if the error is thought to be recoverable later) and the program will try to scrobble those songs periodically.
 
 Note that the program uses the undocumented LSDP protocol to detect BlueSound players that are powered on. I could only test it with my BlueSound player, which is the built-in streamer (internal BlueOS 2 MDC upgrade card) in my - lovely! - NAD C368 amplifier. Therefore I don't know yet whether it will work on other players, like BlueSound's more popular wi-fi speakers, or their Node range of products.
+
+## Development News
+
+* 16th of April 2018: Improved the handling of scrobbler errors, as dictated by Last FM's AudioScrobbler 2.0 API specifications
 
 ## Description  
 
@@ -130,9 +134,11 @@ As this program was created for Raspberry pi-alike devices, it currently can onl
 
 You can choose how many songs it can store per scrobbler by setting the desired amount in the "maxSongs" entry. You can also configure the interval on which it will try to scrobble those songs by setting the "retryIntervalMinutes" entry in the confgiuration file. This interval is always specified in minutes.
 
+Songs that could not be scrobbled for 14 days in a row are silently dropped, as required by Last FM.
+
 ## Plans
 
-First I want to make the application as stable as possible (that includes having a buffer for failed scrobble attempts and periodic retries) and add ListenBrainz support. Then I'd want to add Yamaha MusicCast support (as I use both BlueSound and MusicCast devices in my home). Then the time will be right to make the program multi-threaded, so that it will be able to monitor multiple players (of multiple types) at once. Ideally I'd like to add HEOS support as well, please let me know if there's any demand for those and/or any other brands.
+First I want to make the application as stable as possible (*UPDATE*: that goal seems to have been reached by now) and add ListenBrainz support. Then I'd want to add Yamaha MusicCast support (as I use both BlueSound and MusicCast devices in my home). Then the time will be right to make the program multi-threaded, so that it will be able to monitor multiple players (of multiple types) at once. Ideally I'd like to add HEOS support as well, please let me know if there's any demand for those and/or any other brands.
 
 On the longer term I'd like to add more advanced grouping possibilities, so that different group of devices can scrobble to different accounts on different services. Time will tell if this application will ever get that advanced.
 

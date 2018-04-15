@@ -24,6 +24,7 @@ function createAudioScrobbler20Impl = |id, apiUrl, apiKey, apiSecret, sessionKey
 		define("_apiSecret", apiSecret):
 		define("_sessionKey", sessionKey):
 		define("id", id):
+		define("minimalDaysOld", 14):
 		define("updateNowPlaying", |this, song| -> updateNowPlaying(this, song)):
 		define("scrobble", |this, scrobble| -> scrobbleSong(this, scrobble)):
 		define("scrobbleAll", |this, scrobbles| -> scrobbleAll(this, scrobbles))
