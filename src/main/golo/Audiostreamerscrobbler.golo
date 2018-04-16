@@ -104,7 +104,11 @@ local function showHelp = |option| {
 }
 
 local function authorizeService = |parser| {
-	_authorizeService(parser)
+	try {
+		_authorizeService(parser)
+	} catch(ex) {
+		println("\nUnexpected error occurred: " + ex)
+	}
 	return true
 }
 
