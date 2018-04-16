@@ -40,7 +40,7 @@ function queryLSDPPlayers = |inetAddresses, timeout, playerAnswerCallback| {
 		} catch (ex) {
 			case {
 				when ex oftype BindException.class {
-					println("ERROR: Could not bind to LSDP port. Make sure no other BlueOS applications are active on this system.")
+					println("ERROR: Could not bind to LSDP port. Make sure no other BluOS and/or BlueSound applications are active on this system.")
 				}
 				otherwise {
 					throw ex
