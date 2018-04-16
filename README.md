@@ -9,14 +9,14 @@ Note that the program uses the undocumented LSDP protocol to detect BluOs player
 ## Development News
 
 * 17th of April 2018
-** Improved command-line and configuration validation
-** Renamed BlueSound (company name) to BluOS (name of the standard that BlueSound uses for their products and licenses to other companies)
-** Libre FM and GNU FM scrobblers now silently drop scrobbles older than 30 days (they have no practical limit AFAIK), while Last FM still drops scrobbles older than 14 days
-** Re-factored HTTP request creation in preparation of future ListenBrainz support
+  * Improved command-line and configuration validation
+  * Renamed BlueSound (company name) to BluOS (name of the standard that BlueSound uses for their products and licenses to other companies)
+  * Libre FM and GNU FM scrobblers now silently drop scrobbles older than 30 days (they have no practical limit AFAIK), while Last FM still drops scrobbles older than 14 days
+  * Re-factored HTTP request creation in preparation of incoming ListenBrainz support
 
 * 16th of April 2018
-** Improved the handling of scrobbler errors, as dictated by Last FM's AudioScrobbler 2.0 API specifications
-** Scrobbles older than 14 days are silently dropped, again as dictated by the AudioScrobbler 2.0 API specifications
+  * Improved the handling of scrobbler errors, as dictated by Last FM's AudioScrobbler 2.0 API specifications
+  * Scrobbles older than 14 days are silently dropped, again as dictated by the AudioScrobbler 2.0 API specifications
 
 ## Description  
 
@@ -44,7 +44,7 @@ In the build/libs subdirectory, you'll find a audiostreamerscrobbler-0.1.0-SNAPS
 
 ## Installation
 
-Copy the audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar file to a directory that is convenient for you. In the same directory, create a config.json file that looks like this:
+After compiling the project, copy the builds/libs/audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar file to a directory that is convenient for you. In the same directory, create a config.json file that looks like this:
 
     {
         "player": {
