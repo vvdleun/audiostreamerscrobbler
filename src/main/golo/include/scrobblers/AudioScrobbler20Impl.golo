@@ -1,6 +1,6 @@
 module audiostreamerscrobbler.scrobbler.AudioScrobbler20Impl
 
-import audiostreamerscrobbler.utils.RequestUtils
+import audiostreamerscrobbler.maintypes.AudioStreamerScrobblerHttpRequest
 
 import nl.vincentvanderleun.scrobbler.exceptions.ScrobblerException
 import nl.vincentvanderleun.utils.ByteUtils
@@ -23,6 +23,7 @@ function createAudioScrobbler20Impl = |id, apiUrl, apiKey, apiSecret, sessionKey
 		define("_apiKey", apiKey):
 		define("_apiSecret", apiSecret):
 		define("_sessionKey", sessionKey):
+		define("_httpRequest", createHttpRequest()):
 		define("id", id):
 		define("maximalDaysOld", maximalDaysOld):
 		define("updateNowPlaying", |this, song| -> updateNowPlaying(this, song)):
@@ -38,6 +39,7 @@ function createAudioScrobbler20AuthorizeHelper = |id, apiUrl, authorizeUrl, apiK
 		define("_authorizeUrl", authorizeUrl):
 		define("_apiKey", apiKey):
 		define("_apiSecret", apiSecret):
+		define("_httpRequest", createHttpRequest()):
 		define("id", id):
 		define("authorize", |this| -> authorizeAccountAndGetSessionKey(this))
 
@@ -51,6 +53,7 @@ local function authorizeAccountAndGetSessionKey = |authHelper| {
 	let apiUrl = authHelper: _apiUrl()
 	let apiKey = authHelper: _apiKey()
 	let apiSecret = authHelper: _apiSecret()
+	let httpRequest = authHelper: _httpRequest()
 
 	if (not Desktop.isDesktopSupported()) {
 		println("A desktop GUI Internet browser is required to finish this procedure.")
@@ -58,7 +61,7 @@ local function authorizeAccountAndGetSessionKey = |authHelper| {
 		return
 	}
 
-	let authToken = requestGetAuthToken(apiUrl, apiKey, apiSecret)
+	let authToken = requestGetAuthToken(httpRequest, apiUrl, apiKey, apiSecret)
 	println("Retrieved token: " + authToken)
 	println("Your default desktop GUI browser has been opened. Login and when prompted, authorize the application.")
 	
@@ -73,9 +76,12 @@ local function authorizeAccountAndGetSessionKey = |authHelper| {
 		Thread.sleep(60_L * 3 * 1000)
 	}
 
-	let session = requestGetSessionKey(apiUrl, authToken, apiKey, apiSecret)
+	let session = requestGetSessionKey(httpRequest, apiUrl, authToken, apiKey, apiSecret)
 
 	let sessionKey = session: get("session"): get("key")
+
+	println("Copy and paste the following Session Key to the 'sessionKey' field of the '" + id + "' entry in your config.json file:")
+	println(sessionKey)
 }
 
 # Scrobbler object helpers
@@ -85,8 +91,9 @@ local function updateNowPlaying = |scrobbler, song| {
 	let apiKey = scrobbler: _apiKey()
 	let apiSecret = scrobbler: _apiSecret()
 	let sessionKey = scrobbler: _sessionKey()
+	let httpRequest = scrobbler: _httpRequest()
 
-	requestPostUpdateNowPlaying(apiUrl, song, apiKey, apiSecret, sessionKey)
+	requestPostUpdateNowPlaying(httpRequest, apiUrl, song, apiKey, apiSecret, sessionKey)
 }
 
 local function scrobbleSong = |scrobbler, scrobble| {
@@ -98,10 +105,11 @@ local function scrobbleAll = |scrobbler, scrobbles| {
 	let apiKey = scrobbler: _apiKey()
 	let apiSecret = scrobbler: _apiSecret()
 	let sessionKey = scrobbler: _sessionKey()
+	let httpRequest = scrobbler: _httpRequest()
 
 	var result = null
 	try {
-		result = requestPostScrobbles(apiUrl, scrobbles, apiKey, apiSecret, sessionKey)
+		result = requestPostScrobbles(httpRequest, apiUrl, scrobbles, apiKey, apiSecret, sessionKey)
 	} catch(ex) {
 		# ScrobblerHandler should take care of network errors
 		case {
@@ -126,8 +134,8 @@ local function scrobbleAll = |scrobbler, scrobbles| {
 
 # Higher-level HTTP requests functions
 
-local function requestPostScrobbles = |apiUrl, scrobbles, apiKey, apiSecret, sessionKey| {
-	return doHttpPostRequestAndReturnJSON(
+local function requestPostScrobbles = |httpRequest, apiUrl, scrobbles, apiKey, apiSecret, sessionKey| {
+	return httpRequest: doHttpPostRequestAndReturnJSON(
 		apiUrl,
 		|o| {
 			divideListInChunks(list[s foreach s in scrobbles], MAX_SCROBBLES): each(|chunk| {
@@ -156,8 +164,8 @@ local function requestPostScrobbles = |apiUrl, scrobbles, apiKey, apiSecret, ses
 		})
 }
 
-function requestPostUpdateNowPlaying = |apiUrl, song, apiKey, apiSecret, sessionKey| {
-	doHttpPostRequestAndReturnJSON(
+function requestPostUpdateNowPlaying = |httpRequest, apiUrl, song, apiKey, apiSecret, sessionKey| {
+	httpRequest: doHttpPostRequestAndReturnJSON(
 		apiUrl,
 		|o| {
 			let postParams = map[
@@ -202,14 +210,14 @@ local function _createTimestamp = |utcCalendar| {
 	return utcCalendar: getTimeInMillis() / 1000
 }
 
-local function requestGetSessionKey = |apiUrl, authToken, apiKey, apiSecret| {
+local function requestGetSessionKey = |httpRequest, apiUrl, authToken, apiKey, apiSecret| {
 	let url = createGetSessionKeyUrl(apiUrl, authToken, apiKey, apiSecret)
-	return doHttpGetRequestAndReturnJSON(url)
+	return httpRequest: doHttpGetRequestAndReturnJSON(url)
 }
 
-local function requestGetAuthToken = |apiUrl, apiKey, apiSecret|	{
+local function requestGetAuthToken = |httpRequest, apiUrl, apiKey, apiSecret|	{
 	let url = createGetAuthTokenUrl(apiUrl, apiKey, apiSecret)
-	return doHttpGetRequestAndReturnJSON(url): get("token")
+	return httpRequest: doHttpGetRequestAndReturnJSON(url): get("token")
 }
 
 # High-level URL creation functions

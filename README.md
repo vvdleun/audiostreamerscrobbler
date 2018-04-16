@@ -8,8 +8,15 @@ Note that the program uses the undocumented LSDP protocol to detect BluOs player
 
 ## Development News
 
-* 17th of April 2018: Improved command-line and configuration validation. Renamed BlueSound (company name) to BluOS (name of the standard that BlueSound uses and licenses to other companies)
-* 16th of April 2018: Improved the handling of scrobbler errors, as dictated by Last FM's AudioScrobbler 2.0 API specifications
+* 17th of April 2018
+** Improved command-line and configuration validation
+** Renamed BlueSound (company name) to BluOS (name of the standard that BlueSound uses for their products and licenses to other companies)
+** Libre FM and GNU FM scrobblers now silently drop scrobbles older than 30 days (they have no practical limit AFAIK), while Last FM still drops scrobbles older than 14 days
+** Re-factored HTTP request creation in preparation of future ListenBrainz support
+
+* 16th of April 2018
+** Improved the handling of scrobbler errors, as dictated by Last FM's AudioScrobbler 2.0 API specifications
+** Scrobbles older than 14 days are silently dropped, again as dictated by the AudioScrobbler 2.0 API specifications
 
 ## Description  
 
@@ -139,7 +146,7 @@ Songs that could not be scrobbled for 14 days in a row are silently dropped, as 
 
 ## Plans
 
-First I want to make the application as stable as possible (*UPDATE*: that goal seems to have been reached by now) and add ListenBrainz support. Then I'd want to add Yamaha MusicCast support (as I use both BluOS and MusicCast devices in my home). Then the time will be right to make the program multi-threaded, so that it will be able to monitor multiple players (of multiple types) at once. Ideally I'd like to add HEOS support as well, please let me know if there's any demand for those and/or any other brands.
+Above on my to-do list is adding ListenBrainz support. Then I'd want to add Yamaha MusicCast support (as I use both BluOS and MusicCast devices in my home). Then the time will be right to make the program multi-threaded, so that it will be able to monitor multiple players (of multiple types) at once. Ideally I'd like to add HEOS by Denon support as well. Please let me know if there's any demand for those and/or any other brands.
 
 On the longer term I'd like to add more advanced grouping possibilities, so that different group of devices can scrobble to different accounts on different services. Time will tell if this application will ever get that advanced.
 
