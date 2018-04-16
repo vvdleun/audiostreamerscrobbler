@@ -17,14 +17,14 @@ let DEFAULT_ENCODING = "UTF-8"
 let MAX_SCROBBLES = 50
 let ERROR_CODES_RETRY = list["8", "11", "16", "29"]
 
-function createAudioScrobbler20Impl = |id, apiUrl, apiKey, apiSecret, sessionKey| {
+function createAudioScrobbler20Impl = |id, apiUrl, apiKey, apiSecret, sessionKey, maximalDaysOld| {
 	let scrobbler = DynamicObject("AudioScrobbler20Impl"):
 		define("_apiUrl", apiUrl):
 		define("_apiKey", apiKey):
 		define("_apiSecret", apiSecret):
 		define("_sessionKey", sessionKey):
 		define("id", id):
-		define("minimalDaysOld", 14):
+		define("maximalDaysOld", maximalDaysOld):
 		define("updateNowPlaying", |this, song| -> updateNowPlaying(this, song)):
 		define("scrobble", |this, scrobble| -> scrobbleSong(this, scrobble)):
 		define("scrobbleAll", |this, scrobbles| -> scrobbleAll(this, scrobbles))

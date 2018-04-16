@@ -128,7 +128,7 @@ local function _scrobbleMissingScrobbles = |handler| {
 		if (scrobbles: size() > 0) {
 			println("\n* Re-scrobbling " + scrobbles: size() + " songs to " + scrobblerId + "...")
 			let scrobbler = handler: _scrobblers(): get(scrobblerId)
-			let filteredScrobbles = scrobbles: filter(|s| -> daysBetweenNowAndDate(s: utcTimestamp()) <= scrobbler: minimalDaysOld())
+			let filteredScrobbles = scrobbles: filter(|s| -> daysBetweenNowAndDate(s: utcTimestamp()) <= scrobbler: maximalDaysOld())
 			scrobbler: scrobbleAll(filteredScrobbles)
 			println("* Done\n")
 		}

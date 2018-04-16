@@ -10,13 +10,15 @@ let API_NOT_SO_SECRET = "05FF369157CF42C1B566D3389CFD16D1"
 let API_URL_PATH = "2.0/"
 let API_AUTH_PATH = "api/auth/"
 
+let MAXIMAL_DAYS_OLD = 30
+
 function getGnuFmId = {
 	return SCROBBLER_ID
 }
 
 function createGnuFmScrobbler = |nixtapeUrl, sessionKey| {
 	let apiUrl = createApiUrl(nixtapeUrl)
-	return createAudioScrobbler20Impl(SCROBBLER_ID, apiUrl, API_KEY, API_NOT_SO_SECRET, sessionKey)
+	return createAudioScrobbler20Impl(SCROBBLER_ID, apiUrl, API_KEY, API_NOT_SO_SECRET, sessionKey, MAXIMAL_DAYS_OLD)
 }
 
 function createGnuFmAuthorizor = |nixtapeUrl| {

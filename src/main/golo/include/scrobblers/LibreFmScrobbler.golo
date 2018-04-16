@@ -8,6 +8,8 @@ let SCROBBLER_ID = "librefm"
 let API_URL = "https://libre.fm/2.0/"
 let AUTH_URL = "https://libre.fm/api/auth/"
 
+let MAXIMAL_DAYS_OLD = 30
+
 function getLibreFmId = {
 	return SCROBBLER_ID
 }
@@ -18,7 +20,7 @@ function createLibreFmScrobbler = |sessionKey| {
 	let apiKey = apiKeyAndApiSecret: get(0)
 	let apiSecret = apiKeyAndApiSecret: get(1)
 
-	return createAudioScrobbler20Impl(SCROBBLER_ID, API_URL, apiKey, apiSecret, sessionKey)
+	return createAudioScrobbler20Impl(SCROBBLER_ID, API_URL, apiKey, apiSecret, sessionKey, MAXIMAL_DAYS_OLD)
 }
 
 function createLibreFmAuthorizor = {
