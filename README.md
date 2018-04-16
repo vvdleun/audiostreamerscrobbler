@@ -2,17 +2,18 @@
 
 ## Warning: ALPHA version
 
-This program is not ready for prime time yet, it's under heavy development. At this time it can only monitor 1 chosen BlueSound device ~~and the program does not handle all scrobbler service errors well (it should no longer crash when errors occur, though and handle many error situations correctly).~~ *UPDATE*: the program should now react correctly to errors that occur during scrobbling. As discussed later, it has a buffer that will be filled with scrobbles that could not be scrobbled successfully (but only if the error is thought to be recoverable later) and the program will try to scrobble those songs periodically.
+This program is not ready for prime time yet, it's under heavy development. At this time it can only monitor 1 chosen BluOS device. In a future version, a single instance should be able to monitor all players of all supported audiostreamer standards.
 
-Note that the program uses the undocumented LSDP protocol to detect BlueSound players that are powered on. I could only test it with my BlueSound player, which is the built-in streamer (internal BlueOS 2 MDC upgrade card) in my - lovely! - NAD C368 amplifier. Therefore I don't know yet whether it will work on other players, like BlueSound's more popular wi-fi speakers, or their Node range of products.
+Note that the program uses the undocumented LSDP protocol to detect BluOs players that are powered on. I could only test it with my BluOS player, which is the built-in streamer (internal BluOS 2 MDC upgrade card) in my NAD C368 amplifier. Therefore I don't know yet whether it will work on other players, like BlueSound's more popular wi-fi speakers, or their Node range of products.
 
 ## Development News
 
+* 17th of April 2018: Improved command-line and configuration validation. Renamed BlueSound (company name) to BluOS (name of the standard that BlueSound uses and licenses to other companies)
 * 16th of April 2018: Improved the handling of scrobbler errors, as dictated by Last FM's AudioScrobbler 2.0 API specifications
 
 ## Description  
 
-AudioStreamerScrobbler is an application that monitors hardware audiostreamers (currently only BlueSound devices, but Yamaha MusicCast support is planned for the near future) and scrobbles played tracks to one or more of the following scrobbler services:
+AudioStreamerScrobbler is an application that monitors hardware audiostreamers (currently only BluOS devices, but Yamaha MusicCast support is planned for the near future) and scrobbles played tracks to one or more of the following scrobbler services:
 
 * Last FM (https://last.fm)
 * Libre FM (https://libre.fm)
@@ -20,7 +21,7 @@ AudioStreamerScrobbler is an application that monitors hardware audiostreamers (
 
 Support for ListenBrainz (https://listenbrainz.org) is planned as well.
 
-The program is intended to be used 24/7 on Raspberry pi-alike devices, although the program has not been tested on those small computers yet. Hopefully BlueSound and Yamaha will one day implement native Last FM support in their streaming platforms, but until that time you'll be able to use this workaround. As it is unlikely that those  companies will offer compatibility with the alternative scrobbler services, this program could still be useful, even when official Last FM support will be available.
+The program is intended to be used 24/7 on Raspberry pi-alike devices, although the program has not been tested on those small computers yet. Hopefully BluOS and Yamaha will one day implement native Last FM support in their streaming platforms, but until that time you'll be able to use this workaround. As it is unlikely that those  companies will offer compatibility with the alternative scrobbler services, this program could still be useful, even when official Last FM support will be available.
 
 AudioStreamerScrobbler was written in [Eclipse Golo, a lesser known dynamic language that runs on the Java Virtual Machine (JVM)](http://golo-lang.org). It was a design goal to write as much code in Golo as possible and not to use additional Java dependencies (unless very unpractical). We'll see how that wil turn out on the longer run. I had to write some code in Java to work around omissions in the Golo run-time library, but luckily Gradle takes care of those complexities when building the project. Although I'm personally not the biggest fan of dynamic languages, I really started to like Golo while I was developing this program. In my opinion it's a nice, small and clean language, with a surprisingly powerful run-time library.
 
@@ -40,7 +41,7 @@ Copy the audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar file to a directory that 
 
     {
         "player": {
-            "type": "bluesound",
+            "type": "bluos",
             "name": "Living Room C368"
         },
         "scrobblers": {
@@ -72,9 +73,9 @@ This format will change once multiple players and more type of players are suppo
 	
 ### Setting up the player
 
-At this time, the program can monitor exactly one BlueSound player. It should also be compatible with the new third party BlueOS powered devices that have appeared on the market, but this has not been tested yet. Enter the name of your device in the config.json's "name" field in the "player" section. 
+At this time, the program can monitor exactly one BluOS player. It should also be compatible with the new third party BlueOS powered devices that have appeared on the market, but this has not been tested yet. Enter the name of your device in the config.json's "name" field in the "player" section. 
 
-The player name must match your BlueSound device name exactly. Note that the name is CaSe SeNsItIvE. My BlueSound device is called "Living Room C368" (when translated to English), so that's what's in my config.json file.
+The player name must match your BluOS device name exactly. Note that the name is CaSe SeNsItIvE. My BluOS device is called "Living Room C368" (when translated to English), so that's what's in my config.json file.
 
 ### Setting up scrobbler services
 
@@ -138,7 +139,7 @@ Songs that could not be scrobbled for 14 days in a row are silently dropped, as 
 
 ## Plans
 
-First I want to make the application as stable as possible (*UPDATE*: that goal seems to have been reached by now) and add ListenBrainz support. Then I'd want to add Yamaha MusicCast support (as I use both BlueSound and MusicCast devices in my home). Then the time will be right to make the program multi-threaded, so that it will be able to monitor multiple players (of multiple types) at once. Ideally I'd like to add HEOS support as well, please let me know if there's any demand for those and/or any other brands.
+First I want to make the application as stable as possible (*UPDATE*: that goal seems to have been reached by now) and add ListenBrainz support. Then I'd want to add Yamaha MusicCast support (as I use both BluOS and MusicCast devices in my home). Then the time will be right to make the program multi-threaded, so that it will be able to monitor multiple players (of multiple types) at once. Ideally I'd like to add HEOS support as well, please let me know if there's any demand for those and/or any other brands.
 
 On the longer term I'd like to add more advanced grouping possibilities, so that different group of devices can scrobble to different accounts on different services. Time will tell if this application will ever get that advanced.
 

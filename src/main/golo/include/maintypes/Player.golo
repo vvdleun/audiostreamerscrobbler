@@ -1,13 +1,13 @@
 module audiostreamerscrobbler.maintypes.Player
 
 union PlayerTypes = {
-	BlueSound
+	BluOs
 }
 
 local function getPlayerTypeID = |playerType| {
 	case {
-		when playerType: isBlueSound() {
-			return "BlueSound"
+		when playerType: isBluOs() {
+			return "BluOS"
 		}
 		otherwise {
 			raise("Internal error: unknown player type '" + playerType + "'")

@@ -1,6 +1,6 @@
 module audiostreamerscrobbler.factories.PlayerDetectorFactory
 
-import audiostreamerscrobbler.bluesound.BlueSoundPlayerDetector
+import audiostreamerscrobbler.bluos.BluOsPlayerDetector
 import audiostreamerscrobbler.factories.Config
 
 function createPlayerDetectorFactory = {
@@ -14,7 +14,7 @@ function createPlayerDetectorFactory = {
 }
 
 local function createPlayerDetector = |config| {
-	# At this time only BlueSound players are supported...
+	# At this time only BluOS players are supported...
 	let playerName = config: get("player"): get("name")
-	return createBlueSoundPlayerDetector(playerName)
+	return createBluOsPlayerDetector(playerName)
 }

@@ -1,13 +1,13 @@
-module audiostreamerscrobbler.bluesound.BlueSoundPlayerDetector
+module audiostreamerscrobbler.bluos.BluOsPlayerDetector
 
-import audiostreamerscrobbler.bluesound.BlueSoundPlayer
-import audiostreamerscrobbler.bluesound.LSDPHandler
+import audiostreamerscrobbler.bluos.BluOsPlayer
+import audiostreamerscrobbler.bluos.LSDPHandler
 import audiostreamerscrobbler.states.detector.types.DetectorStateTypes
 import audiostreamerscrobbler.utils.NetworkUtils
 
 let TIMEOUT_SECONDS = 5
 
-struct DetectedBlueSoundPlayer = {
+struct DetectedBluOsPlayer = {
 	name,
 	port,
 	model,
@@ -18,18 +18,18 @@ struct DetectedBlueSoundPlayer = {
 	host
 }
 
-function createBlueSoundPlayerDetector = |playerName| {
-	let detector = DynamicObject("BlueSoundDetector"):
-		define("detectPlayer", |this| -> detectBlueSoundPlayer(playerName))
+function createBluOsPlayerDetector = |playerName| {
+	let detector = DynamicObject("BluOsDetector"):
+		define("detectPlayer", |this| -> detectBluOsPlayer(playerName))
 	return detector
 }
 
-local function detectBlueSoundPlayer = |playerName| {
+local function detectBluOsPlayer = |playerName| {
 	let players = list[]
 	let inetAddresses = getBroadcastAddresses()
 
 	queryLSDPPlayers(inetAddresses, TIMEOUT_SECONDS, |p, d| {
-		let player = convertLSDPAnswerToDetectedBlueSoundPlayer(p, d)
+		let player = convertLSDPAnswerToDetectedBluOsPlayer(p, d)
 		if (playerName != player: name()) {
 			# Player is not the player that we wanted. Keep searching...
 			return true
@@ -45,16 +45,16 @@ local function detectBlueSoundPlayer = |playerName| {
 		return DetectorStateTypes.PlayerNotFoundKeepTrying()
 	}
 
-	let blueSoundPlayerImpl = createBlueSoundPlayerImpl(players: get(0))
-	return DetectorStateTypes.PlayerFound(blueSoundPlayerImpl)	
+	let bluOsPlayerImpl = createBluOsPlayerImpl(players: get(0))
+	return DetectorStateTypes.PlayerFound(bluOsPlayerImpl)	
 }
 
-local function convertLSDPAnswerToDetectedBlueSoundPlayer = |p, d| {
+local function convertLSDPAnswerToDetectedBluOsPlayer = |p, d| {
 	let mainTable = p: get("tables"): get(0): get(1)
 	let name = mainTable: get("name")
 	let port = mainTable: get("port")
 
-	return DetectedBlueSoundPlayer(
+	return DetectedBluOsPlayer(
 		name,
 		port,
 		mainTable: get("model"),

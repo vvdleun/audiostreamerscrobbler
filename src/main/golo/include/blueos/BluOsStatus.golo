@@ -1,6 +1,6 @@
-module audiostreamerscrobbler.bluesound
+module audiostreamerscrobbler.bluos
 
-struct BlueSoundStatus = {
+struct BluOsStatus = {
 	success,
 	etag,
 	album,

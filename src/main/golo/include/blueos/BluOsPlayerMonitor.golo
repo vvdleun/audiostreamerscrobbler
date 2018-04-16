@@ -1,6 +1,6 @@
-module audiostreamerscrobbler.bluesound.BlueSoundPlayerMonitor
+module audiostreamerscrobbler.bluos.BluOsPlayerMonitor
 
-import audiostreamerscrobbler.bluesound.BlueSoundStatusXMLParser
+import audiostreamerscrobbler.bluos.BluOsStatusXMLParser
 import audiostreamerscrobbler.states.monitor.types.MonitorStateTypes
 import audiostreamerscrobbler.maintypes.Song.types.Song
 import audiostreamerscrobbler.utils.RequestUtils
@@ -8,10 +8,10 @@ import audiostreamerscrobbler.utils.RequestUtils
 let REQUEST_WITH_ETAG_TIMEOUT = 60
 let REQUEST_TIMEOUT = REQUEST_WITH_ETAG_TIMEOUT + 10
 
-function createBlueSoundPlayerMonitor = |player| {
-	let statusUrl = "http://" + player: _blueSound(): host() + ":" + player: _blueSound(): port() + "/Status"
+function createBluOsPlayerMonitor = |player| {
+	let statusUrl = "http://" + player: _bluOs(): host() + ":" + player: _bluOs(): port() + "/Status"
 	
-	let monitor = DynamicObject("BlueSoundPlayerMonitor"):
+	let monitor = DynamicObject("BluOsPlayerMonitor"):
 		define("_player", |this| -> player):
 		define("_statusUrl", statusUrl):
 		define("_etag", null):
@@ -39,7 +39,7 @@ local function monitorPlayer = |monitor| {
 local function requestPlayerState = |monitor| {
 	let url = createUrl(monitor)
 	# println("Requesting " + url)
-	let res = doHttpGetRequest(url, REQUEST_TIMEOUT, |i| -> parseBlueSoundStatusXML(i))
+	let res = doHttpGetRequest(url, REQUEST_TIMEOUT, |i| -> parseBluOsStatusXML(i))
 	# println(res)
 	return res
 }

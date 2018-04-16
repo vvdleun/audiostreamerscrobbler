@@ -1,6 +1,6 @@
-module audiostreamerscrobbler.bluesound.BlueSoundStatusXMLParser
+module audiostreamerscrobbler.bluos.BluOsStatusXMLParser
 
-import audiostreamerscrobbler.bluesound.types.BlueSoundStatus
+import audiostreamerscrobbler.bluos.types.BluOsStatus
 
 import gololang.Adapters
 import javax.xml.parsers.SAXParserFactory
@@ -9,7 +9,7 @@ import org.xml.sax.SAXException
 
 let STATUS_XML_ELEMENTS = list["album", "artist", "name", "state", "secs", "service", "totlen"]
 
-function parseBlueSoundStatusXML = |inputStream| {
+function parseBluOsStatusXML = |inputStream| {
 	let factory = SAXParserFactory.newInstance()
 	let parser = factory: newSAXParser()
 
@@ -52,11 +52,11 @@ function parseBlueSoundStatusXML = |inputStream| {
 	let statusXMLHandler = xmlHandlerAdapter: newInstance()
 	parser: parse(inputStream, statusXMLHandler)
 
-	return createBlueSoundSong(mutableState: isStatus(), mutableState: etag(), mutableState: playerState())
+	return createBluOsSong(mutableState: isStatus(), mutableState: etag(), mutableState: playerState())
 }
 
-local function createBlueSoundSong = |isStatus, etag, playerState| {
-	return BlueSoundStatus(
+local function createBluOsSong = |isStatus, etag, playerState| {
+	return BluOsStatus(
 		isStatus,
 		etag,
 		playerState: get("album"),
