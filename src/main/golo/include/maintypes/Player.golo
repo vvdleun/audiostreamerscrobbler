@@ -1,7 +1,7 @@
 module audiostreamerscrobbler.maintypes.Player
 
 union PlayerTypes = {
-	BluOs
+	BluOs = { bluOsImpl }
 }
 
 local function getPlayerTypeID = |playerType| {

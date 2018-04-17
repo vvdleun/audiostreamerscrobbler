@@ -1,4 +1,4 @@
-module audiostreamerscrobbler.maintypes.AudioStreamerScrobblerHttpRequest
+module audiostreamerscrobbler.factories.RequestFactory
 
 import audiostreamerscrobbler.utils.RequestUtils
 
@@ -12,12 +12,22 @@ let DEFAULT_ENCODING = "utf-8"
 
 let DEFAULT_PROPERTIES_CALLBACK = -> map[["User-Agent", USER_AGENT]]
 
-function createHttpRequest = {
-	return createHttpRequest(DEFAULT_ENCODING, DEFAULT_TIMEOUT_SECONDS)
+function createHttpRequestFactory = {
+	return createHttpRequestFactory(DEFAULT_ENCODING, DEFAULT_TIMEOUT_SECONDS)
 }
 
-function createHttpRequest = |encoding, timeout| {
-	let httpRequest = DynamicObject("AudiostreamerScrobblerHttpRequest"):
+function createHttpRequestFactory = |encoding, timeout| {
+	let httpRequestFactory = DynamicObject("HttpRequestFactory"):
+		define("encoding", encoding):
+		define("timeout", timeout):
+		define("createHttpRequest", |this| -> createHttpRequest(this: encoding(), this: timeout()))
+	
+	return httpRequestFactory
+}
+
+
+local function createHttpRequest = |encoding, timeout| {
+	let httpRequest = DynamicObject("HttpRequest"):
 		define("_timeout", timeout):
 		define("_encoding", encoding):
 		define("doHttpGetRequestAndReturnJSON", |this, url| -> doHttpGetRequestAndReturnJSON(url, this: _encoding(), this: _timeout())):

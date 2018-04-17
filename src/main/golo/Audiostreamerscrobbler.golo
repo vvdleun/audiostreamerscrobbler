@@ -3,6 +3,7 @@ module audiostreamerscrobbler.Audiostreamerscrobbler
 
 import audiostreamerscrobbler.factories.Config
 import audiostreamerscrobbler.factories.PlayerDetectorFactory
+import audiostreamerscrobbler.factories.PlayerMonitorFactory
 import audiostreamerscrobbler.factories.ScrobblerErrorHandlerFactory
 import audiostreamerscrobbler.factories.ScrobblersFactory
 import audiostreamerscrobbler.scrobbler.ScrobblersHandler
@@ -31,16 +32,23 @@ local function run = |args| {
 	}
 	
 	let scrobblers = createScrobblersFactory(): createScrobblers()
-	let missedScrobblerHandler = createScrobblerErrorHandlerFactory(scrobblers): createScrobblerErrorHandler()
-	missedScrobblerHandler: start()
+	let scrobblerErrorHandler = createScrobblerErrorHandlerFactory(scrobblers): createScrobblerErrorHandler()
+	scrobblerErrorHandler: start()
 	
 	let stateManager = createStateManager(PlayerThreadStates.DetectPlayer(), |stateType| {
-		# Create requested state
+		# Helper methods
 		let createPlayerDetector = -> createPlayerDetectorFactory(): createPlayerDetector()
-		let createHandlerWithScrobblers = -> createScrobblersHandler(createScrobblersFactory(): createScrobblers(), missedScrobblerHandler)
+		let createPlayerMonitor = |player| -> createPlayerMonitorFactory(): createPlayerMonitor(player)
+		let createHandlerWithScrobblers = -> createScrobblersHandler(createScrobblersFactory(): createScrobblers(), scrobblerErrorHandler)
+
+		# Methods to create states
+		let createDetectorState = -> createPlayerDetectorState(createPlayerDetector())
+		let createMonitorState = |player| -> createPlayerMonitorState(createPlayerMonitor(player), createHandlerWithScrobblers())
+		
+		# Create requested state
 		let state = match {
-			when stateType: isDetectPlayer() then createPlayerDetectorState(createPlayerDetector())
-			when stateType: isMonitorPlayer() then createPlayerMonitorState(stateType: player(), createHandlerWithScrobblers())
+			when stateType: isDetectPlayer() then createDetectorState()
+			when stateType: isMonitorPlayer() then createMonitorState(stateType: player())
 			otherwise raise("Internal error: unknown request PlayerThreadState state: " + stateType)
 		}
 		return state

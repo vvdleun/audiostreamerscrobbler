@@ -13,10 +13,10 @@ function getLastFmId = {
 	return SCROBBLER_ID
 }
 
-function createLastFmScrobbler = |apiKey, apiSecret, sessionKey| {
-	return createAudioScrobbler20Impl(SCROBBLER_ID, API_URL, apiKey, apiSecret, sessionKey, MAXIMAL_DAYS_OLD)
+function createLastFmScrobbler = |httpRequest, apiKey, apiSecret, sessionKey| {
+	return createAudioScrobbler20Impl(SCROBBLER_ID, httpRequest, API_URL, apiKey, apiSecret, sessionKey, MAXIMAL_DAYS_OLD)
 }
 
-function createLastFmAuthorizer = |apiKey, apiSecret| {
-	return createAudioScrobbler20AuthorizeHelper(SCROBBLER_ID, API_URL, AUTH_URL, apiKey, apiSecret)
+function createLastFmAuthorizer = |httpRequest, apiKey, apiSecret| {
+	return createAudioScrobbler20AuthorizeHelper(SCROBBLER_ID, httpRequest, API_URL, AUTH_URL, apiKey, apiSecret)
 }

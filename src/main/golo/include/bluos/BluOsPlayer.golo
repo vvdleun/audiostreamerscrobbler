@@ -1,17 +1,14 @@
 module audiostreamerscrobbler.bluos.BluOsPlayer
 
-import audiostreamerscrobbler.bluos.BluOsPlayerMonitor
 import audiostreamerscrobbler.maintypes.Player.types.PlayerTypes
 
-function createBluOsPlayerImpl = |detectedPlayer| {
+function createBluOsPlayerImpl = |blueOsImpl| {
 	println("Creating BluOS player...")
 	
-	let player = DynamicObject("BluOsPlayer"):
-		define("_bluOs", detectedPlayer):
-		define("name", detectedPlayer: name()):
-		define("playerType", PlayerTypes.BluOs()):
-		define("createMonitor", |this| -> createBluOsPlayerMonitor(this))
+	let playerImpl = DynamicObject("BluOsPlayerImpl"):
+		define("name", blueOsImpl: name()):
+		define("playerType", PlayerTypes.BluOs(blueOsImpl))
 		
-	return player		
+	return playerImpl		
 }
 

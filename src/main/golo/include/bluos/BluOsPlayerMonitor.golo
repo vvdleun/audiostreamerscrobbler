@@ -1,24 +1,24 @@
 module audiostreamerscrobbler.bluos.BluOsPlayerMonitor
 
 import audiostreamerscrobbler.bluos.BluOsStatusXMLParser
-import audiostreamerscrobbler.maintypes.AudioStreamerScrobblerHttpRequest
 import audiostreamerscrobbler.maintypes.Song.types.Song
 import audiostreamerscrobbler.states.monitor.types.MonitorStateTypes
 
 let REQUEST_WITH_ETAG_TIMEOUT = 60
 let REQUEST_TIMEOUT = REQUEST_WITH_ETAG_TIMEOUT + 10
-let REQUEST_ENCODING = "utf-8"
 
-function createBluOsPlayerMonitor = |player| {
-	let statusUrl = "http://" + player: _bluOs(): host() + ":" + player: _bluOs(): port() + "/Status"
+function createBluOsPlayerMonitor = |player, httpRequestFactory| {
+	let bluOs = player: playerType(): bluOsImpl()
+	let statusUrl = "http://" + bluOs: host() + ":" + bluOs: port() + "/Status"
 
-	let httpRequest = createHttpRequest(REQUEST_ENCODING, REQUEST_TIMEOUT)
+	httpRequestFactory: timeout(REQUEST_TIMEOUT)
+	let httpRequest = httpRequestFactory: createHttpRequest()
 	
 	let monitor = DynamicObject("BluOsPlayerMonitor"):
-		define("_player", |this| -> player):
 		define("_statusUrl", statusUrl):
 		define("_etag", null):
 		define("_httpRequest", |this| -> httpRequest):
+		define("player", |this| -> player):
 		define("monitorPlayer", |this| -> monitorPlayer(this))
 
 	return monitor

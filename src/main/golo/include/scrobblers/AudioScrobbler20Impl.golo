@@ -1,7 +1,5 @@
 module audiostreamerscrobbler.scrobbler.AudioScrobbler20Impl
 
-import audiostreamerscrobbler.maintypes.AudioStreamerScrobblerHttpRequest
-
 import nl.vincentvanderleun.scrobbler.exceptions.ScrobblerException
 import nl.vincentvanderleun.utils.ByteUtils
 
@@ -17,13 +15,13 @@ let DEFAULT_ENCODING = "UTF-8"
 let MAX_SCROBBLES = 50
 let ERROR_CODES_RETRY = list["8", "11", "16", "29"]
 
-function createAudioScrobbler20Impl = |id, apiUrl, apiKey, apiSecret, sessionKey, maximalDaysOld| {
+function createAudioScrobbler20Impl = |id, httpRequest, apiUrl, apiKey, apiSecret, sessionKey, maximalDaysOld| {
 	let scrobbler = DynamicObject("AudioScrobbler20Impl"):
 		define("_apiUrl", apiUrl):
 		define("_apiKey", apiKey):
 		define("_apiSecret", apiSecret):
 		define("_sessionKey", sessionKey):
-		define("_httpRequest", createHttpRequest()):
+		define("_httpRequest", httpRequest):
 		define("id", id):
 		define("maximalDaysOld", maximalDaysOld):
 		define("updateNowPlaying", |this, song| -> updateNowPlaying(this, song)):
@@ -33,13 +31,13 @@ function createAudioScrobbler20Impl = |id, apiUrl, apiKey, apiSecret, sessionKey
 	return scrobbler
 }
 
-function createAudioScrobbler20AuthorizeHelper = |id, apiUrl, authorizeUrl, apiKey, apiSecret| {
+function createAudioScrobbler20AuthorizeHelper = |id, httpRequest, apiUrl, authorizeUrl, apiKey, apiSecret| {
 	let authorizeHelper = DynamicObject("AudioScrobbler20AuthorizeHelper"):
 		define("_apiUrl", apiUrl):
 		define("_authorizeUrl", authorizeUrl):
 		define("_apiKey", apiKey):
 		define("_apiSecret", apiSecret):
-		define("_httpRequest", createHttpRequest()):
+		define("_httpRequest", httpRequest):
 		define("id", id):
 		define("authorize", |this| -> authorizeAccountAndGetSessionKey(this))
 

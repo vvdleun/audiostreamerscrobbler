@@ -20,9 +20,10 @@ union MonitorStateActions = {
 	LostPlayer
 }
 
-function createPlayerMonitorState = |player, scrobblers| {
+function createPlayerMonitorState = |playerMonitor, scrobblers| {
 	let state = DynamicObject("PlayerMonitorState"):
-		define("player", player):
+		define("playerMonitor", playerMonitor):
+		define("player", playerMonitor: player()):
 		define("scrobblers", scrobblers):
 		define("song", null):
 		define("lastCall", null):
@@ -31,12 +32,13 @@ function createPlayerMonitorState = |player, scrobblers| {
 		define("isScrobbled", false):
 		define("ioErrors", 0):
 		define("run", |this| -> runMonitorPlayerState(this))
+
 	return state
 }
 
 local function runMonitorPlayerState = |monitorState| {
 	let player = monitorState: player()
-	let playerMonitor = player: createMonitor()
+	let playerMonitor = monitorState: playerMonitor()
 	let scrobblers = monitorState: scrobblers()
 
 	while (true) {
