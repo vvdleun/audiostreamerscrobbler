@@ -10,42 +10,51 @@ let USER_AGENT = "AudiostreamerScrobbler/0.1"
 let DEFAULT_TIMEOUT_SECONDS = 10
 let DEFAULT_ENCODING = "utf-8"
 
-local function createGetProperties = |accept, encoding| -> map[["Accept", accept], ["Accept-Charset", encoding], ["Cache-Control", "no-cache"], ["User-Agent", USER_AGENT]]
+function createHttpRequestFactory = -> createHttpRequestFactory(DEFAULT_ENCODING, DEFAULT_TIMEOUT_SECONDS, map[])
 
-local function createPostProperties = |accept, encoding, contentType| -> map[["Accept", accept], ["Accept-Charset", encoding], ["Cache-Control", "no-cache"], ["Content-Type", contentType], ["User-Agent", USER_AGENT]]
+function createHttpRequestFactory = |encoding, timeout| -> createHttpRequestFactory(encoding, timeout, map[])
 
-function createHttpRequestFactory = {
-	return createHttpRequestFactory(DEFAULT_ENCODING, DEFAULT_TIMEOUT_SECONDS)
-}
-
-function createHttpRequestFactory = |encoding, timeout| {
+function createHttpRequestFactory = |encoding, timeout, customProperties| {
 	let httpRequestFactory = DynamicObject("HttpRequestFactory"):
 		define("encoding", encoding):
 		define("timeout", timeout):
-		define("createHttpRequest", |this| -> createHttpRequest(this: encoding(), this: timeout()))
+		define("customProperties", customProperties):
+		define("createHttpRequest", |this| -> createHttpRequest(this: encoding(), this: timeout(), this: customProperties()))
 	
 	return httpRequestFactory
 }
 
+local function createGetProperties = |accept, encoding, customProperties| {
+	let properties = map[["Accept", accept], ["Accept-Charset", encoding], ["Cache-Control", "no-cache"], ["User-Agent", USER_AGENT]]
+	customProperties: entrySet(): each(|e| -> properties: put(e: key(), e: value()))
+	return properties
+}
 
-local function createHttpRequest = |encoding, timeout| {
+local function createPostProperties = |accept, encoding, contentType, customProperties| {
+	let properties = map[["Accept", accept], ["Accept-Charset", encoding], ["Cache-Control", "no-cache"], ["Content-Type", contentType], ["User-Agent", USER_AGENT]]
+	customProperties: entrySet(): each(|e| -> properties: put(e: key(), e: value()))
+	return properties
+}
+
+local function createHttpRequest = |encoding, timeout, customProperties| {
 	let httpRequest = DynamicObject("HttpRequest"):
 		define("_timeout", timeout):
 		define("_encoding", encoding):
-		define("doHttpGetRequestAndReturnJSON", |this, url| -> doHttpGetRequestAndReturnJSON(url, this: _encoding(), this: _timeout())):
-		define("doHttpPostRequestAndReturnJSON", |this, url, contentType, outputCallback| -> doHttpPostRequestAndReturnJSON(url, this: _encoding(), this: _timeout(), outputCallback, contentType)):
-		define("doHttpGetRequestAndReturnAsText", |this, url| -> doHttpGetRequestAndReturnAsText(url, this: _encoding(), this: _timeout(), createGetProperties("text/plain", this: _encoding()))):
-		define("doHttpPostRequestAndReturnAsText", |this, url, outputCallback, contentType| -> doHttpPostRequestAndReturnAsText(url, this: _encoding(), createPostProperties("text/plain", this: _encoding(), contentType), this: _timeout(), outputCallback)):
-		define("doHttpGetRequest", |this, url, accept, inputHandler | -> doHttpGetRequest(url, this: _timeout(), createGetProperties(accept, this: _encoding()), inputHandler)):
-		define("doHttpPostRequest", |this, url, accept, contentType, outputHandler, inputHandler | -> doHttpPostRequest(url, this: _timeout(), createPostProperties(accept, this: _encoding(), contentType), outputHandler, inputHandler))
+		define("_customProperties", customProperties):
+		define("doHttpGetRequestAndReturnJSON", |this, url| -> doHttpGetRequestAndReturnJSON(url, this: _encoding(), this: _timeout(), this: _customProperties())):
+		define("doHttpPostRequestAndReturnJSON", |this, url, contentType, outputCallback| -> doHttpPostRequestAndReturnJSON(url, this: _encoding(), this: _timeout(), outputCallback, contentType, this: _customProperties())):
+		define("doHttpGetRequestAndReturnAsText", |this, url| -> doHttpGetRequestAndReturnAsText(url, this: _encoding(), this: _timeout(), createGetProperties("text/plain", this: _encoding(), this: _customProperties()))):
+		define("doHttpPostRequestAndReturnAsText", |this, url, outputCallback, contentType| -> doHttpPostRequestAndReturnAsText(url, this: _encoding(), createPostProperties("text/plain", this: _encoding(), contentType, this: _customProperties()), this: _timeout(), outputCallback)):
+		define("doHttpGetRequest", |this, url, accept, inputHandler | -> doHttpGetRequest(url, this: _timeout(), createGetProperties(accept, this: _encoding(), this: _customProperties()), inputHandler)):
+		define("doHttpPostRequest", |this, url, accept, contentType, outputHandler, inputHandler | -> doHttpPostRequest(url, this: _timeout(), createPostProperties(accept, this: _encoding(), contentType, this: _customProperties()), outputHandler, inputHandler))
 		
 	return httpRequest
 }
 
 # GET
 
-local function doHttpGetRequestAndReturnJSON = |url, encoding, timeout| {
-	let jsonString = doHttpGetRequestAndReturnAsText(url, encoding, timeout, createGetProperties("application/json", encoding))
+local function doHttpGetRequestAndReturnJSON = |url, encoding, timeout, customProperties| {
+	let jsonString = doHttpGetRequestAndReturnAsText(url, encoding, timeout, createGetProperties("application/json", encoding, customProperties()))
 	return JSON.parse(jsonString)
 }
 
@@ -58,8 +67,8 @@ local function doHttpGetRequestAndReturnAsText = |url, encoding, timeout, reques
 
 # POST
 
-local function doHttpPostRequestAndReturnJSON = |url, encoding, timeout, outputStreamHandlerCallback, contentType| {
-	let jsonString = doHttpPostRequestAndReturnAsText(url, encoding, createPostProperties("application/json", encoding, contentType), timeout, outputStreamHandlerCallback)
+local function doHttpPostRequestAndReturnJSON = |url, encoding, timeout, outputStreamHandlerCallback, contentType, customProperties| {
+	let jsonString = doHttpPostRequestAndReturnAsText(url, encoding, createPostProperties("application/json", encoding, contentType, customProperties), timeout, outputStreamHandlerCallback)
 	return JSON.parse(jsonString)
 }
 
