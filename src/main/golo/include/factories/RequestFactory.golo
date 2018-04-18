@@ -10,7 +10,9 @@ let USER_AGENT = "AudiostreamerScrobbler/0.1"
 let DEFAULT_TIMEOUT_SECONDS = 10
 let DEFAULT_ENCODING = "utf-8"
 
-let DEFAULT_PROPERTIES_CALLBACK = -> map[["User-Agent", USER_AGENT]]
+local function createGetProperties = |accept, encoding| -> map[["Accept", accept], ["Accept-Charset", encoding], ["Cache-Control", "no-cache"], ["User-Agent", USER_AGENT]]
+
+local function createPostProperties = |accept, encoding, contentType| -> map[["Accept", accept], ["Accept-Charset", encoding], ["Cache-Control", "no-cache"], ["Content-Type", contentType], ["User-Agent", USER_AGENT]]
 
 function createHttpRequestFactory = {
 	return createHttpRequestFactory(DEFAULT_ENCODING, DEFAULT_TIMEOUT_SECONDS)
@@ -31,11 +33,11 @@ local function createHttpRequest = |encoding, timeout| {
 		define("_timeout", timeout):
 		define("_encoding", encoding):
 		define("doHttpGetRequestAndReturnJSON", |this, url| -> doHttpGetRequestAndReturnJSON(url, this: _encoding(), this: _timeout())):
-		define("doHttpPostRequestAndReturnJSON", |this, url, outputCallback| -> doHttpPostRequestAndReturnJSON(url, this: _encoding(), this: _timeout(), outputCallback)):
-		define("doHttpGetRequestAndReturnAsText", |this, url| -> doHttpGetRequestAndReturnAsText(url, this: _encoding(), this: _timeout())):
-		define("doHttpPostRequestAndReturnAsText", |this, url, outputCallback| -> doHttpPostRequestAndReturnAsText(url, this: _encoding(), this: _timeout(), outputCallback)):
-		define("doHttpGetRequest", |this, url, inputCallback| -> doHttpGetRequest(url, this: _timeout(), inputCallback)):
-		define("doHttpPostRequest", |this, url, outputCallback, inputCallback| -> doHttpPostRequest(url, this: _timeout(), outputCallback, inputCallback))
+		define("doHttpPostRequestAndReturnJSON", |this, url, contentType, outputCallback| -> doHttpPostRequestAndReturnJSON(url, this: _encoding(), this: _timeout(), outputCallback, contentType)):
+		define("doHttpGetRequestAndReturnAsText", |this, url| -> doHttpGetRequestAndReturnAsText(url, this: _encoding(), this: _timeout(), createGetProperties("text/plain", this: _encoding()))):
+		define("doHttpPostRequestAndReturnAsText", |this, url, outputCallback, contentType| -> doHttpPostRequestAndReturnAsText(url, this: _encoding(), createPostProperties("text/plain", this: _encoding(), contentType), this: _timeout(), outputCallback)):
+		define("doHttpGetRequest", |this, url, accept, inputHandler | -> doHttpGetRequest(url, this: _timeout(), createGetProperties(accept, this: _encoding()), inputHandler)):
+		define("doHttpPostRequest", |this, url, accept, contentType, outputHandler, inputHandler | -> doHttpPostRequest(url, this: _timeout(), createPostProperties(accept, this: _encoding(), contentType), outputHandler, inputHandler))
 		
 	return httpRequest
 }
@@ -43,36 +45,27 @@ local function createHttpRequest = |encoding, timeout| {
 # GET
 
 local function doHttpGetRequestAndReturnJSON = |url, encoding, timeout| {
-	let jsonString = doHttpGetRequestAndReturnAsText(url, encoding, timeout)
+	let jsonString = doHttpGetRequestAndReturnAsText(url, encoding, timeout, createGetProperties("application/json", encoding))
 	return JSON.parse(jsonString)
 }
 
-local function doHttpGetRequestAndReturnAsText = |url, encoding, timeout| {
-	return doHttpGetRequest(url, timeout, |i| {
+local function doHttpGetRequestAndReturnAsText = |url, encoding, timeout, requestPropertiesHandler| {
+	return doHttpGetRequest(url, timeout, requestPropertiesHandler, |i| {
 		 let reader = BufferedReader(InputStreamReader(i, encoding))
 		 return reader: lines(): collect(Collectors.joining("\n"))
 	})
 }
-
-local function doHttpGetRequest = |url, timeout, inputStreamHandlerCallback| {
-	return doHttpGetRequest(url, timeout, DEFAULT_PROPERTIES_CALLBACK, inputStreamHandlerCallback)
-}
-
 
 # POST
 
-local function doHttpPostRequestAndReturnJSON = |url, encoding, timeout, outputStreamHandlerCallback| {
-	let jsonString = doHttpPostRequestAndReturnAsText(url, encoding, timeout, outputStreamHandlerCallback)
+local function doHttpPostRequestAndReturnJSON = |url, encoding, timeout, outputStreamHandlerCallback, contentType| {
+	let jsonString = doHttpPostRequestAndReturnAsText(url, encoding, createPostProperties("application/json", encoding, contentType), timeout, outputStreamHandlerCallback)
 	return JSON.parse(jsonString)
 }
 
-local function doHttpPostRequestAndReturnAsText = |url, encoding, timeout, outputStreamHandlerCallback| {
-	return doHttpPostRequest(url, timeout, outputStreamHandlerCallback, |i| {
+local function doHttpPostRequestAndReturnAsText = |url, encoding, requestPropertiesHandler, timeout, outputStreamHandlerCallback| {
+	return doHttpPostRequest(url, timeout, requestPropertiesHandler, outputStreamHandlerCallback, |i| {
 		 let reader = BufferedReader(InputStreamReader(i, encoding))
 		 return reader: lines(): collect(Collectors.joining("\n"))
 	})
-}
-
-local function doHttpPostRequest = |url, timeout, outputStreamHandlerCallback, inputStreamHandlerCallback| {
-	return doHttpPostRequest(url, timeout, DEFAULT_PROPERTIES_CALLBACK, outputStreamHandlerCallback, inputStreamHandlerCallback)
 }

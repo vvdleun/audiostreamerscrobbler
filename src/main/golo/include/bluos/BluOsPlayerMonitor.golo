@@ -44,7 +44,7 @@ local function requestPlayerState = |monitor| {
 	let url = createUrl(monitor)
 
 	let httpRequest = monitor: _httpRequest()
-	let res = httpRequest: doHttpGetRequest(url, |i| -> parseBluOsStatusXML(i))
+	let res = httpRequest: doHttpGetRequest(url, "application/xml", |i| -> parseBluOsStatusXML(i))
 	
 	return res
 }

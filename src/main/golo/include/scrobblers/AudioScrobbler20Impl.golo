@@ -135,6 +135,7 @@ local function scrobbleAll = |scrobbler, scrobbles| {
 local function requestPostScrobbles = |httpRequest, apiUrl, scrobbles, apiKey, apiSecret, sessionKey| {
 	return httpRequest: doHttpPostRequestAndReturnJSON(
 		apiUrl,
+		"application/x-www-form-urlencoded",
 		|o| {
 			divideListInChunks(list[s foreach s in scrobbles], MAX_SCROBBLES): each(|chunk| {
 				let postParams = map[
@@ -165,6 +166,7 @@ local function requestPostScrobbles = |httpRequest, apiUrl, scrobbles, apiKey, a
 function requestPostUpdateNowPlaying = |httpRequest, apiUrl, song, apiKey, apiSecret, sessionKey| {
 	httpRequest: doHttpPostRequestAndReturnJSON(
 		apiUrl,
+		"application/x-www-form-urlencoded",
 		|o| {
 			let postParams = map[
 				["method", "track.updateNowPlaying"],

@@ -5,13 +5,12 @@ import nl.vincentvanderleun.utils.exceptions.HttpRequestException
 import java.net.HttpURLConnection
 import java.net.URL
 
-function doHttpGetRequest = |url, timeout, requestPropertyCallback, inputStreamHandlerCallback| {
+function doHttpGetRequest = |url, timeout, requestProperties, inputStreamHandlerCallback| {
 	let conn = URL(url): openConnection()
 
 	conn: setRequestMethod("GET")
 
-	let properties = requestPropertyCallback()
-	properties: entrySet(): each(|p| -> conn: setRequestProperty(p: key(), p: value()))
+	requestProperties: entrySet(): each(|p| -> conn: setRequestProperty(p: key(), p: value()))
 	
 	conn: setConnectTimeout(timeout * 1000)
 	conn: setReadTimeout(timeout * 1000)
@@ -29,13 +28,12 @@ function doHttpGetRequest = |url, timeout, requestPropertyCallback, inputStreamH
 	}
 }
 
-function doHttpPostRequest = |url, timeout, requestPropertyCallback, outputStreamHandlerCallback, inputStreamHandlerCallback| {
+function doHttpPostRequest = |url, timeout, requestProperties, outputStreamHandlerCallback, inputStreamHandlerCallback| {
 	let conn = URL(url): openConnection()
 
 	conn: setRequestMethod("POST")
 
-	let properties = requestPropertyCallback()
-	properties: entrySet(): each(|p| -> conn: setRequestProperty(p: key(), p: value()))
+	requestProperties: entrySet(): each(|p| -> conn: setRequestProperty(p: key(), p: value()))
 	
 	conn: setConnectTimeout(timeout * 1000)
 	conn: setReadTimeout(timeout * 1000)
