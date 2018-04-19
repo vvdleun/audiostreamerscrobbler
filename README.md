@@ -71,7 +71,7 @@ This format will change once multiple players and more type of players are suppo
 	
 ### Setting up the player
 
-At this time, the program can monitor exactly one BluOS player. It should also be compatible with the new third party BlueOS powered devices that have appeared on the market, but this has not been tested yet. Enter the name of your device in the config.json's "name" field in the "player" section. 
+At this time, the program can monitor exactly one BluOS player. It should also be compatible with the new third party BluOS powered devices that have appeared on the market, but this has not been tested yet. Enter the name of your device in the config.json's "name" field in the "player" section. 
 
 The player name must match your BluOS device name exactly. Note that the name is CaSe SeNsItIvE. My BluOS device is called "Living Room C368" (when translated to English), so that's what's in my config.json file.
 
@@ -97,12 +97,12 @@ This will start a browser. If you are not logged in to Last FM, you are asked to
 
 #### ListenBrainz
 
-[ListenBrainz](https://listenbrainz.org) is a new service, operated by the [MetaBrainz Foundation](https://metabrainz.org). It is a new service and at the time of writing still in beta.
+[ListenBrainz](https://listenbrainz.org) is a new service, operated by the [MetaBrainz Foundation](https://metabrainz.org). It is a new service and at the time of writing still in beta. A big different with all orders is that ListenBrainz will give away all collected data for free. Everybody can download complete data dumps from their website.
 
-To use this program with MusicBrainz, first get yourself an account. In your user profile, you'll find your unique user token. Copy and paste this and place this in the "userToken" field of the "listenbrainz" entry in the config.json file. Don't forget to set the "enabled" field to the "true" value.
+To use this program with ListenBrainz, first get yourself an account. In your user profile, you'll find your unique user token. Copy and paste this and place this in the "userToken" field of the "listenbrainz" entry in the config.json file. Don't forget to set the "enabled" field to the "true" value.
 
-ListenBrainz support has only been added very recently and some work needs to be done on the handling of errors, so at this time Listens can get lost when problems occur.
-	
+ListenBrainz support has only been added very recently (using their new JSON API and not their AudioStreamer 2.0 API compatibility proxy service) and some work needs to be done on the handling of errors, so at this time Listens can get lost when problems occur.
+
 #### Libre FM
 
 [Libre FM](https://libre.fm) is a free alternative for Last FM. It is basically a rebranded GNU FM (see below), with a nicer UI theme, run as a cloud service by the  developers of GNU FM. It was started in 2009, but it still does not offer a recommendation engine. Therefore Libre FM is, at least for now, most useful if you primarily want to archive your listening habits. The maintainers of Libre FM promise not to sell your user data, very much unlike Last FM.
