@@ -97,11 +97,11 @@ This will start a browser. If you are not logged in to Last FM, you are asked to
 
 #### ListenBrainz
 
-[ListenBrainz](https://listenbrainz.org) is a new service, operated by the [MetaBrainz Foundation](https://metabrainz.org). It is a new service and at the time of writing still in beta. A big different with all orders is that ListenBrainz will give away all collected data for free. Everybody can download complete data dumps from their website.
+[ListenBrainz](https://listenbrainz.org) is a new service, operated by the [MetaBrainz Foundation](https://metabrainz.org). It is a new service and at the time of writing still in beta. A big different with all others  is that ListenBrainz will give away all collected data for free. Everybody can download a complete data dumps from their website.
 
 To use this program with ListenBrainz, first get yourself an account. In your user profile, you'll find your unique user token. Copy and paste this and place this in the "userToken" field of the "listenbrainz" entry in the config.json file. Don't forget to set the "enabled" field to the "true" value.
 
-ListenBrainz support has only been added very recently (using their new JSON API and not their AudioStreamer 2.0 API compatibility proxy service) and some work needs to be done on the handling of errors, so at this time Listens can get lost when problems occur.
+ListenBrainz support has only been added very recently (using their new JSON API and not their AudioStreamer 2.0 API compatibility proxy service) and some work needs to be done on the handling of errors, so at this time Listens can get lost when problems occur. Also, this program will support custom ListenBrainz Server installations very soon.
 
 #### Libre FM
 
