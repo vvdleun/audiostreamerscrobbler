@@ -5,13 +5,15 @@ import audiostreamerscrobbler.factories.RequestFactory
 import audiostreamerscrobbler.scrobbler.GnuFmScrobbler
 import audiostreamerscrobbler.scrobbler.LastFmScrobbler
 import audiostreamerscrobbler.scrobbler.LibreFmScrobbler
+import audiostreamerscrobbler.scrobbler.ListenBrainz
 import audiostreamerscrobbler.scrobbler.Scrobblers
 
 let LAST_FM_ID = getLastFmId()
+let LISTEN_BRAINZ_ID = getListenBrainzId()
 let LIBRE_FM_ID = getLibreFmId()
 let GNU_FM_ID = getGnuFmId()
 
-let SCROBBLER_IDS = [LAST_FM_ID, LIBRE_FM_ID, GNU_FM_ID]
+let SCROBBLER_IDS = [LAST_FM_ID, LISTEN_BRAINZ_ID, LIBRE_FM_ID, GNU_FM_ID]
 
 function getScrobblerKeyNames = -> SCROBBLER_IDS
 
@@ -37,22 +39,27 @@ local function createConfiguredScrobblers = |config| {
 			scrobblers: add(scrobbler)
 		}			
 	})
-	
 	return [s foreach s in scrobblers]
 }
 
 local function createConfiguredScrobbler = |scrobblersConfig, id| {
-	if (id == LAST_FM_ID and isScrobblerEnabled(scrobblersConfig, LAST_FM_ID)) {
-		return createLastFMScrobblerInstance(scrobblersConfig)
-	}
-	if (id == LIBRE_FM_ID and isScrobblerEnabled(scrobblersConfig, LIBRE_FM_ID)) {
-		return createLibreFMScrobblerInstance(scrobblersConfig)
-	}
-	if (id == GNU_FM_ID and isScrobblerEnabled(scrobblersConfig, GNU_FM_ID)) {
-		return createGnuFMScrobblerInstance(scrobblersConfig)
+	let createFunctions = map[
+		[LAST_FM_ID, ^createLastFMScrobblerInstance],
+		[LISTEN_BRAINZ_ID, ^createListenBrainzTrackerInstance],
+		[LIBRE_FM_ID, ^createLibreFMScrobblerInstance],
+		[GNU_FM_ID, ^createGnuFMScrobblerInstance]]
+
+	let createFunction = createFunctions: getOrElse(id, null)
+	
+	if (createFunction != null and isScrobblerEnabled(scrobblersConfig, id)) {
+		return createFunction(scrobblersConfig)
 	}
 
 	return null
+}
+
+local function isScrobblerEnabled = |scrobblersConfig, id| {
+	return scrobblersConfig: getOrElse(id, map[]): getOrElse("enabled", false)
 }
 
 local function createScrobblerAuthorizer = |id, config| {
@@ -60,16 +67,13 @@ local function createScrobblerAuthorizer = |id, config| {
 
 	let returnInstance = -> match {
 		when id == LAST_FM_ID then createLastFMAuthorizerInstance(scrobblersConfig)
+		when id == LISTEN_BRAINZ_ID then createListenBrainzAuthorizerInstance()
 		when id == LIBRE_FM_ID then createLibreFMAuthorizerInstance()
 		when id == GNU_FM_ID then createGnuFMAuthorizerInstance(scrobblersConfig)
 		otherwise null
 	}
 	return returnInstance()
 } 
-
-local function isScrobblerEnabled = |scrobblersConfig, id| {
-	return scrobblersConfig: getOrElse(id, map[]): getOrElse("enabled", false)
-}
 
 # Last FM
 
@@ -92,6 +96,18 @@ local function createLastFMAuthorizerInstance = |scrobblersConfig| {
 	let apiKey = lastFmConfig: get("apiKey") 
 	let apiSecret = lastFmConfig: get("apiSecret") 
 	return createLastFmAuthorizer(httpRequest, apiKey, apiSecret) 
+}
+
+# ListenBrainz
+
+local function createListenBrainzTrackerInstance = |scrobblersConfig| {
+	let listenBrainzConfig = scrobblersConfig: get(LISTEN_BRAINZ_ID)
+	let httpRequestFactory = createHttpRequestFactory()
+	return createListenBrainzTracker(httpRequestFactory, listenBrainzConfig: get("userToken"))
+}
+
+local function createListenBrainzAuthorizerInstance = {
+	return createLIstenBrainzAuthorizor() 
 }
 
 # Libre FM
