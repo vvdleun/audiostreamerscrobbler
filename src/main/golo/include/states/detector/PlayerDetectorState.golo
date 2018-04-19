@@ -21,7 +21,7 @@ local function runPlayerDetectorState = |playerDetectorState| {
 			let playerImpl = detectorState: Player()
 			
 			let player = createPlayer(playerImpl)
-			println("Found player: " + player)
+			println("Found player: " + player: friendlyName())
 			
 			return PlayerThreadStates.MonitorPlayer(player)
 		}

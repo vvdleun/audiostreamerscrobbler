@@ -1,5 +1,6 @@
 module audiostreamerscrobbler.states.monitor.PlayerMonitorState
 
+import audiostreamerscrobbler.maintypes.Song
 import audiostreamerscrobbler.states.monitor.types.MonitorStateTypes
 import audiostreamerscrobbler.states.monitor.MonitorCallLimiterDecorator
 import audiostreamerscrobbler.states.types.PlayerThreadStates
@@ -110,7 +111,7 @@ local function _runMonitorIteration = |monitorState, playerMonitor| {
 			if (isSongChanged(monitorState, song)) {
 				# TODO Try to determine whether previous song should be scrobbled
 				# when it was not?!
-				println("New song detected: " + song)
+				println("New song: " + song: friendlyName())
 				resetSong(monitorState, song)			
 				action = MonitorStateActions.NewSong(song)
 			} else if (isSongPositionChangedByUser(monitorState, song)) {
@@ -209,7 +210,7 @@ local function isCandidateForNewScrobble = |monitor, song| {
 
 local function isNewScrobble = |monitor, song| {
 	let listenedSeconds = song: position() - monitor: startPosition()
-	println("Listened for " + listenedSeconds + " seconds")
+	# println("Listened for " + listenedSeconds + " seconds")
 	return (listenedSeconds >= (song: length() / 2) or (listenedSeconds >= LAST_FM_MINIMAL_LISTENING_SECONDS))
 }
 

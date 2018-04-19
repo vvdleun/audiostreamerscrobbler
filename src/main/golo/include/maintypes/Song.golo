@@ -7,3 +7,7 @@ struct Song = {
 	position,
 	length
 }
+
+augment Song {
+	function friendlyName = |this| -> "\"" + this: name() + "\" (" + this: artist() + ", \"" + this: album() + "\"), played " + this: position() + " seconds of " + this: length() + " seconds"
+}

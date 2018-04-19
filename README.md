@@ -6,27 +6,14 @@ This program is not ready for prime time yet, it's under heavy development. At t
 
 Note that the program uses the undocumented LSDP protocol to detect BluOs players that are powered on. I could only test it with my BluOS player, which is the built-in streamer (internal BluOS 2 MDC upgrade card) in my NAD C368 amplifier. Therefore I don't know yet whether it will work on other players, like BlueSound's more popular wi-fi speakers, or their Node range of products.
 
-## Development News
-
-* 17th of April 2018
-  * Improved command-line and configuration validation
-  * Renamed BlueSound (company name) to BluOS (name of the standard that BlueSound uses for their products and licenses to other companies)
-  * Libre FM and GNU FM scrobblers now silently drop scrobbles older than 30 days (they have no practical limit AFAIK), while Last FM still drops scrobbles older than 14 days
-  * Re-factored HTTP request creation in preparation of incoming ListenBrainz support
-
-* 16th of April 2018
-  * Improved the handling of scrobbler errors, as dictated by Last FM's AudioScrobbler 2.0 API specifications
-  * Scrobbles older than 14 days are silently dropped, again as dictated by the AudioScrobbler 2.0 API specifications
-
 ## Description  
 
 AudioStreamerScrobbler is an application that monitors hardware audiostreamers (currently only BluOS devices, but Yamaha MusicCast support is planned for the near future) and scrobbles played tracks to one or more of the following scrobbler services:
 
 * Last FM (https://last.fm)
+* ListenBrainz (https://listenbrainz.org/)
 * Libre FM (https://libre.fm)
 * A GNU FM instance (https://www.gnu.org/software/gnufm/)
-
-Support for ListenBrainz (https://listenbrainz.org) is planned as well.
 
 The program is intended to be used 24/7 on Raspberry pi-alike devices, although the program has not been tested on those small computers yet. Hopefully BluOS and Yamaha will one day implement native Last FM support in their streaming platforms, but until that time you'll be able to use this workaround. As it is unlikely that those  companies will offer compatibility with the alternative scrobbler services, this program could still be useful, even when official Last FM support will be available.
 
@@ -58,6 +45,10 @@ After compiling the project, copy the builds/libs/audiostreamerscrobbler-0.1.0-S
                 "apiSecret": "",
                 "sessionKey": ""
             },
+            "listenbrainz" {
+                "enabled": true,
+                "userToken": ""
+            },
             "librefm": {
                 "enabled": true,
                 "sessionKey": ""
@@ -66,7 +57,7 @@ After compiling the project, copy the builds/libs/audiostreamerscrobbler-0.1.0-S
                 "enabled": true,
                 "nixtapeUrl": "192.168.178.109/nixtape",
                 "sessionKey": ""
-            },
+            }
         },
         "settings": {
             "errorHandling": {
@@ -103,6 +94,14 @@ Put the API key and secret in the correct fields in the config.json file, then r
     java -jar audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar --authorize lastfm
 
 This will start a browser. If you are not logged in to Last FM, you are asked to log in. After logging in, Last FM will ask you whether you want to authorize the application. If this is what you want, click Yes. Then open the console window and press Enter, to let the application know that you have authorized the application. It will then continue the authorization process. Finally, it will show the value for the session key. Copy and paste it and place it in the "sessionKey" value in the config.json's "lastfm" entry.
+
+#### ListenBrainz
+
+[ListenBrainz](https://listenbrainz.org) is a new service, operated by the [MetaBrainz Foundation](https://metabrainz.org). It is a new service and at the time of writing still in beta.
+
+To use this program with MusicBrainz, first get yourself an account. In your user profile, you'll find your unique user token. Copy and paste this and place this in the "userToken" field of the "listenbrainz" entry in the config.json file. Don't forget to set the "enabled" field to the "true" value.
+
+ListenBrainz support has only been added very recently and some work needs to be done on the handling of errors, so at this time Listens can get lost when problems occur.
 	
 #### Libre FM
 
@@ -132,10 +131,6 @@ After all this, run the following command on a terminal that has access to a GUI
 
 See the Last FM entry for more detailed instructions on the authorization process, the process is very much the same with GNU FM. Note that at the time of writing, AudioStreamerScrobbler client is not known by GNU FM, so it will show as an unknown client/API keys for the time being. After authorizing, just copy and paste it and place the returned session key in the "sessionKey" value in the config.json's "gnufm" entry.
 	
-#### ListenBrainz
-
-Support will be coming soon, it is very high on my priority list.
-
 ### Configuring scrobble errors parameters
 
 As this program was created for Raspberry pi-alike devices, it currently can only register songs that could not be scrobbled in volatile memory (storing them on the filesystem will damage SD cards on the long run). This means that the program will not persist them and when quitting the application before it had a chance to scrobble the songs, those scrobbles will be lost forever.
@@ -146,8 +141,10 @@ Songs that could not be scrobbled for 14 days in a row are silently dropped, as 
 
 ## Plans
 
-Above on my to-do list is adding ListenBrainz support. Then I'd want to add Yamaha MusicCast support (as I use both BluOS and MusicCast devices in my home). Then the time will be right to make the program multi-threaded, so that it will be able to monitor multiple players (of multiple types) at once. Ideally I'd like to add HEOS by Denon support as well. Please let me know if there's any demand for those and/or any other brands.
+Above on my to-do list is perfecting the ListenBrainz support. Then I'd want to add Yamaha MusicCast support (as I use both BluOS and MusicCast devices in my home). Then the time will be right to make the program multi-threaded, so that it will be able to monitor multiple players (of multiple types) at once. Ideally I'd like to add HEOS by Denon support as well.
 
-On the longer term I'd like to add more advanced grouping possibilities, so that different group of devices can scrobble to different accounts on different services. Time will tell if this application will ever get that advanced.
+Please let me know if there's any demand for support of other types/brands.
+
+On the longer term I'd like to add more advanced grouping possibilities, so that different group of devices can scrobble to different accounts on different services. Also, I'd like to add a GUI mode to configure the program in a more user friendly way. Time will tell if this application will ever get that advanced.
 
 Right now I mostly concentrate on features that I'll use myself, but if there's demand I'd love to switch priorities.

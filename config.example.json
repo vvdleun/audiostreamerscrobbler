@@ -10,6 +10,10 @@
 			"apiSecret": "",
 			"sessionKey": ""
 		},
+		"listenbrainz" {
+			"enabled": true,
+			"userToken": ""
+		},
 		"librefm": {
 			"enabled": true,
 			"sessionKey": ""
@@ -18,7 +22,7 @@
 			"enabled": true,
 			"nixtapeUrl": "",
 			"sessionKey": ""
-		}
+		},
 	},
 	"settings": {
 		"errorHandling": {
