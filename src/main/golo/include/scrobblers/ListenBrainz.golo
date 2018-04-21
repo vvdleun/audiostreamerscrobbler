@@ -37,7 +37,7 @@ function createListenBrainzTracker = |httpRequestFactory, userToken| {
 	return scrobbler
 }
 
-function createLIstenBrainzAuthorizor = {
+function createListenBrainzAuthorizor = {
 	let authorizeHelper = DynamicObject("ListenBrainzAuthorizeHelper"):
 		define("id", TRACKER_ID):
 		define("authorize", |this| -> showAuthorizeHelp())
@@ -54,24 +54,27 @@ local function showAuthorizeHelp = {
 # Tracker helpers
 
 local function updateNowPlaying = |tracker, song| {
-	let httpRequest = tracker: _httpRequest()
 	let payload = [createPayloadFromSong(song)]
-	requestPostSubmissions(httpRequest, LISTEN_TYPE_PLAYING_NOW, payload)
+	sendSubmissions(tracker, LISTEN_TYPE_PLAYING_NOW, payload)
 }
 
 local function scrobbleSong = |tracker, scrobble| {
-	let httpRequest = tracker: _httpRequest()
 	let payload = [createPayloadFromScrobble(scrobble)]
-	requestPostSubmissions(httpRequest, LISTEN_TYPE_SINGLE, payload)
+	sendSubmissions(tracker, LISTEN_TYPE_SINGLE, payload)
 }
 
 local function scrobbleAll = |tracker, scrobbles| {
-	let httpRequest = tracker: _httpRequest()
 	let payload = [createPayloadFromScrobble(s) foreach s in scrobbles]
-	requestPostSubmissions(httpRequest, LISTEN_TYPE_IMPORT, [s: song() foreach s in scrobbles])
+	sendSubmissions(tracker, LISTEN_TYPE_IMPORT, payload)
 }
 
-# Higher-level HTTP requests functions
+# Helper functions
+
+local function sendSubmissions = |tracker, listen_type, payload| {
+	let httpRequest = tracker: _httpRequest()
+	requestPostSubmissions(httpRequest, listen_type, payload)
+}
+
 
 local function requestPostSubmissions = |httpRequest, listenType, payload| {
 	httpRequest: doHttpPostRequestAndReturnJSON(

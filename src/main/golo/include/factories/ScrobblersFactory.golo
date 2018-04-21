@@ -23,7 +23,6 @@ function createScrobblersFactory = {
 	let scrobblersFactory = DynamicObject("ScrobblersFactory"):
 		define("_config", config):
 		define("createScrobblers", |this| -> createConfiguredScrobblers(this: _config())):
-		define("createScrobbler", |this, id| -> createConfiguredScrobbler(id, this: _config())):
 		define("createScrobblerAuthorizer", |this, id| -> createScrobblerAuthorizer(id, this: _config()))
 	
 	return scrobblersFactory
@@ -107,7 +106,7 @@ local function createListenBrainzTrackerInstance = |scrobblersConfig| {
 }
 
 local function createListenBrainzAuthorizerInstance = {
-	return createLIstenBrainzAuthorizor() 
+	return createListenBrainzAuthorizor()
 }
 
 # Libre FM

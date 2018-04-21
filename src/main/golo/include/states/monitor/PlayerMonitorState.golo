@@ -146,12 +146,6 @@ local function isSongScrobblable = |song| {
 		return false
 	}
 	
-	# Artist and song title must be known
-	if (isNullOrEmpty(song: artist()) or isNullOrEmpty(song: name())) {
-		# println("Unknown artist or song name. Ignored.")
-		return false
-	}
-
 	# Position and length as well
 	if (song: position() is null or song: length() is null) {
 		# println("Unknown song position or song length. Ignored.")
