@@ -43,11 +43,12 @@ function createScrobblersHandler = |scrobblers, missedScrobblesHandler| {
 
 local function shouldRetryScrobble = |ex| {
 	case {
-		when ex oftype java.net.SocketException.class or ex oftype java.net.SocketTimeoutException.class {
-			return true
-		}
+		# TODO: just always retry IOExceptions exceptions?
 		when ex oftype nl.vincentvanderleun.scrobbler.exceptions.ScrobblerException.class {
 			return ex: shouldRetryLater()
+		}
+		when ex oftype java.io.IOException.class {
+			return true
 		}
 		otherwise {
 			return false
