@@ -23,7 +23,7 @@
 			"nixtapeUrl": "",
 			"sessionKey": ""
 		},
-		"listenbrainz-server" {
+		"listenbrainz-server": {
 			"enabled": true,
 			"websiteUrl": "",
 			"apiUrl": "",

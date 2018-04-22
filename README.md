@@ -58,7 +58,7 @@ After compiling the project, copy the builds/libs/audiostreamerscrobbler-0.1.0-S
                 "nixtapeUrl": "192.168.178.109/nixtape",
                 "sessionKey": ""
             },
-            "listenbrainz-server" {
+            "listenbrainz-server": {
                 "enabled": true,
                 "websiteUrl": "",
                 "apiUrl": "",
