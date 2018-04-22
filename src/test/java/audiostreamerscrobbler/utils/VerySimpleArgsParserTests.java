@@ -12,7 +12,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 public class VerySimpleArgsParserTests {
-
 	@Test
 	public void mustParseArgumentsCorrectly2() throws Throwable {
 		String[] args = { "option1", "option2", "--option3" };
@@ -23,6 +22,5 @@ public class VerySimpleArgsParserTests {
 		assertEquals("option2", parseNextInvoker.invoke(parser));
 		assertEquals("--option3", parseNextInvoker.invoke(parser));
 		assertNull(parseNextInvoker.invoke(parser));
-	}
-	
+	}	
 }

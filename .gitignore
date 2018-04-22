@@ -1,4 +1,5 @@
 *.class
+bin/
 build/
 .gradle/
 config.json

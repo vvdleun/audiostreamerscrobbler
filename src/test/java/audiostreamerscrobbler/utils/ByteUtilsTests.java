@@ -6,7 +6,6 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 public class ByteUtilsTests {
-
 	@Test
 	public void byteArrayMustBeCreatedFromHexStringArray() {
 		String[] hexStringArray = { "0A", "0F", "FF" };
