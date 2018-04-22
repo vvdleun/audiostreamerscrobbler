@@ -6,14 +6,16 @@ import audiostreamerscrobbler.scrobbler.GnuFmScrobbler
 import audiostreamerscrobbler.scrobbler.LastFmScrobbler
 import audiostreamerscrobbler.scrobbler.LibreFmScrobbler
 import audiostreamerscrobbler.scrobbler.ListenBrainz
+import audiostreamerscrobbler.scrobbler.ListenBrainzServer
 import audiostreamerscrobbler.scrobbler.Scrobblers
 
 let LAST_FM_ID = getLastFmId()
 let LISTEN_BRAINZ_ID = getListenBrainzId()
+let LISTEN_BRAINZ_SERVER_ID = getListenBrainzServerId()
 let LIBRE_FM_ID = getLibreFmId()
 let GNU_FM_ID = getGnuFmId()
 
-let SCROBBLER_IDS = [LAST_FM_ID, LISTEN_BRAINZ_ID, LIBRE_FM_ID, GNU_FM_ID]
+let SCROBBLER_IDS = [LAST_FM_ID, LISTEN_BRAINZ_ID, LIBRE_FM_ID, GNU_FM_ID, LISTEN_BRAINZ_SERVER_ID]
 
 function getScrobblerKeyNames = -> SCROBBLER_IDS
 
@@ -46,7 +48,8 @@ local function createConfiguredScrobbler = |scrobblersConfig, id| {
 		[LAST_FM_ID, ^createLastFMScrobblerInstance],
 		[LISTEN_BRAINZ_ID, ^createListenBrainzTrackerInstance],
 		[LIBRE_FM_ID, ^createLibreFMScrobblerInstance],
-		[GNU_FM_ID, ^createGnuFMScrobblerInstance]]
+		[GNU_FM_ID, ^createGnuFMScrobblerInstance],
+		[LISTEN_BRAINZ_SERVER_ID, ^createListenBrainzServerTrackerInstance]]
 
 	let createFunction = createFunctions: getOrElse(id, null)
 	
@@ -69,6 +72,7 @@ local function createScrobblerAuthorizer = |id, config| {
 		when id == LISTEN_BRAINZ_ID then createListenBrainzAuthorizerInstance()
 		when id == LIBRE_FM_ID then createLibreFMAuthorizerInstance()
 		when id == GNU_FM_ID then createGnuFMAuthorizerInstance(scrobblersConfig)
+		when id == LISTEN_BRAINZ_SERVER_ID then createListenBrainzServerAuthorizerInstance(scrobblersConfig)
 		otherwise null
 	}
 	return returnInstance()
@@ -88,7 +92,7 @@ local function createLastFMScrobblerInstance = |scrobblersConfig| {
 local function createLastFMAuthorizerInstance = |scrobblersConfig| {
 	let lastFmConfig = scrobblersConfig: get(LAST_FM_ID)
 	if (lastFmConfig: get("apiKey") is null or lastFmConfig: get("apiSecret") is null) {
-		throw "ERROR: Scrobbler 'lastfm' is not configured in config.json. Entries 'apiKey' and 'apiSecret' must be filled before authorization can take place."
+		throw "ERROR: Scrobbler '" + LAST_FM_ID + "' is not configured in config.json. Entries 'apiKey' and 'apiSecret' must be filled before authorization can take place."
 	}
 
 	let httpRequest = createHttpRequestFactory(): createHttpRequest()
@@ -133,8 +137,29 @@ local function createGnuFMScrobblerInstance = |scrobblersConfig| {
 local function createGnuFMAuthorizerInstance = |scrobblersConfig| {
 	let gnuFmConfig = scrobblersConfig: get(GNU_FM_ID)
 	if (gnuFmConfig: get("nixtapeUrl") is null) {
-		throw "ERROR: Scrobbler 'gnufm' is not configured in config.json. Entry 'nixtapeUrl' in 'gnufm' entry must be filled before authorization can take place."
+		throw "ERROR: Scrobbler '" + GNU_FM_ID + "' is not configured in config.json. Fill its 'nixtapeUrl' entry and try again."
 	}
 	let httpRequest = createHttpRequestFactory(): createHttpRequest()
 	return createGnuFmAuthorizor(httpRequest, gnuFmConfig: get("nixtapeUrl")) 
+}
+
+# ListenBrainz Server (local installation of ListenBrainz Server)
+
+local function createListenBrainzServerTrackerInstance = |scrobblersConfig| {
+	let listenBrainzServerConfig = scrobblersConfig: get(LISTEN_BRAINZ_SERVER_ID)
+	let httpRequestFactory = createHttpRequestFactory()
+	let apiUrl = listenBrainzServerConfig: get("apiUrl")
+	let websiteUrl = listenBrainzServerConfig: get("websiteUrl")
+	let userToken = listenBrainzServerConfig: get("userToken")
+	return createListenBrainzServerTracker(httpRequestFactory, apiUrl, websiteUrl, userToken)
+}
+
+local function createListenBrainzServerAuthorizerInstance = |scrobblersConfig| {
+	let listenBrainzServerConfig = scrobblersConfig: get(LISTEN_BRAINZ_SERVER_ID)
+	let websiteUrl = listenBrainzServerConfig: get("websiteUrl")
+	if (listenBrainzServerConfig: get("websiteUrl") is null) {
+		throw "ERROR: Scrobbler '" + LISTEN_BRAINZ_SERVER_ID + "' is not configured in config.json. Entry 'websiteUrl' must be filled before authorization can take place."
+	}
+
+	return createListenBrainzServerAuthorizor(websiteUrl)
 }

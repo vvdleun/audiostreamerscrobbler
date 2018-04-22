@@ -23,10 +23,16 @@
 			"nixtapeUrl": "",
 			"sessionKey": ""
 		},
+		"listenbrainz-server" {
+			"enabled": true,
+			"websiteUrl": "",
+			"apiUrl": "",
+			"userToken": ""
+		}
 	},
 	"settings": {
 		"errorHandling": {
-			"maxSongs": 100,
+			"maxSongs": 250,
 			"retryIntervalMinutes": 30
 		}
 	}	

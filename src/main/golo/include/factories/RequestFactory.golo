@@ -54,7 +54,7 @@ local function createHttpRequest = |encoding, timeout, customProperties| {
 # GET
 
 local function doHttpGetRequestAndReturnJSON = |url, encoding, timeout, customProperties| {
-	let jsonString = doHttpGetRequestAndReturnAsText(url, encoding, timeout, createGetProperties("application/json", encoding, customProperties()))
+	let jsonString = doHttpGetRequestAndReturnAsText(url, encoding, timeout, createGetProperties("application/json", encoding, customProperties))
 	return JSON.parse(jsonString)
 }
 

@@ -57,7 +57,13 @@ After compiling the project, copy the builds/libs/audiostreamerscrobbler-0.1.0-S
                 "enabled": true,
                 "nixtapeUrl": "192.168.178.109/nixtape",
                 "sessionKey": ""
-            }
+            },
+            "listenbrainz-server" {
+                "enabled": true,
+                "websiteUrl": "",
+                "apiUrl": "",
+                "userToken": ""
+		    }
         },
         "settings": {
             "errorHandling": {
@@ -95,13 +101,13 @@ Put the API key and secret in the correct fields in the config.json file, then r
 
 This will start a browser. If you are not logged in to Last FM, you are asked to log in. After logging in, Last FM will ask you whether you want to authorize the application. If this is what you want, click Yes. Then open the console window and press Enter, to let the application know that you have authorized the application. It will then continue the authorization process. Finally, it will show the value for the session key. Copy and paste it and place it in the "sessionKey" value in the config.json's "lastfm" entry.
 
-#### ListenBrainz
+#### ListenBrainz and ListenBrainz Server
 
 [ListenBrainz](https://listenbrainz.org) is a new service, operated by the [MetaBrainz Foundation](https://metabrainz.org). It is a new service and at the time of writing still in beta. A big different with all others  is that ListenBrainz will give away all collected data for free. Everybody can download a complete data dumps from their website.
 
 To use this program with ListenBrainz, first get yourself an account. In your user profile, you'll find your unique user token. Copy and paste this and place this in the "userToken" field of the "listenbrainz" entry in the config.json file. Don't forget to set the "enabled" field to the "true" value.
 
-ListenBrainz support has only been added very recently (using their new JSON API and not their AudioStreamer 2.0 API compatibility proxy service) and some work needs to be done on the handling of errors, so at this time Listens can get lost when problems occur. Also, this program will support custom ListenBrainz Server installations very soon.
+You can also choose to download the [ListenBrainz Server](https://github.com/metabrainz/listenbrainz-server) yourself and run a server instance locally, but this is recommended for advanced users only. If you choose to go this route, you must fill the "listenbrainz-server" entry in the config.json file, set its "enabled" field to "true" and fill the "websiteUrl" (the URL where you can access your local instance) and the "apiUrl" (this is the same URL that you entered in ListenBrainz Server's listenbrainz/config.py file's API URL field). You can keep it empty if you chose the same URL for the API as the website. You'll still need to find the User Token in your profiel page.
 
 #### Libre FM
 
@@ -141,7 +147,7 @@ Songs that could not be scrobbled for 14 days in a row are silently dropped, as 
 
 ## Plans
 
-Above on my to-do list is perfecting the ListenBrainz support. Then I'd want to add Yamaha MusicCast support (as I use both BluOS and MusicCast devices in my home). Then the time will be right to make the program multi-threaded, so that it will be able to monitor multiple players (of multiple types) at once. Ideally I'd like to add HEOS by Denon support as well.
+At the top of my list is adding Yamaha MusicCast support (as I use both BluOS and MusicCast devices in my home). Then the time will be right to make the program multi-threaded, so that it will be able to monitor multiple players (of multiple types) at once. Ideally I'd like to add HEOS by Denon support as well.
 
 Please let me know if there's any demand for support of other types/brands.
 
