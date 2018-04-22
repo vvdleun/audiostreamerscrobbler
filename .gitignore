@@ -3,3 +3,5 @@ build/
 .gradle/
 config.json
 run.bat
+.classpath
+.project

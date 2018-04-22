@@ -19,8 +19,12 @@ repositories {
     mavenLocal()
 }
 
+ext.goloDependency = 'org.eclipse.golo:golo:3.3.0-M1'
+
 dependencies {
-    golo 'org.eclipse.golo:golo:3.3.0-M1'
+    golo goloDependency
+    testCompile goloDependency
+	testCompile 'junit:junit:4.12'
 }
 
 jar {
