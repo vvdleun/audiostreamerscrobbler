@@ -1,0 +1,172 @@
+package audiostreamerscrobbler.bluos;
+
+import audiostreamerscrobbler.bluos.BluOsPlayerDetector;
+
+import gololang.DynamicObject;
+import gololang.FunctionReference;
+import gololang.GoloStruct;
+import gololang.Tuple;
+import gololang.Union;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import static java.lang.invoke.MethodType.genericMethodType;
+import static org.junit.Assert.*;
+
+public class BluOsPlayerDetectorTests {
+	@Before
+	public void init() {
+		MockedLSDPHandler.lsdpHandler = new Object();
+		MockedLSDPHandler.inetAddresses = new Object();
+		MockedLSDPHandler.timeout = new Object();
+		MockedLSDPHandler.playerAnswerCallback = new Object();
+	}
+	
+	@Test
+	@SuppressWarnings("unchecked")
+	public void shouldContinueSearchWhenPlayerNotFound() throws Throwable {
+		DynamicObject bluOsDetector = (DynamicObject)BluOsPlayerDetector.createBluOsPlayerDetector("PlayerThatDoesNotExist");
+		DynamicObject lsdpHandler = createMockedLSDPHandler(MockedLSDPHandler.class, "queryLsdpPlayerNotFound");
+
+		MethodHandle detectPlayerInvoker = setupBlueOsDetectorAndCreateDetectPlayerInvoker(bluOsDetector, lsdpHandler);
+		Union u = (Union)detectPlayerInvoker.invoke(bluOsDetector);
+		
+		Tuple unionMembers = u.destruct();
+		assertEquals(0, unionMembers.size());
+		
+		assertEquals("audiostreamerscrobbler.states.detector.MainTypes.types.DetectorStateTypes$PlayerNotFoundKeepTrying", u.getClass().getName());
+		assertEquals(lsdpHandler, MockedLSDPHandler.lsdpHandler);
+		((List<Object>)MockedLSDPHandler.inetAddresses).stream()
+			.map(o -> (InetAddress) o)
+			.collect(Collectors.toList());
+		assertEquals(5, MockedLSDPHandler.timeout);
+		assertTrue(MockedLSDPHandler.playerAnswerCallback instanceof FunctionReference);
+	}
+
+	private MethodHandle setupBlueOsDetectorAndCreateDetectPlayerInvoker(DynamicObject bluOsDetector, DynamicObject lsdpHandler) throws Throwable {
+		MethodHandle setLsdpHandlerInvoker = bluOsDetector.invoker("_lsdpHandler", genericMethodType(2));
+		setLsdpHandlerInvoker.invoke(bluOsDetector, lsdpHandler);
+		return bluOsDetector.invoker("detectPlayer", genericMethodType(1));
+	}
+
+	private DynamicObject createMockedLSDPHandler(Class<?> className, String queryLSDPplayersMethodName) throws Exception {
+		MethodHandles.Lookup lookup = MethodHandles.lookup();
+		MethodHandle handle = lookup.findStatic(className, queryLSDPplayersMethodName, genericMethodType(4));
+		FunctionReference queryLSDPPlayersRef = new FunctionReference(handle);
+		
+		DynamicObject lsdpHandler = new DynamicObject();
+		lsdpHandler.define("queryLSDPPlayers", queryLSDPPlayersRef);
+		return lsdpHandler;
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void shouldReturnPlayerWhenExpectedPlayerIsFound() throws Throwable {
+		MockedLSDPHandler.reportedPlayer = "SearchedPlayer";
+		
+		DynamicObject bluOsDetector = (DynamicObject)BluOsPlayerDetector.createBluOsPlayerDetector("SearchedPlayer");
+		DynamicObject lsdpHandler = createMockedLSDPHandler(MockedLSDPHandler.class, "queryLsdpReportedPlayerFound");
+
+		MethodHandle detectPlayerInvoker = setupBlueOsDetectorAndCreateDetectPlayerInvoker(bluOsDetector, lsdpHandler);
+		Union u = (Union)detectPlayerInvoker.invoke(bluOsDetector);
+
+		Tuple unionMembers = u.destruct();
+		assertEquals(1, unionMembers.size());
+		
+		DynamicObject foundPlayer = (DynamicObject)unionMembers.get(0);
+		assertEquals("SearchedPlayer", (String)foundPlayer.get("name"));
+		Union playerType = (Union)foundPlayer.get("playerType");
+		assertEquals("audiostreamerscrobbler.maintypes.Player.types.PlayerTypes$BluOs", playerType.getClass().getName());
+		
+		Tuple playerTypeMembers = playerType.destruct();
+		assertEquals(1, playerTypeMembers.size());
+		
+		GoloStruct bluOsImpl = (GoloStruct)playerTypeMembers.get(0);
+		assertEquals("SearchedPlayer", bluOsImpl.get("name"));
+		assertEquals("1234", bluOsImpl.get("port"));
+		assertEquals("She's a model and she's looking good", bluOsImpl.get("model"));
+		assertEquals("v1.0.0.0.1b", bluOsImpl.get("version"));
+		assertEquals("01:02:03:04", bluOsImpl.get("macAddress"));
+		assertEquals("5.6.7.8.9", bluOsImpl.get("ipAddress"));
+		assertEquals("1", bluOsImpl.get("LSDPVersionSupposedly"));
+		assertNotNull(bluOsImpl.get("host"));
+		
+		assertEquals("audiostreamerscrobbler.states.detector.MainTypes.types.DetectorStateTypes$PlayerFound", u.getClass().getName());
+		assertEquals(lsdpHandler, MockedLSDPHandler.lsdpHandler);
+		((List<Object>)MockedLSDPHandler.inetAddresses).stream()
+			.map(o -> (InetAddress) o)
+			.collect(Collectors.toList());
+		assertEquals(5, MockedLSDPHandler.timeout);
+		assertTrue(MockedLSDPHandler.playerAnswerCallback instanceof FunctionReference);
+	}
+
+	@Test
+	public void shouldKeepSearchingWhenUnwantedPlayerIsDetected() throws Throwable {
+		MockedLSDPHandler.reportedPlayer = "ThisPlayerIsNotThePlayerThatYouAreLookingFor";
+		
+		DynamicObject bluOsDetector = (DynamicObject)BluOsPlayerDetector.createBluOsPlayerDetector("ThisPlayerWillNeverBeFound");
+		DynamicObject lsdpHandler = createMockedLSDPHandler(MockedLSDPHandler.class, "queryLsdpReportedPlayerFound");
+
+		MethodHandle detectPlayerInvoker = setupBlueOsDetectorAndCreateDetectPlayerInvoker(bluOsDetector, lsdpHandler);
+		Union u = (Union)detectPlayerInvoker.invoke(bluOsDetector);
+
+		assertEquals(0, ((Tuple)u.destruct()).size());
+	}
+	
+	static class MockedLSDPHandler {
+		public static String reportedPlayer = null;
+		public static Object lsdpHandler = new Object();
+		public static Object inetAddresses = new Object();
+		public static Object timeout = new Object();
+		public static Object playerAnswerCallback = new Object();
+		
+		public static Object queryLsdpPlayerNotFound(Object lsdpHandler, Object inetAddresses, Object timeOut, Object playerAnswerCallback) {
+			MockedLSDPHandler.lsdpHandler = lsdpHandler;
+			MockedLSDPHandler.inetAddresses = inetAddresses;
+			MockedLSDPHandler.timeout = timeOut;
+			MockedLSDPHandler.playerAnswerCallback = playerAnswerCallback;
+			return null;
+		}
+
+		public static Object queryLsdpReportedPlayerFound(Object lsdpHandler, Object inetAddresses, Object timeOut, Object playerAnswerCallback) throws Throwable {
+			FunctionReference callback = (FunctionReference)playerAnswerCallback;
+
+			HashMap<String, String> table01 = new HashMap<>();
+			table01.put("name", reportedPlayer); // Must be set by test before this method is called
+			table01.put("port", "1234");
+			table01.put("model", "She's a model and she's looking good");
+			table01.put("version", "v1.0.0.0.1b");
+			HashMap<Integer, HashMap<String, String>> t1 = new HashMap<>();
+			t1.put(1, table01);
+			HashMap<Integer, HashMap<Integer, HashMap<String, String>>> t0 = new HashMap<>();
+			t0.put(0, t1);
+			
+			HashMap<Object, Object> mockedExtractedLSDPPlayer = new HashMap<>();
+			mockedExtractedLSDPPlayer.put("lsdpVersionSupposedly", "1");
+			mockedExtractedLSDPPlayer.put("answerType", "A");
+			mockedExtractedLSDPPlayer.put("macAddress", "01:02:03:04");
+			mockedExtractedLSDPPlayer.put("ipAddress", "5.6.7.8.9");
+			mockedExtractedLSDPPlayer.put("tables", t0);
+
+			DatagramPacket datagramPacket = new DatagramPacket(new byte[0], 0);
+			datagramPacket.setAddress(InetAddress.getLocalHost());
+			
+			callback.invoke(mockedExtractedLSDPPlayer, datagramPacket);
+
+			MockedLSDPHandler.lsdpHandler = lsdpHandler;
+			MockedLSDPHandler.inetAddresses = inetAddresses;
+			MockedLSDPHandler.timeout = timeOut;
+			MockedLSDPHandler.playerAnswerCallback = playerAnswerCallback;
+
+			return null;
+		}
+	}	
+}

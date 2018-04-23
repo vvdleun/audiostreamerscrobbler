@@ -1,6 +1,6 @@
 module audiostreamerscrobbler.bluos.BluOsStatusXMLParser
 
-import audiostreamerscrobbler.bluos.types.BluOsStatus
+import audiostreamerscrobbler.bluos.maintypes.types.BluOsStatus
 
 import gololang.Adapters
 import javax.xml.parsers.SAXParserFactory

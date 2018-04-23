@@ -2,7 +2,7 @@ module audiostreamerscrobbler.bluos.BluOsPlayerDetector
 
 import audiostreamerscrobbler.bluos.BluOsPlayer
 import audiostreamerscrobbler.bluos.LSDPHandler
-import audiostreamerscrobbler.states.detector.types.DetectorStateTypes
+import audiostreamerscrobbler.states.detector.MainTypes.types.DetectorStateTypes
 import audiostreamerscrobbler.utils.NetworkUtils
 
 let TIMEOUT_SECONDS = 5
@@ -20,15 +20,17 @@ struct DetectedBluOsPlayer = {
 
 function createBluOsPlayerDetector = |playerName| {
 	let detector = DynamicObject("BluOsDetector"):
-		define("detectPlayer", |this| -> detectBluOsPlayer(playerName))
+		define("_lsdpHandler", |this| -> createLSDPHandler()):
+		define("_playerName", |this| -> playerName):
+		define("detectPlayer", |this| -> detectBluOsPlayer(this: _lsdpHandler(), this: _playerName()))
 	return detector
 }
 
-local function detectBluOsPlayer = |playerName| {
+local function detectBluOsPlayer = |lsdpHandler, playerName| {
 	let players = list[]
 	let inetAddresses = getBroadcastAddresses()
 
-	queryLSDPPlayers(inetAddresses, TIMEOUT_SECONDS, |p, d| {
+	lsdpHandler: queryLSDPPlayers(inetAddresses, TIMEOUT_SECONDS, |p, d| {
 		let player = convertLSDPAnswerToDetectedBluOsPlayer(p, d)
 		if (playerName != player: name()) {
 			# Player is not the player that we wanted. Keep searching...

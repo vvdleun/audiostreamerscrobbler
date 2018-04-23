@@ -1,4 +1,4 @@
-module audiostreamerscrobbler.bluos
+module audiostreamerscrobbler.bluos.maintypes
 
 struct BluOsStatus = {
 	success,

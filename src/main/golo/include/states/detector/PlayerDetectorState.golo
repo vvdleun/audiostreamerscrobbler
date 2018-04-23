@@ -1,7 +1,7 @@
 module audiostreamerscrobbler.states.detector.PlayerDetectorState
 
 import audiostreamerscrobbler.maintypes.Player
-import audiostreamerscrobbler.states.types.PlayerThreadStates
+import audiostreamerscrobbler.states.maintypes.types.PlayerThreadStates
 
 function createPlayerDetectorState = |playerDetector| {
 	let state = DynamicObject("DetectPlayerState"):

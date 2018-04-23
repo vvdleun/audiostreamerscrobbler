@@ -1,4 +1,4 @@
-module audiostreamerscrobbler.states
+module audiostreamerscrobbler.states.maintypes
 
 union PlayerThreadStates = {
 	DetectPlayer

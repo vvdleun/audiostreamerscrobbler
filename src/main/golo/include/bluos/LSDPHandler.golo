@@ -18,9 +18,16 @@ let LSDP_PORT = 11430
 # Amount of seconds that program will sleep after LSDP requests and no answers within timeout specified by the caller 
 let IDLE_SLEEP_TIME_SECONDS = 10
 
+function createLSDPHandler = {
+	let handler = DynamicObject("LSDPHandler"):
+		define("queryLSDPPlayers", |this, inetAddresses, timeout, playerAnswerCallback| -> queryLSDPPlayers(inetAddresses, timeout, playerAnswerCallback))
+
+	return handler
+}
+
 # Sending LSDP queries
 
-function queryLSDPPlayers = |inetAddresses, timeout, playerAnswerCallback| {
+local function queryLSDPPlayers = |inetAddresses, timeout, playerAnswerCallback| {
 	var datagramSocket = null
 
 	var waitForMorePlayers = true
