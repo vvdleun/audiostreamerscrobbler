@@ -2,7 +2,7 @@ module audiostreamerscrobbler.bluos.BluOsPlayerDetector
 
 import audiostreamerscrobbler.bluos.BluOsPlayer
 import audiostreamerscrobbler.bluos.LSDPHandler
-import audiostreamerscrobbler.states.detector.MainTypes.types.DetectorStateTypes
+import audiostreamerscrobbler.states.detector.DetectorStateTypes.types.DetectorStateTypes
 import audiostreamerscrobbler.utils.NetworkUtils
 
 let TIMEOUT_SECONDS = 5

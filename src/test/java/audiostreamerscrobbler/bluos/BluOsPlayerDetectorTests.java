@@ -42,7 +42,7 @@ public class BluOsPlayerDetectorTests {
 		Tuple unionMembers = u.destruct();
 		assertEquals(0, unionMembers.size());
 		
-		assertEquals("audiostreamerscrobbler.states.detector.MainTypes.types.DetectorStateTypes$PlayerNotFoundKeepTrying", u.getClass().getName());
+		assertEquals("audiostreamerscrobbler.states.detector.DetectorStateTypes.types.DetectorStateTypes$PlayerNotFoundKeepTrying", u.getClass().getName());
 		assertEquals(lsdpHandler, MockedLSDPHandler.lsdpHandler);
 		((List<Object>)MockedLSDPHandler.inetAddresses).stream()
 			.map(o -> (InetAddress) o)
@@ -99,7 +99,7 @@ public class BluOsPlayerDetectorTests {
 		assertEquals("1", bluOsImpl.get("LSDPVersionSupposedly"));
 		assertNotNull(bluOsImpl.get("host"));
 		
-		assertEquals("audiostreamerscrobbler.states.detector.MainTypes.types.DetectorStateTypes$PlayerFound", u.getClass().getName());
+		assertEquals("audiostreamerscrobbler.states.detector.DetectorStateTypes.types.DetectorStateTypes$PlayerFound", u.getClass().getName());
 		assertEquals(lsdpHandler, MockedLSDPHandler.lsdpHandler);
 		((List<Object>)MockedLSDPHandler.inetAddresses).stream()
 			.map(o -> (InetAddress) o)
@@ -110,7 +110,7 @@ public class BluOsPlayerDetectorTests {
 
 	@Test
 	public void shouldKeepSearchingWhenUnwantedPlayerIsDetected() throws Throwable {
-		MockedLSDPHandler.reportedPlayer = "ThisPlayerIsNotThePlayerThatYouAreLookingFor";
+		MockedLSDPHandler.reportedPlayer = "ThisIsNotThePlayerThatYouAreLookingFor";
 		
 		DynamicObject bluOsDetector = (DynamicObject)BluOsPlayerDetector.createBluOsPlayerDetector("ThisPlayerWillNeverBeFound");
 		DynamicObject lsdpHandler = createMockedLSDPHandler(MockedLSDPHandler.class, "queryLsdpReportedPlayerFound");
@@ -119,6 +119,8 @@ public class BluOsPlayerDetectorTests {
 		Union u = (Union)detectPlayerInvoker.invoke(bluOsDetector);
 
 		assertEquals(0, ((Tuple)u.destruct()).size());
+
+		assertEquals("audiostreamerscrobbler.states.detector.DetectorStateTypes.types.DetectorStateTypes$PlayerNotFoundKeepTrying", u.getClass().getName());
 	}
 	
 	static class MockedLSDPHandler {

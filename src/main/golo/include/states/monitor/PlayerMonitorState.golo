@@ -3,7 +3,7 @@ module audiostreamerscrobbler.states.monitor.PlayerMonitorState
 import audiostreamerscrobbler.maintypes.Song
 import audiostreamerscrobbler.states.monitor.types.MonitorStateTypes
 import audiostreamerscrobbler.states.monitor.MonitorCallLimiterDecorator
-import audiostreamerscrobbler.states.types.PlayerThreadStates
+import audiostreamerscrobbler.states.PlayerThreadStates.types.PlayerThreadStates
 
 import java.lang.Thread
 import java.time.{Duration, Instant}

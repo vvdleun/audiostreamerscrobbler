@@ -1,4 +1,4 @@
-module audiostreamerscrobbler.states.detector.MainTypes
+module audiostreamerscrobbler.states.detector.DetectorStateTypes
 
 union DetectorStateTypes = {
 	PlayerNotFoundKeepTrying
