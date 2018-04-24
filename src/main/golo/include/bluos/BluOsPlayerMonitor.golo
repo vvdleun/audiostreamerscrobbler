@@ -73,8 +73,8 @@ local function convertPlayerStatusToSong = |status| {
 }
 
 local function str2int = |s| {
-		if (s is null) {
-			return null
-		}
-		return Integer.parseInt(s)
+	if (s is null) {
+		return null
+	}
+	return Integer.parseInt(s)
 }

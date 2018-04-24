@@ -12,7 +12,7 @@ import static java.lang.invoke.MethodType.genericMethodType;
 import static org.junit.Assert.assertEquals;
 
 public class ThreadUtilsTests {
-	private static String threadName;
+	private static String thread2Name;
 
 	@Test
 	public void mustRunInDifferentThread() throws Exception {
@@ -22,14 +22,14 @@ public class ThreadUtilsTests {
 		 FunctionReference functionReference = new FunctionReference(handle);
 		 Thread t = (Thread)ThreadUtils.runInNewThread(functionReference);
 		 t.join();
-		 assertEquals(Thread.currentThread().getName(), "thread1");
-		 assertEquals(threadName, "thread2");
+		 assertEquals("thread1", Thread.currentThread().getName());
+		 assertEquals("thread2", thread2Name);
 	}
 	
 	@SuppressWarnings("unused")
 	private static Object functionToRun() {
 		Thread.currentThread().setName("thread2");
-		threadName = Thread.currentThread().getName();
+		thread2Name = Thread.currentThread().getName();
 		return null;
 	}
 }
