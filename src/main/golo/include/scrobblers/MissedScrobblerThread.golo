@@ -98,11 +98,7 @@ local function portIncomingMsgHandler = |handler, msg| {
 			_addScrobbles(handler, msg)
 		}
 		when msg: isScrobbleMissedScrobblesMsg() {
-			try {
-				_scrobbleMissingScrobbles(handler)
-			} catch (ex) {
-				println("COULD NOT RE-SCROBBLE: " + ex)
-			}
+			_scrobbleMissingScrobbles(handler)
 		}
 		otherwise {
 			raise("Internal error, unknown message passed: " + msg)
@@ -129,11 +125,15 @@ local function _scrobbleMissingScrobbles = |handler| {
 			println("\n* Re-scrobbling " + scrobbles: size() + " songs to " + scrobblerId + "...")
 			let scrobbler = handler: _scrobblers(): get(scrobblerId)
 			let filteredScrobbles = scrobbles: filter(|s| -> daysBetweenNowAndDate(s: utcTimestamp()) <= scrobbler: maximalDaysOld())
-			scrobbler: scrobbleAll(filteredScrobbles)
-			println("* Done\n")
+			try {
+				scrobbler: scrobbleAll(filteredScrobbles)
+				println("* Done\n")
+				scrobbles: clear()
+			} catch (ex) {
+				println("* COULD NOT RE-SCROBBLE: " + ex + "\n")
+			}
 		}
 	})
-	handler: _scrobbles(): clear()
 }
 
 local function daysBetweenNowAndDate = |d| {
