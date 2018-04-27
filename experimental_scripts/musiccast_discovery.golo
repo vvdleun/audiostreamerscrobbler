@@ -1,12 +1,12 @@
 module experiments.MusicCastDiscovery
 
-import java.net.{DatagramPacket, InetAddress, MulticastSocket}
-import java.nio.charset.StandardCharsets
+import java.lang.Thread
+import java.net.{DatagramPacket, InetAddress,  MulticastSocket, NetworkInterface}
 
 let MULTICAST_ADDRESS_IP4 = "239.255.255.250"
 let MULTICAST_ADDRESS_IP6 = "FF05::C"
 let MULTICAST_UDP_PORT = 1900
-let BUFFER_SIZE = 1 * 1024
+let BUFFER_SIZE = 4 * 1024
 
 function main = |args| {
 	# MediaRenderer
@@ -21,30 +21,136 @@ function main = |args| {
 	# 0070   73 73 64 70 3a 64 69 73 63 6f 76 65 72 22 0d 0a   ssdp:discover"..
 	# 0080   4d 58 3a 20 33 0d 0a 0d 0a                        MX: 3....
 
-	let multicastAddress = InetAddress.getByName(MULTICAST_ADDRESS_IP4)
-	let multicastSocket = MulticastSocket(MULTICAST_UDP_PORT)
-	multicastSocket: joinGroup(multicastAddress)
+	let networkInterfaces = getNetworkInterfaces()
+	let usedNetworkInterface = networkInterfaces: get(0)
 
-	println("Sending MSearch query...")
-	let msg = createMSearchString(MULTICAST_ADDRESS_IP4, MULTICAST_UDP_PORT, "MediaRenderer", 2)
-	println("'" + msg + "'")
-	let msgBytes = msg: getBytes("UTF-8")
-	let mSearchPacket = DatagramPacket(msgBytes, msgBytes: length(), multicastAddress, MULTICAST_UDP_PORT)
-	multicastSocket: send(mSearchPacket)
-
-	var index = 0
-	println("Waiting for replies...")
-	while(true) {
-		let buffer = newTypedArray(byte.class, BUFFER_SIZE)
-		let recv = DatagramPacket(buffer, buffer: length())
-		multicastSocket: receive(recv)
-		let incomingMsg = String(buffer, "UTF-8")
-		if (incomingMsg: contains("MediaRenderer") and incomingMsg: toUpperCase(): contains("LOCATION")) {
-			index = index + 1
-			println("Packet #" + index)
-			println(incomingMsg)
+	let ssdpHandler = createSSDPHandler(usedNetworkInterface)
+	ssdpHandler: start()
+	
+	while (true) {
+		foreach (i in range(3)) {
+			ssdpHandler: mSearch("urn:schemas-upnp-org:device:MediaRenderer:1", 2)
+			Thread.sleep(1000_L)
 		}
+		Thread.sleep(6000_L)
 	}
+}
+
+local function createSSDPHandler = |networkInterface| {
+	let ssdpHandler = DynamicObject("SSDPHandler"):
+		define("_networkInterface", networkInterface):
+		define("_multicastAddress", null):
+		define("_threadNotifyHandler", null):
+		define("_threadMSearchHandler", null):
+		define("_socketNotify", null):
+		define("_socketMSearch", null):
+		define("start", |this| -> initAndStartThreads(this)):
+		define("mSearch", |this, deviceName, seconds| -> mSearch(this, deviceName, seconds))
+		
+	return ssdpHandler
+}
+
+local function initAndStartThreads = |handler| {
+	let networkInterface = handler: _networkInterface()
+	println("Using: " + networkInterface)
+	
+	let multicastAddress = InetAddress.getByName(MULTICAST_ADDRESS_IP4)
+
+	# Incoming UPNP NOTIFY messages handling
+
+	let socketNotify = MulticastSocket(MULTICAST_UDP_PORT)
+	
+	let threadNotifyHandler = runInNewThread({
+		# println("NOTIFY thread starts")
+		# socketNotify: joinGroup(multicastAddress)
+		# socketNotify: setSoTimeout(30000)
+		# var index = 0
+		# while(true) {
+			# let buffer = newTypedArray(byte.class, BUFFER_SIZE)
+			# let recv = DatagramPacket(buffer, buffer: length())
+			# try {
+			# 	println("NOTIFY THREAD: Waiting for data...")
+			# 	socketNotify: receive(recv)
+			# }  catch (ex) {
+			# 	case {
+			# 		when ex oftype  java.net.SocketTimeoutException.class {
+			# 			println("NOTIFY Timeout")
+			# 			continue
+			# 		}
+			# 		otherwise {
+			# 			throw ex
+			# 		}
+			# 	}
+			# }
+			# let incomingMsg = String(buffer, "UTF-8")
+			# index = index + 1
+			# # println("\n\n" + java.util.Date() + " NOTIFY RESULT #" + index)
+			
+			# if (incomingMsg: contains("MediaRenderer")) {
+			# 	println("\n\nNOTIFY #" + index + "\n" + incomingMsg: trim())
+			# }
+		# }
+	})
+	
+	# M-SEARCH handling
+	
+	let socketMSearch = MulticastSocket()
+
+	socketMSearch: setSoTimeout(30000)
+	
+	let threadMSearchHandler = runInNewThread({
+		println("MSEARCH thread starts")
+		var index = 0
+		while(true) {
+			let buffer = newTypedArray(byte.class, BUFFER_SIZE)
+			let recv = DatagramPacket(buffer, buffer: length())
+			try {
+				# println("MSEARCH THREAD: Waiting for data...")
+				socketMSearch: receive(recv)
+			} catch (ex) {
+				case {
+					when ex oftype java.net.SocketTimeoutException.class {
+						# println("MSEARCH Timeout")
+						continue
+					}
+					otherwise {
+						throw ex
+					}
+				}
+			}
+			let incomingMsg = String(buffer, "UTF-8")
+
+			index = index + 1
+			println("\n\nMSEARCH RESULT #" + index)
+			if (incomingMsg: contains("MediaRenderer")) {
+				println("\n\nMSEARCH RESULT #" + index + "\n" + incomingMsg: trim())
+				println(incomingMsg: trim())
+			}
+		}
+	})
+
+	Thread.sleep(2500_L)
+	
+	handler: _multicastAddress(multicastAddress)
+	handler: _socketNotify(socketNotify)
+	handler: _socketMSearch(socketMSearch)
+	handler: _threadNotifyHandler(threadNotifyHandler)
+	handler: _threadMSearchHandler(threadMSearchHandler)
+}
+
+local function getValues = |msg| {
+}
+
+local function mSearch = |handler, searchText, seconds| {
+	println("Sending MSearch query...")
+	let msg = createMSearchString(MULTICAST_ADDRESS_IP4, MULTICAST_UDP_PORT, searchText, seconds)
+	# println("'" + msg + "'")
+	let msgBytes = msg: getBytes("UTF-8")
+	let multicastAddress = handler: _multicastAddress()
+	let mSearchPacket = DatagramPacket(msgBytes, msgBytes: length(), multicastAddress, MULTICAST_UDP_PORT)
+	
+	let socketMSearch = handler: _socketMSearch()
+	socketMSearch: send(mSearchPacket)
 }
 
 local function createMSearchString = |multicastAddress, multicastPort, searchTarget, seconds| {
@@ -55,12 +161,34 @@ local function createMSearchString = |multicastAddress, multicastPort, searchTar
 	msg: append(":")
 	msg: append(multicastPort: toString())
 	msg: append("\r\n")
-	msg: append("Man: ssdp:discover\r\n")
+	msg: append("ST: ")
+	msg: append(searchTarget)
+	msg: append("\r\n")
+	msg: append("Man: \"ssdp:discover\"\r\n")
 	msg: append("MX: ")
 	msg: append(seconds: toString())
 	msg: append("\r\n")
-	msg: append("ST: urn:schemas-upnp-org:device:")
-	msg: append(searchTarget)
-	msg: append(":1\r\n")
+	msg: append("\r\n")
 	return msg: toString()
+}
+
+#####
+
+function getNetworkInterfaces = {
+	let result = list[]
+	let interfaces = NetworkInterface.getNetworkInterfaces()
+	while (interfaces: hasMoreElements()) {
+		let networkInterface = interfaces: nextElement()
+		if (not networkInterface: isLoopback() and networkInterface: isUp()) {
+			result: add(networkInterface)
+		}
+	}
+	return result
+}
+
+function runInNewThread = |f| {
+	let runnable = asInterfaceInstance(Runnable.class, f)
+	let thread = Thread(runnable)
+	thread: start()
+	return thread
 }
