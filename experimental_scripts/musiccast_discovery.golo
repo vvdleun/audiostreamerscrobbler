@@ -1,15 +1,18 @@
 module experiments.MusicCastDiscovery
 
+import gololang.Observable
 import java.lang.Thread
-import java.net.{DatagramPacket, InetAddress,  MulticastSocket, NetworkInterface}
+import java.net.{DatagramPacket, InetAddress,  MulticastSocket, SocketTimeoutException}
+import java.util.concurrent.atomic.AtomicBoolean
 
 let MULTICAST_ADDRESS_IP4 = "239.255.255.250"
 let MULTICAST_ADDRESS_IP6 = "FF05::C"
 let MULTICAST_UDP_PORT = 1900
 let BUFFER_SIZE = 4 * 1024
 
+let SEARCH_TEXT_MUSICCAST = "urn:schemas-upnp-org:device:MediaRenderer:1"
+
 function main = |args| {
-	# MediaRenderer
 	
 	# 0000   4d 2d 53 45 41 52 43 48 20 2a 20 48 54 54 50 2f   M-SEARCH * HTTP/
 	# 0010   31 2e 31 0d 0a 48 6f 73 74 3a 20 32 33 39 2e 32   1.1..Host: 239.2
@@ -21,87 +24,65 @@ function main = |args| {
 	# 0070   73 73 64 70 3a 64 69 73 63 6f 76 65 72 22 0d 0a   ssdp:discover"..
 	# 0080   4d 58 3a 20 33 0d 0a 0d 0a                        MX: 3....
 
-	let networkInterfaces = getNetworkInterfaces()
-	let usedNetworkInterface = networkInterfaces: get(0)
-
-	let ssdpHandler = createSSDPHandler(usedNetworkInterface)
+	let keepSearching = AtomicBoolean(true)
+	let ssdpHandler = createSSDPHandler()
+	
+	ssdpHandler: registerCallback(|headers| {
+		if headers: get("st") == SEARCH_TEXT_MUSICCAST {
+			println("CALLBACK: " + headers)
+			keepSearching: set(false)
+		}
+	})
+	
 	ssdpHandler: start()
 	
-	while (true) {
+	while (keepSearching: get()) {
 		foreach (i in range(3)) {
-			ssdpHandler: mSearch("urn:schemas-upnp-org:device:MediaRenderer:1", 2)
+			if (not keepSearching: get()) {
+				break
+			}
+			ssdpHandler: mSearch(SEARCH_TEXT_MUSICCAST, 1)
 			Thread.sleep(1000_L)
 		}
 		Thread.sleep(6000_L)
 	}
+	println("Stopped search")
+	
+	ssdpHandler: stop()
 }
 
-local function createSSDPHandler = |networkInterface| {
+local function createSSDPHandler = {
+	let observable = Observable("SSDPObservable")
+	let isRunning = AtomicBoolean(false)
+	
 	let ssdpHandler = DynamicObject("SSDPHandler"):
-		define("_networkInterface", networkInterface):
 		define("_multicastAddress", null):
-		define("_threadNotifyHandler", null):
 		define("_threadMSearchHandler", null):
-		define("_socketNotify", null):
 		define("_socketMSearch", null):
+		define("_isRunning", isRunning):
+		define("_observable", observable):
 		define("start", |this| -> initAndStartThreads(this)):
-		define("mSearch", |this, deviceName, seconds| -> mSearch(this, deviceName, seconds))
+		define("stop", |this| -> scheduleStopThreads(this)):
+		define("mSearch", |this, searchText, seconds| -> mSearch(this, searchText, seconds)):
+		define("registerCallback", |this, f| -> registerCallback(this, f))
 		
 	return ssdpHandler
 }
 
 local function initAndStartThreads = |handler| {
-	let networkInterface = handler: _networkInterface()
-	println("Using: " + networkInterface)
-	
 	let multicastAddress = InetAddress.getByName(MULTICAST_ADDRESS_IP4)
-
-	# Incoming UPNP NOTIFY messages handling
-
-	let socketNotify = MulticastSocket(MULTICAST_UDP_PORT)
+	let isRunning = handler: _isRunning()
 	
-	let threadNotifyHandler = runInNewThread({
-		# println("NOTIFY thread starts")
-		# socketNotify: joinGroup(multicastAddress)
-		# socketNotify: setSoTimeout(30000)
-		# var index = 0
-		# while(true) {
-			# let buffer = newTypedArray(byte.class, BUFFER_SIZE)
-			# let recv = DatagramPacket(buffer, buffer: length())
-			# try {
-			# 	println("NOTIFY THREAD: Waiting for data...")
-			# 	socketNotify: receive(recv)
-			# }  catch (ex) {
-			# 	case {
-			# 		when ex oftype  java.net.SocketTimeoutException.class {
-			# 			println("NOTIFY Timeout")
-			# 			continue
-			# 		}
-			# 		otherwise {
-			# 			throw ex
-			# 		}
-			# 	}
-			# }
-			# let incomingMsg = String(buffer, "UTF-8")
-			# index = index + 1
-			# # println("\n\n" + java.util.Date() + " NOTIFY RESULT #" + index)
-			
-			# if (incomingMsg: contains("MediaRenderer")) {
-			# 	println("\n\nNOTIFY #" + index + "\n" + incomingMsg: trim())
-			# }
-		# }
-	})
-	
-	# M-SEARCH handling
-	
+	# Init M-SEARCH handling thread
 	let socketMSearch = MulticastSocket()
-
-	socketMSearch: setSoTimeout(30000)
+	socketMSearch: setSoTimeout(30 * 1000 )
+	
+	isRunning: set(true)
 	
 	let threadMSearchHandler = runInNewThread({
 		println("MSEARCH thread starts")
 		var index = 0
-		while(true) {
+		while(isRunning: get()) {
 			let buffer = newTypedArray(byte.class, BUFFER_SIZE)
 			let recv = DatagramPacket(buffer, buffer: length())
 			try {
@@ -109,40 +90,55 @@ local function initAndStartThreads = |handler| {
 				socketMSearch: receive(recv)
 			} catch (ex) {
 				case {
-					when ex oftype java.net.SocketTimeoutException.class {
-						# println("MSEARCH Timeout")
+					when ex oftype SocketTimeoutException.class {
 						continue
-					}
-					otherwise {
+					} otherwise {
 						throw ex
 					}
 				}
 			}
 			let incomingMsg = String(buffer, "UTF-8")
+			let status, headers = _getValues(incomingMsg)
 
-			index = index + 1
-			println("\n\nMSEARCH RESULT #" + index)
-			if (incomingMsg: contains("MediaRenderer")) {
-				println("\n\nMSEARCH RESULT #" + index + "\n" + incomingMsg: trim())
-				println(incomingMsg: trim())
+			if (status: size() > 1 and status: get(1) == "200") {
+				handler: _observable(): set(headers)
 			}
 		}
+		println("MSEARCH THREAD: stopped")
 	})
 
-	Thread.sleep(2500_L)
-	
 	handler: _multicastAddress(multicastAddress)
-	handler: _socketNotify(socketNotify)
 	handler: _socketMSearch(socketMSearch)
-	handler: _threadNotifyHandler(threadNotifyHandler)
 	handler: _threadMSearchHandler(threadMSearchHandler)
 }
 
-local function getValues = |msg| {
+local function _getValues = |msg| {
+	let splitMsg = msg: trim(): split("\r\n"): asList()
+	let header, headerLines... = splitMsg
+	let mapHeader = map[]
+	foreach headerLine in headerLines {
+		if (headerLine == null) {
+			break
+		}
+
+		let keyValue = headerLine: split(": ", 2)
+		let key = keyValue: get(0): toLowerCase()
+		let value = match {
+			when keyValue: length() > 1 then keyValue: get(1)
+			otherwise null
+		}
+		
+		mapHeader: put(key, value)
+	}
+	return [header: split(" ", 3): asList(), mapHeader]
+}
+
+local function scheduleStopThreads = |handler| {
+	handler: _isRunning(): set(false)
 }
 
 local function mSearch = |handler, searchText, seconds| {
-	println("Sending MSearch query...")
+	println("Sending MSearch query... ")
 	let msg = createMSearchString(MULTICAST_ADDRESS_IP4, MULTICAST_UDP_PORT, searchText, seconds)
 	# println("'" + msg + "'")
 	let msgBytes = msg: getBytes("UTF-8")
@@ -151,6 +147,10 @@ local function mSearch = |handler, searchText, seconds| {
 	
 	let socketMSearch = handler: _socketMSearch()
 	socketMSearch: send(mSearchPacket)
+}
+
+local function registerCallback = |handler, f| {
+	handler: _observable(): onChange(f)
 }
 
 local function createMSearchString = |multicastAddress, multicastPort, searchTarget, seconds| {
@@ -173,18 +173,6 @@ local function createMSearchString = |multicastAddress, multicastPort, searchTar
 }
 
 #####
-
-function getNetworkInterfaces = {
-	let result = list[]
-	let interfaces = NetworkInterface.getNetworkInterfaces()
-	while (interfaces: hasMoreElements()) {
-		let networkInterface = interfaces: nextElement()
-		if (not networkInterface: isLoopback() and networkInterface: isUp()) {
-			result: add(networkInterface)
-		}
-	}
-	return result
-}
 
 function runInNewThread = |f| {
 	let runnable = asInterfaceInstance(Runnable.class, f)
