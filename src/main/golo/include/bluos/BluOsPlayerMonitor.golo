@@ -27,7 +27,7 @@ function createBluOsPlayerMonitor = |player, httpRequestFactory| {
 local function monitorPlayer = |monitor| {
 	let status = requestPlayerState(monitor)
 	
-	validateStatus(status)
+	validateStatus(status) 
 
 	monitor: _etag(status: etag())
 
