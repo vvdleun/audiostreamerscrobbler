@@ -1,9 +1,9 @@
 module audiostreamerscrobbler.players.musiccast.MusicCastDetector
 
+import audiostreamerscrobbler.players.musiccast.MusicCastDeviceDescriptorXmlParser
 import audiostreamerscrobbler.players.musiccast.MusicCastPlayer
 import audiostreamerscrobbler.players.protocols.SSDPHandler
 import audiostreamerscrobbler.states.detector.DetectorStateTypes.types.DetectorStateTypes
-import audiostreamerscrobbler.utils.SimpleXMLParser
 
 import java.lang.Thread
 import java.net.URL
@@ -11,20 +11,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 let SEARCH_TEXT_MUSICCAST = "urn:schemas-upnp-org:device:MediaRenderer:1"
 
-let XML_YAMAHA_X_PATH = "root/yamaha:X_device"
-let XML_YAMAHA_X_SERVICE_PATH = XML_YAMAHA_X_PATH + "/yamaha:X_serviceList/yamaha:X_service"
-let XML_YAMAHA_X_SPEC_TYPE_PATH = XML_YAMAHA_X_SERVICE_PATH + "/yamaha:X_specType"
-let XML_YAMAHA_X_CONTROL_URL_PATH = XML_YAMAHA_X_SERVICE_PATH + "/yamaha:X_yxcControlURL"
-
-let XML_SPEC_TYPE_EXTENDED_CONTOL = "urn:schemas-yamaha-com:service:X_YamahaExtendedControl:1"
-
-let XML_ELEMENTS_TO_KEYS = map[
-	["root/device/manufacturer", "manufacturer"],
-	["root/device/modelName", "model"],
-	["root/device/friendlyName", "name"],
-	["root/device/presentationURL", "host"],
-	["root/yamaha:X_device/yamaha:X_URLBase", "urlBase"]]
-	
 function createMusicCastDetector = |playerName| {
 	let detector = DynamicObject("MusicCastDetector"):
 		define("_ssdpHandler", |this| -> getSsdpHandlerInstance()):
@@ -59,53 +45,19 @@ local function discoverMusicCast = |detector| {
 				return
 			}
 
-			let uri = URL(headers: get("location"))
-
-			let musicCastXml = map[]
-			let service = map[["isService", false]]
-
-			parseXmlElements(uri: openStream(), |event| {
-				let path = event: path()
-
-				if event: isStartElement() {
-					if (path == XML_YAMAHA_X_PATH) {
-						# MusicCast specs asks to validate explicitly that this element exists
-						musicCastXml: put(XML_YAMAHA_X_PATH, true)
-					} else if (path == XML_YAMAHA_X_SERVICE_PATH) {
-						# Sub elements are parsed in the temporary "service" map
-						service: put("isService", true)
-					}
-				} else if event: isEndElement() {
-					if (path == XML_YAMAHA_X_SERVICE_PATH) {
-						# Check whether this service was the one we were looking for
-						if (service: get(XML_YAMAHA_X_SPEC_TYPE_PATH) == XML_SPEC_TYPE_EXTENDED_CONTOL) {
-							musicCastXml: put("yxcControlUrl", service: get(XML_YAMAHA_X_CONTROL_URL_PATH))
-						}
-						service: clear()
-						service: put("isService", false)
-
-					} else if (service: get("isService")) {
-						# Store sub elements of <yamaha:X_service> element in temporary "service" map
-						service: put(path, event: characters())
-
-					} else {
-						# Map simple fields that need no additional parsing logic
-						let key = XML_ELEMENTS_TO_KEYS: get(path)
-						if key != null {
-							musicCastXml: put(key, event: characters())
-						}
-					}
-				}
-			})
-			detector: _isInitialized(true)
+			let inputStream = URL(headers: get("location")): openStream()
+			let musicCastXml = parseMusicCastDeviceDescriptorXML(inputStream)
 
 			if (_isMusicCastDevice(musicCastXml) and (musicCastXml: get("name") == playerName)) {
 				keepSearching: set(false)
 				devices: add(musicCastXml)
+			} else {
+				println("Unknown device: " + musicCastXml)
 			}
 		})
+		detector: _isInitialized(true)
 	}
-	
+
 	ssdpHandler: start()
 	
 	while (keepSearching: get()) {
@@ -135,7 +87,7 @@ local function discoverMusicCast = |detector| {
 }
 
 local function _isMusicCastDevice = |musicCastXml| {
-	return (musicCastXml: get(XML_YAMAHA_X_PATH) == true and 
+	return (musicCastXml: get("hasRequiredElement") == true and 
 		musicCastXml: get("manufacturer") == "Yamaha Corporation" and 
 		musicCastXml: get("urlBase") isnt null and 
 		musicCastXml: get("yxcControlUrl") isnt null)
