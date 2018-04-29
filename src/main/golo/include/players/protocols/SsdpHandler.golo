@@ -148,7 +148,7 @@ local function createMSearchString = |multicastAddress, multicastPort, searchTar
 
 	msg: append("M-SEARCH * HTTP/1.1\r\n")
 	msg: append("Host: ")
-	msg: append(MULTICAST_ADDRESS_IP4)
+	msg: append(multicastAddress)
 	msg: append(":")
 	msg: append(multicastPort: toString())
 	msg: append("\r\n")

@@ -35,6 +35,7 @@ local function discoverMusicCast = |detector| {
 	
 	if (not isInitialized) {
 		# println("*** INITIALIZING ***")
+
 		ssdpHandler: registerCallback(SEARCH_TEXT_MUSICCAST, |headers| {
 			# This callback is supposed to be threadsafe thanks to Golang's Observable's
 			# implementation...
@@ -46,13 +47,13 @@ local function discoverMusicCast = |detector| {
 			}
 
 			let inputStream = URL(headers: get("location")): openStream()
-			let musicCastXml = parseMusicCastDeviceDescriptorXML(inputStream)
+			let deviceDescriptor = parseMusicCastDeviceDescriptorXML(inputStream)
 
-			if (_isMusicCastDevice(musicCastXml) and (musicCastXml: get("name") == playerName)) {
+			if (_isMusicCastDevice(deviceDescriptor) and (deviceDescriptor: name() == playerName)) {
 				keepSearching: set(false)
-				devices: add(musicCastXml)
+				devices: add(deviceDescriptor)
 			} else {
-				println("Unknown device: " + musicCastXml)
+				println("Unknown device: " + deviceDescriptor)
 			}
 		})
 		detector: _isInitialized(true)
@@ -86,20 +87,20 @@ local function discoverMusicCast = |detector| {
 	}
 }
 
-local function _isMusicCastDevice = |musicCastXml| {
-	return (musicCastXml: get("hasRequiredElement") == true and 
-		musicCastXml: get("manufacturer") == "Yamaha Corporation" and 
-		musicCastXml: get("urlBase") isnt null and 
-		musicCastXml: get("yxcControlUrl") isnt null)
+local function _isMusicCastDevice = |deviceDescriptor| {
+	return (deviceDescriptor: hasRequiredElement() == true and 
+		deviceDescriptor: manufacturer() == "Yamaha Corporation" and
+		deviceDescriptor: urlBase() isnt null and
+		deviceDescriptor: yxcControlUrl() isnt null)
 }
 
-local function _createMusicCastImpl = |musicCastXml| {
+local function _createMusicCastImpl = |deviceDescriptor| {
 	return MusicCastImpl(
-		musicCastXml: get("name"),
-		musicCastXml: get("model"),
-		musicCastXml: get("manufacturer"),
-		musicCastXml: get("host"),
-		musicCastXml: get("urlBase"),
-		musicCastXml: get("yxcControlUrl")
+		deviceDescriptor: name(),
+		deviceDescriptor: model(),
+		deviceDescriptor: manufacturer(),
+		deviceDescriptor: host(),
+		deviceDescriptor: urlBase(),
+		deviceDescriptor: yxcControlUrl()
 	)
 }

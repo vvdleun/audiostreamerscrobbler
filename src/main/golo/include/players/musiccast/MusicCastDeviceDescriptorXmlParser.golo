@@ -16,6 +16,16 @@ let XML_ELEMENTS_TO_KEYS = map[
 	["root/device/presentationURL", "host"],
 	["root/yamaha:X_device/yamaha:X_URLBase", "urlBase"]]
 
+struct MusicCastDeviceDescriptor = {
+	hasRequiredElement,
+	manufacturer,
+	model,
+	name,
+	host,
+	urlBase,
+	yxcControlUrl
+}
+
 function parseMusicCastDeviceDescriptorXML = |inputStream| {
 	let musicCastXml = map[]
 	let service = map[["isService", false]]
@@ -54,5 +64,16 @@ function parseMusicCastDeviceDescriptorXML = |inputStream| {
 		}
 	})
 	
-	return musicCastXml
+	return convertToDeviceDescriptor(musicCastXml)
+}
+
+local function convertToDeviceDescriptor = |musicCastXml| {
+	return MusicCastDeviceDescriptor(
+		musicCastXml: get("hasRequiredElement"),
+		musicCastXml: get("manufacturer"),
+		musicCastXml: get("model"),
+		musicCastXml: get("name"),
+		musicCastXml: get("host"),
+		musicCastXml: get("urlBase"),
+		musicCastXml: get("yxcControlUrl"))
 }
