@@ -1,6 +1,7 @@
 module audiostreamerscrobbler.factories.PlayerDetectorFactory
 
 import audiostreamerscrobbler.bluos.BluOsPlayerDetector
+import audiostreamerscrobbler.players.musiccast.MusicCastDetector
 import audiostreamerscrobbler.factories.Config
 
 function createPlayerDetectorFactory = {
@@ -14,7 +15,16 @@ function createPlayerDetectorFactory = {
 }
 
 local function createPlayerDetector = |config| {
-	# At this time only BluOS players are supported...
-	let playerName = config: get("player"): get("name")
-	return createBluOsPlayerDetector(playerName)
+	let playerConfig = config: getOrElse("player", map[])
+	let playerType = playerConfig: get("type")
+	
+	let playerName = playerConfig: get("name")
+
+	let detector = match {
+		when playerType == "musiccast"  then createMusicCastDetector(playerName)
+		when playerType == "bluos" then createBluOsPlayerDetector(playerName)
+		otherwise raise("Internal error: Unknown player type in config.json: '" + playerType + "'")
+	}
+	
+	return detector
 }

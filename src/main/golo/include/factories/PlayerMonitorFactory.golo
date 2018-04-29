@@ -3,6 +3,7 @@ module audiostreamerscrobbler.factories.PlayerMonitorFactory
 import audiostreamerscrobbler.bluos.BluOsPlayerMonitor
 import audiostreamerscrobbler.factories.Config
 import audiostreamerscrobbler.factories.RequestFactory
+import audiostreamerscrobbler.players.musiccast.MusicCastPlayerMonitor
 
 function createPlayerMonitorFactory = {
 	let playerMonitorFactory = DynamicObject("PlayerMonitorFactory"):
@@ -12,8 +13,13 @@ function createPlayerMonitorFactory = {
 }
 
 local function createPlayerMonitor = |player| {
-	# At this time only BluOS players are supported...
 	let httpRequestFactory = createHttpRequestFactory()
+	
+	let playerType = player: playerType()
 
-	return createBluOsPlayerMonitor(player, httpRequestFactory)
+	return match {
+		when playerType: isBluOs() then createBluOsPlayerMonitor(player, httpRequestFactory)
+		when playerType: isMusicCast() then createMusicCastPlayerMonitor(player, httpRequestFactory)
+		otherwise raise("Internal error: unknown player: " + player)
+	}
 }

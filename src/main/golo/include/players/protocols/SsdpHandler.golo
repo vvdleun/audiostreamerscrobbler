@@ -1,10 +1,10 @@
-module experiments.MusicCastDiscovery
+module audiostreamerscrobbler.players.protocols.SSDPHandler
 
-import audiostreamerscrobbler.utils.SimpleXMLParser
+import audiostreamerscrobbler.utils.ThreadUtils
 
 import gololang.Observable
 import java.lang.Thread
-import java.net.{DatagramPacket, InetAddress,  MulticastSocket, SocketTimeoutException, URL}
+import java.net.{DatagramPacket, InetAddress,  MulticastSocket, SocketTimeoutException}
 import java.util.concurrent.atomic.AtomicBoolean
 
 let MULTICAST_ADDRESS_IP4 = "239.255.255.250"
@@ -12,107 +12,11 @@ let MULTICAST_ADDRESS_IP6 = "FF05::C"
 let MULTICAST_UDP_PORT = 1900
 let BUFFER_SIZE = 4 * 1024
 
-let SEARCH_TEXT_MUSICCAST = "urn:schemas-upnp-org:device:MediaRenderer:1"
+let ssdpHandler = createSsdpHandler()
 
-let XML_YAMAHA_X_PATH = "root/yamaha:X_device"
-let XML_YAMAHA_X_SERVICE_PATH = XML_YAMAHA_X_PATH + "/yamaha:X_serviceList/yamaha:X_service"
-let XML_YAMAHA_X_SPEC_TYPE_PATH = XML_YAMAHA_X_SERVICE_PATH + "/yamaha:X_specType"
-let XML_YAMAHA_X_CONTROL_URL_PATH = XML_YAMAHA_X_SERVICE_PATH + "/yamaha:X_yxcControlURL"
+function getSsdpHandlerInstance = -> ssdpHandler
 
-let XML_SPEC_TYPE_EXTENDED_CONTOL = "urn:schemas-yamaha-com:service:X_YamahaExtendedControl:1"
-
-let XML_ELEMENTS_TO_KEYS = map[
-	["root/device/manufacturer", "manufacturer"],
-	["root/device/modelName", "model"],
-	["root/device/friendlyName", "name"],
-	["root/yamaha:X_device/yamaha:X_URLBase", "urlBase"]]
-
-function main = |args| {
-	let ssdpHandler = createSSDPHandler()
-	let musicCastPlayer = discoverMusicCast(ssdpHandler, "Bedroom ISX-18D")
-	println("Creating monitor for " + musicCastPlayer + "...")
-	
-}
-	
-function discoverMusicCast = |ssdpHandler, deviceName| {
-	let keepSearching = AtomicBoolean(true)
-	let device = list[]
-	
-	ssdpHandler: registerCallback(SEARCH_TEXT_MUSICCAST, |headers| {
-		# This callback is supposed to be threadsafe by Golang's Observable
-		# implementation...
-		println("CALLBACK: " + headers)
-		if (not keepSearching: get()) {
-			println("Device is already found. Ignored incoming SSDP handler")
-			println(headers)
-			return
-		}
-
-		let uri = URL(headers: get("location"))
-
-		let musicCastXml = map[]
-		let service = map[["isService", false]]
-
-		parseXmlElements(uri: openStream(), |event| {
-			let path = event: path()
-
-			if event: isStartElement() {
-				if (path == XML_YAMAHA_X_PATH) {
-					# MusicCast specs asks to validate explicitly that this element exists
-					musicCastXml: put(XML_YAMAHA_X_PATH, true)
-				} else if (path == XML_YAMAHA_X_SERVICE_PATH) {
-					# Sub elements are parsed in the temporary "service" map
-					service: put("isService", true)
-				}
-			} else if event: isEndElement() {
-				if (path == XML_YAMAHA_X_SERVICE_PATH) {
-					# Check whether this service was the one we were looking for
-					if (service: get(XML_YAMAHA_X_SPEC_TYPE_PATH) == XML_SPEC_TYPE_EXTENDED_CONTOL) {
-						musicCastXml: put("yxcControlUrl", service: get(XML_YAMAHA_X_CONTROL_URL_PATH))
-					}
-					service: clear()
-					service: put("isService", false)
-
-				} else if (service: get("isService")) {
-					# Store sub elements of <yamaha:X_service> element in temporary "service" map
-					service: put(path, event: characters())
-
-				} else {
-					# Map simple fields that need no additional parsing logic
-					let key = XML_ELEMENTS_TO_KEYS: get(path)
-					if key != null {
-						musicCastXml: put(key, event: characters())
-					}
-				}
-			}
-		})
-		
-		keepSearching: set(false)
-		device: add(musicCastXml)
-	})
-	
-	ssdpHandler: start()
-	
-	while (keepSearching: get()) {
-		foreach (i in range(3)) {
-			if (not keepSearching: get()) {
-				break
-			}
-			ssdpHandler: mSearch(SEARCH_TEXT_MUSICCAST, 1)
-			Thread.sleep(1000_L)
-		}
-		if (keepSearching: get()) {
-			Thread.sleep(10000_L)
-		}
-	}
-	# println("Stopped search")
-	
-	ssdpHandler: stop()
-	return device: get(0)
-
-}
-
-local function createSSDPHandler = {
+local function createSsdpHandler = {
 	let observable = Observable("SSDPObservable")
 	let isRunning = AtomicBoolean(false)
 	
@@ -241,6 +145,7 @@ local function registerCallback = |handler, st, cb| {
 
 local function createMSearchString = |multicastAddress, multicastPort, searchTarget, seconds| {
 	let msg = StringBuilder()
+
 	msg: append("M-SEARCH * HTTP/1.1\r\n")
 	msg: append("Host: ")
 	msg: append(MULTICAST_ADDRESS_IP4)
@@ -255,17 +160,6 @@ local function createMSearchString = |multicastAddress, multicastPort, searchTar
 	msg: append(seconds: toString())
 	msg: append("\r\n")
 	msg: append("\r\n")
+
 	return msg: toString()
-}
-
-
-
-
-#####
-
-function runInNewThread = |f| {
-	let runnable = asInterfaceInstance(Runnable.class, f)
-	let thread = Thread(runnable)
-	thread: start()
-	return thread
 }
