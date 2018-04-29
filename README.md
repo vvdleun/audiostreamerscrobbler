@@ -2,9 +2,11 @@
 
 ## Warning: ALPHA version
 
-This program is not ready for prime time yet, it's under heavy development. At this time it can only monitor 1 chosen BluOS device. In a future version, a single instance should be able to monitor all players of all supported audiostreamer standards.
+This program is not ready for prime time yet, it's under heavy development. At this time it can only monitor 1 chosen BluOS or Yamaha MusicCast device. In a future version, a single instance should be able to monitor all players of all supported audiostreamer standards at the same time.
 
 Note that the program uses the undocumented LSDP protocol to detect BluOs players that are powered on. I could only test it with my BluOS player, which is the built-in streamer (internal BluOS 2 MDC upgrade card) in my NAD C368 amplifier. Therefore I don't know yet whether it will work on other players, like BlueSound's more popular wi-fi speakers, or their Node range of products.
+
+MusicCast support was only added very recently and is not as robust as the BluOS implementation. I am still working on many improvements.
 
 ## Description  
 
@@ -77,9 +79,37 @@ This format will change once multiple players and more type of players are suppo
 	
 ### Setting up the player
 
-At this time, the program can monitor exactly one BluOS player. It should also be compatible with the new third party BluOS powered devices that have appeared on the market, but this has not been tested yet. Enter the name of your device in the config.json's "name" field in the "player" section. 
+At this time, the program can monitor exactly one BluOS or MusicCast player. 
+
+#### Monitor a BluOS (BlueSound) player
+
+It should also be compatible with the new third party BluOS powered devices that have appeared on the market, but this has not been tested yet. Enter the name of your device in the config.json's "name" field in the "player" section. 
+
+        ...
+        "player": {
+            "type": "bluos",
+            "name": "Living Room C368"
+        },
+        ...
 
 The player name must match your BluOS device name exactly. Note that the name is CaSe SeNsItIvE. My BluOS device is called "Living Room C368" (when translated to English), so that's what's in my config.json file.
+
+#### Monitor a Yamaha MusicCast player (EXPERIMENTAL!)
+
+At this early stage, the program can only monitor the Net/USB input of MusicCast players. Also, despite some players have support for multiple zones, only the Main zone is supported for now.
+
+        ...
+        "player": {
+            "type": "musiccast",
+            "name": "Bedroom ISX-18D"
+        },
+        ...
+
+NOte that the player name is case sensitive.
+
+I have seen that when playing local songs from my NAS (Western Digital MyCloud), the MusicCast player does not recognize the length of songs. The main Android app also has the same problem, it is not possible to skip inside a song. I don't know yet whether this is an incompatibility with my NAS' media server, or simply a fact. If it is indeed the latter case, then I'll implement an option eventually so that it can still scrobble those songs.
+
+At this time, the implementation polls the status of the MusicCast device every 10 seconds. A better solution, that is based on event updates that are sent by the MusicCast device, is under development.
 
 ### Setting up scrobbler services
 
