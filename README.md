@@ -10,7 +10,7 @@ MusicCast support was only added very recently and is not as robust as the BluOS
 
 ## Description  
 
-AudioStreamerScrobbler is an application that monitors hardware audiostreamers (currently only BluOS devices, but Yamaha MusicCast support is planned for the near future) and scrobbles played tracks to one or more of the following scrobbler services:
+AudioStreamerScrobbler is an application that monitors hardware audiostreamers (BluOS and - experimental! - Yamaha MusicCast support) and scrobbles played tracks to one or more of the following scrobbler services:
 
 * Last FM (https://last.fm)
 * ListenBrainz (https://listenbrainz.org/)
@@ -23,7 +23,7 @@ AudioStreamerScrobbler was written in [Eclipse Golo, a lesser known dynamic lang
 
 ## Requirements
 
-AudioStreamerScrobbler is a project powered by the Java Virtual Machine. To run it, the Java Runtime Environment (JRE) version 8 is required.
+AudioStreamerScrobbler is a project powered by the Java Virtual Machine. To run it, the Java Runtime Environment (JRE) version 8 is required. As Golo is not yet compatible with Java 9 and higher, I'm certain that it won't work yet with Java 9 or Java 10 at this time.
 
 Since this is a alpha pre-release, the program must be compiled before it can be used. To compile the program, both the Java Developers Kit (JDK) version 8 and the Gradle build tool (https://gradle.org) are required. Gradle will download the required dependencies, compile the project and build a stand-alone JAR file that can be used to run the program. To compile, issue the following command in the project's root directory (the directory containing the "build.gradle" file):
 
@@ -79,11 +79,11 @@ This format will change once multiple players and more type of players are suppo
 	
 ### Setting up the player
 
-At this time, the program can monitor exactly one BluOS or MusicCast player. 
+At this time, the program can monitor exactly one BluOS (BlueSound) or Yamaha MusicCast player. 
 
 #### Monitor a BluOS (BlueSound) player
 
-It should also be compatible with the new third party BluOS powered devices that have appeared on the market, but this has not been tested yet. Enter the name of your device in the config.json's "name" field in the "player" section. 
+First, ensure that the type of the player is "bluos", as displayed below. Enter the name of your device in the config.json's "name" field in the "player" section. 
 
         ...
         "player": {
@@ -94,9 +94,11 @@ It should also be compatible with the new third party BluOS powered devices that
 
 The player name must match your BluOS device name exactly. Note that the name is CaSe SeNsItIvE. My BluOS device is called "Living Room C368" (when translated to English), so that's what's in my config.json file.
 
+The program should be compatible with the new third party BluOS powered devices that have appeared on the market (I believe Dali has them), but this has not been tested yet.
+
 #### Monitor a Yamaha MusicCast player (EXPERIMENTAL!)
 
-At this early stage, the program can only monitor the Net/USB input of MusicCast players. Also, despite some players have support for multiple zones, only the Main zone is supported for now.
+At this early stage, the program can only monitor the Net/USB input of MusicCast players. Also, despite some players having support for multiple zones, only the Main zone is supported for now.
 
         ...
         "player": {
@@ -107,9 +109,9 @@ At this early stage, the program can only monitor the Net/USB input of MusicCast
 
 Note that the player name is case sensitive.
 
-I have seen that when playing local songs from my NAS (Western Digital MyCloud), the MusicCast player does not recognize the length of songs. The main Android app also has the same problem, it is not possible to skip inside a song. I don't know yet whether this is an incompatibility with my NAS' media server, or simply a fact. If it is indeed the latter case, then I'll implement an option eventually so that it can still scrobble those songs.
+I have seen that when playing local songs from my NAS (Western Digital MyCloud), the MusicCast player does not recognize the length of songs and therefore cannot be scrobbled. Yamaha's official MusicCast Android app also has the same problem, it is not possible to skip inside a song. I don't know yet whether this is an incompatibility with my NAS' media server, or simply implemented this way. I'll do some more investigating, in the worst case I'll try to come up with an optional workaround.
 
-At this time, the implementation polls the status of the MusicCast device every 10 seconds. A better solution, that is based on event updates that are sent by the MusicCast device, is under development.
+At this time, the MusicCast implementation polls the status of the MusicCast device every 10 seconds. A better solution, that is based on event updates that are sent by the MusicCast device itself, is under development.
 
 ### Setting up scrobbler services
 
@@ -133,7 +135,7 @@ This will start a browser. If you are not logged in to Last FM, you are asked to
 
 #### ListenBrainz and ListenBrainz Server
 
-[ListenBrainz](https://listenbrainz.org) is a new service, operated by the [MetaBrainz Foundation](https://metabrainz.org). It is a new service and at the time of writing still in beta. A big different with all others  is that ListenBrainz will give away all collected data for free. Everybody can download a complete data dumps from their website.
+[ListenBrainz](https://listenbrainz.org) is a new service, operated by the [MetaBrainz Foundation](https://metabrainz.org). At the time of writing this service was still in beta. A big different with all others  is that ListenBrainz will give away all collected data for free. Everybody can download a complete data dumps from their database on their website. A recommondation system is said to be in development.
 
 To use this program with ListenBrainz, first get yourself an account. In your user profile, you'll find your unique user token. Copy and paste this and place this in the "userToken" field of the "listenbrainz" entry in the config.json file. Don't forget to set the "enabled" field to the "true" value.
 
@@ -169,11 +171,11 @@ See the Last FM entry for more detailed instructions on the authorization proces
 	
 ### Configuring scrobble errors parameters
 
-As this program was created for Raspberry pi-alike devices, it currently can only register songs that could not be scrobbled in volatile memory (storing them on the filesystem will damage SD cards on the long run). This means that the program will not persist them and when quitting the application before it had a chance to scrobble the songs, those scrobbles will be lost forever.
+As this program was created for Raspberry pi-alike devices, it currently can only register songs that could not be scrobbled in volatile memory (storing them on the filesystem would damage the pi's SD cards on the long run). This means that the program will not persist them and when quitting the application before it had a chance to scrobble the songs, those scrobbles will be lost forever.
 
 You can choose how many songs it can store per scrobbler by setting the desired amount in the "maxSongs" entry. You can also configure the interval on which it will try to scrobble those songs by setting the "retryIntervalMinutes" entry in the confgiuration file. This interval is always specified in minutes.
 
-Songs that could not be scrobbled for 14 days in a row are silently dropped, as required by Last FM.
+Songs that could not be scrobbled for 14 days in a row are silently dropped, as required by Last FM. For the other services this limit is set to 30 days.
 
 ## Plans
 
