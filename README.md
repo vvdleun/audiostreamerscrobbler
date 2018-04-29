@@ -105,7 +105,7 @@ At this early stage, the program can only monitor the Net/USB input of MusicCast
         },
         ...
 
-NOte that the player name is case sensitive.
+Note that the player name is case sensitive.
 
 I have seen that when playing local songs from my NAS (Western Digital MyCloud), the MusicCast player does not recognize the length of songs. The main Android app also has the same problem, it is not possible to skip inside a song. I don't know yet whether this is an incompatibility with my NAS' media server, or simply a fact. If it is indeed the latter case, then I'll implement an option eventually so that it can still scrobble those songs.
 
@@ -177,7 +177,7 @@ Songs that could not be scrobbled for 14 days in a row are silently dropped, as 
 
 ## Plans
 
-At the top of my list is adding Yamaha MusicCast support (as I use both BluOS and MusicCast devices in my home). Then the time will be right to make the program multi-threaded, so that it will be able to monitor multiple players (of multiple types) at once. Ideally I'd like to add HEOS by Denon support as well.
+At the top of my list is improving the Yamaha MusicCast support. Then the time will be right to make the program multi-threaded, so that it will be able to monitor multiple players (of multiple types) at once. After that, I'd like to add HEOS by Denon support as well.
 
 Please let me know if there's any demand for support of other types/brands.
 
