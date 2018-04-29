@@ -1,1 +1,0 @@
-The scripts in this directory are stand-alone experiments, that are not called or even referenced in the main code.
