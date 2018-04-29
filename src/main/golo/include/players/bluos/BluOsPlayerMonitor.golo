@@ -1,6 +1,6 @@
-module audiostreamerscrobbler.bluos.BluOsPlayerMonitor
+module audiostreamerscrobbler.players.bluos.BluOsPlayerMonitor
 
-import audiostreamerscrobbler.bluos.BluOsStatusXMLParser
+import audiostreamerscrobbler.players.bluos.BluOsStatusXMLParser
 import audiostreamerscrobbler.maintypes.Song.types.Song
 import audiostreamerscrobbler.states.monitor.types.MonitorStateTypes
 

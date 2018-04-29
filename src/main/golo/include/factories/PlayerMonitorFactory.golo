@@ -1,8 +1,8 @@
 module audiostreamerscrobbler.factories.PlayerMonitorFactory
 
-import audiostreamerscrobbler.bluos.BluOsPlayerMonitor
 import audiostreamerscrobbler.factories.Config
 import audiostreamerscrobbler.factories.RequestFactory
+import audiostreamerscrobbler.players.bluos.BluOsPlayerMonitor
 import audiostreamerscrobbler.players.musiccast.MusicCastPlayerMonitor
 
 function createPlayerMonitorFactory = {

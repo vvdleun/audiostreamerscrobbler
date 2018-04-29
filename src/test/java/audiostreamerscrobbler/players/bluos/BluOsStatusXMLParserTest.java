@@ -1,6 +1,6 @@
-package audiostreamerscrobbler.bluos;
+package audiostreamerscrobbler.players.bluos;
 
-import audiostreamerscrobbler.bluos.BluOsStatusXMLParser;
+import audiostreamerscrobbler.players.bluos.BluOsStatusXMLParser;
 import gololang.GoloStruct;
 
 import static org.junit.Assert.*;

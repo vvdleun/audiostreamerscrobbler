@@ -1,6 +1,5 @@
 package audiostreamerscrobbler.mocks;
 
-import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 

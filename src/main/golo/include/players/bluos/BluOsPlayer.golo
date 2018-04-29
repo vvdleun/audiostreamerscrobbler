@@ -1,4 +1,4 @@
-module audiostreamerscrobbler.bluos.BluOsPlayer
+module audiostreamerscrobbler.players.bluos.BluOsPlayer
 
 import audiostreamerscrobbler.maintypes.Player.types.PlayerTypes
 

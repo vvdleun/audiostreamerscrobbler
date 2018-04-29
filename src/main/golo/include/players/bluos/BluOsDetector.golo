@@ -1,7 +1,7 @@
-module audiostreamerscrobbler.bluos.BluOsPlayerDetector
+module audiostreamerscrobbler.players.bluos.BluOsPlayerDetector
 
-import audiostreamerscrobbler.bluos.BluOsPlayer
-import audiostreamerscrobbler.bluos.LSDPHandler
+import audiostreamerscrobbler.players.bluos.BluOsPlayer
+import audiostreamerscrobbler.players.bluos.LSDPHandler
 import audiostreamerscrobbler.states.detector.DetectorStateTypes.types.DetectorStateTypes
 import audiostreamerscrobbler.utils.NetworkUtils
 

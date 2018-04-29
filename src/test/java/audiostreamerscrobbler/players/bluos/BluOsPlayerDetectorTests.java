@@ -1,6 +1,6 @@
-package audiostreamerscrobbler.bluos;
+package audiostreamerscrobbler.players.bluos;
 
-import audiostreamerscrobbler.bluos.BluOsPlayerDetector;
+import audiostreamerscrobbler.players.bluos.BluOsPlayerDetector;
 
 import gololang.DynamicObject;
 import gololang.FunctionReference;

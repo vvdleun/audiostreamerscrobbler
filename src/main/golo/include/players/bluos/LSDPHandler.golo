@@ -1,4 +1,4 @@
-module audiostreamerscrobbler.bluos.LSDPHandler
+module audiostreamerscrobbler.players.bluos.LSDPHandler
 
 import audiostreamerscrobbler.utils.ByteUtils
 import nl.vincentvanderleun.lsdp.exceptions.{LSDPException, LSDPNoAnswerException}

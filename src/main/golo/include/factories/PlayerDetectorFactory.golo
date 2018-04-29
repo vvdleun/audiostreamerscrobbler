@@ -1,6 +1,6 @@
 module audiostreamerscrobbler.factories.PlayerDetectorFactory
 
-import audiostreamerscrobbler.bluos.BluOsPlayerDetector
+import audiostreamerscrobbler.players.bluos.BluOsPlayerDetector
 import audiostreamerscrobbler.players.musiccast.MusicCastDetector
 import audiostreamerscrobbler.factories.Config
 

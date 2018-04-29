@@ -1,4 +1,4 @@
-package audiostreamerscrobbler.bluos;
+package audiostreamerscrobbler.players.bluos;
 
 import static java.lang.invoke.MethodType.genericMethodType;
 import static org.junit.Assert.assertEquals;
