@@ -1,13 +1,23 @@
 module audiostreamerscrobbler.players.bluos.BluOsStatusXMLParser
 
-import audiostreamerscrobbler.players.bluos.BluOsStatus.types.BluOsStatus
-
 import gololang.Adapters
 import javax.xml.parsers.SAXParserFactory
 import org.xml.sax.Attributes
 import org.xml.sax.SAXException
 
 let STATUS_XML_ELEMENTS = list["album", "artist", "name", "state", "secs", "service", "totlen"]
+
+struct BluOsStatus = {
+	success,
+	etag,
+	album,
+	artist,
+	name,
+	state,
+	secs,
+	service,
+	totlen
+}
 
 function parseBluOsStatusXML = |inputStream| {
 	let factory = SAXParserFactory.newInstance()
