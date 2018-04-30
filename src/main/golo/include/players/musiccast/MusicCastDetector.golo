@@ -11,12 +11,15 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 let SEARCH_TEXT_MUSICCAST = "urn:schemas-upnp-org:device:MediaRenderer:1"
 
+# Warning: due to design flaw (SSDPHandler is Singleton), do not create multiple
+# instances of the MusicCastPlayerDetector!
 function createMusicCastDetector = |playerName| {
 	let detector = DynamicObject("MusicCastDetector"):
 		define("_ssdpHandler", |this| -> getSsdpHandlerInstance()):
 		define("_playerName", |this| -> playerName):
 		define("_isInitialized", false):
 		define("_keepSearching", AtomicBoolean(false)):
+		define("_devices", list[]):
 		define("detectPlayer", |this| -> discoverMusicCast(this))
 
 	return detector
@@ -28,21 +31,17 @@ local function discoverMusicCast = |detector| {
 	let isInitialized = detector: _isInitialized()
 	let keepSearching = detector: _keepSearching()
 	let playerName = detector: _playerName()
+	let devices = detector: _devices()
 
 	keepSearching: set(true)
-	
-	let devices = list[]
+	devices: clear()
 	
 	if (not isInitialized) {
-		# println("*** INITIALIZING ***")
-
 		ssdpHandler: registerCallback(SEARCH_TEXT_MUSICCAST, |headers| {
-			# This callback is supposed to be threadsafe thanks to Golang's Observable's
-			# implementation...
-			# println("CALLBACK: " + headers)
+			# This callback is supposed to be locked for other threads, thanks
+			# to Golang's Observable's implementation...
 			if (not keepSearching: get()) {
 				# println("Device is already found. Ignored incoming SSDP handler")
-				# println(headers)
 				return
 			}
 
