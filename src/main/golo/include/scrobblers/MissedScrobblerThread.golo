@@ -7,7 +7,7 @@ import java.util.concurrent
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.TimeUnit
 
-union MissedScrobblerActions = {
+union MissedScrobblerActionMsgs = {
 	AddMissedScrobbleMsg = {scrobblerId, scrobble}
 	ScrobbleMissedScrobblesMsg
 }
@@ -56,12 +56,23 @@ local function initScrobblerHandler = |handler| {
 }
 
 local function _createMissedScrobbleRunThread = |handler| {
+	let isRunning = handler: _isRunning()
+	isRunning: set(true)
+
 	let runThread = {
-		let isRunning = handler: _isRunning()
-		isRunning: set(true)
 		while (isRunning: get()) {
 			handler: _scheduleScrobbleAction()
-			Thread.sleep(handler: _interval() * 1000_L)
+			try {
+				Thread.sleep(handler: _interval() * 1000_L)
+			} catch (ex) {
+				case {
+					when ex oftype java.lang.InterruptedException.class {
+					}
+					otherwise {
+						throw ex
+					}
+				}
+			}
 		}
 		handler: _env(): shutdown()
 		handler: _port(null)
@@ -75,7 +86,7 @@ local function scheduleAddScrobble = |handler, scrobblerId, scrobble| {
 	if (not handler: _isRunning(): get()) {
 		raise("Internal error: MissingScrobblerThread is not running")
 	}
-	handler: _port(): send(AddMissedScrobbleMsg(scrobblerId, scrobble))
+	handler: _port(): send(MissedScrobblerActionMsgs.AddMissedScrobbleMsg(scrobblerId, scrobble))
 }
 
 local function scheduleScrobbleAction = |handler| {
@@ -83,10 +94,11 @@ local function scheduleScrobbleAction = |handler| {
 		raise("Internal error: MissingScrobblerThread is not running")
 	}
 
-	handler: _port(): send(ScrobbleMissedScrobblesMsg())	
+	handler: _port(): send(MissedScrobblerActionMsgs.ScrobbleMissedScrobblesMsg())	
 }
 
 local function scheduleScrobbleStop = |handler| {
+	handler: _thread(): interrupt()
 	handler: _isRunning(): set(false)
 }
 
@@ -101,7 +113,7 @@ local function portIncomingMsgHandler = |handler, msg| {
 			_scrobbleMissingScrobbles(handler)
 		}
 		otherwise {
-			raise("Internal error, unknown message passed: " + msg)
+			raise("Internal error, received unknown message: " + msg)
 		}
 	}
 }

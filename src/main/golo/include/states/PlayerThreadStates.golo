@@ -1,6 +1,6 @@
-module audiostreamerscrobbler.states.PlayerThreadStates
+module audiostreamerscrobbler.states.ProgramStates
 
-union PlayerThreadStates = {
+union ProgramStates = {
 	DetectPlayer
 	MonitorPlayer = { player }
 }

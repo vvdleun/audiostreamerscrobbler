@@ -1,14 +1,20 @@
 module audiostreamerscrobbler.factories.RequestFactory
 
+import audiostreamerscrobbler.maintypes.AppMetadata
 import audiostreamerscrobbler.utils.RequestUtils
 
 import gololang.JSON
 import java.io.{BufferedReader, InputStreamReader, IOException}
 import java.util.stream.Collectors
 
-let USER_AGENT = "AudiostreamerScrobbler/0.1"
+let USER_AGENT = _createUserAgent()
 let DEFAULT_TIMEOUT_SECONDS = 10
 let DEFAULT_ENCODING = "utf-8"
+
+local function _createUserAgent = {
+	let appMetadata = getAppMetaData()
+	return appMetadata: appName() + "/" + appMetadata: appVersion()
+}
 
 function createHttpRequestFactory = -> createHttpRequestFactory(DEFAULT_ENCODING, DEFAULT_TIMEOUT_SECONDS, map[])
 

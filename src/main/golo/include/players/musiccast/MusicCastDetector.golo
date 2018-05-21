@@ -3,7 +3,7 @@ module audiostreamerscrobbler.players.musiccast.MusicCastDetector
 import audiostreamerscrobbler.players.musiccast.MusicCastDeviceDescriptorXmlParser
 import audiostreamerscrobbler.players.musiccast.MusicCastPlayer
 import audiostreamerscrobbler.players.protocols.SSDPHandler
-import audiostreamerscrobbler.states.detector.DetectorStateTypes.types.DetectorStateTypes
+import audiostreamerscrobbler.threads.PlayerDetectorThreadTypes.types.DetectorStatusTypes
 
 import java.lang.Thread
 import java.net.URL
@@ -12,7 +12,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 let SEARCH_TEXT_MUSICCAST = "urn:schemas-upnp-org:device:MediaRenderer:1"
 
 # Warning: due to design flaw (SSDPHandler is Singleton), do not create multiple
-# instances of the MusicCastPlayerDetector!
+# instances of the MusicCastPlayerDetector! The issue is that a Gololang Observable
+# can only be registerd and not unregistered.
 function createMusicCastDetector = |playerName| {
 	let detector = DynamicObject("MusicCastDetector"):
 		define("_ssdpHandler", |this| -> getSsdpHandlerInstance()):
@@ -76,14 +77,10 @@ local function discoverMusicCast = |detector| {
 	
 	ssdpHandler: stop()
 	
-	if (devices: size() > 0) {
-		let musicCastImpl = _createMusicCastImpl(devices: get(0))
-		let musicCastPlayer = createMusicCastPlayer(musicCastImpl)
-	
-		return DetectorStateTypes.PlayerFound(musicCastPlayer)
-	} else {
-		return DetectorStateTypes.PlayerNotFoundKeepTrying()
-	}
+	let musicCastImpl = _createMusicCastImpl(devices: get(0))
+	let musicCastPlayer = createMusicCastPlayer(musicCastImpl)
+
+	return DetectorStatusTypes.PlayerFound(musicCastPlayer)
 }
 
 local function _isMusicCastDevice = |deviceDescriptor| {

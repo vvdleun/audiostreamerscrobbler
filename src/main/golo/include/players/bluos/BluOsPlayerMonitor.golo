@@ -1,49 +1,58 @@
 module audiostreamerscrobbler.players.bluos.BluOsPlayerMonitor
 
-import audiostreamerscrobbler.players.bluos.BluOsStatusXMLParser
 import audiostreamerscrobbler.maintypes.Song.types.Song
-import audiostreamerscrobbler.states.monitor.types.MonitorStateTypes
+import audiostreamerscrobbler.players.bluos.BluOsStatusXMLParser
+import audiostreamerscrobbler.players.helpers.PollBasedMonitorHelper
+import audiostreamerscrobbler.threads.PlayerMonitorThreadTypes.types.MonitorThreadTypes
 
 let REQUEST_WITH_ETAG_TIMEOUT = 60
 let REQUEST_TIMEOUT = REQUEST_WITH_ETAG_TIMEOUT + 10
+let MINIMAL_POLL_INTERVAL = 10
 
-function createBluOsPlayerMonitor = |player, httpRequestFactory| {
-	let bluOs = player: playerType(): bluOsImpl()
-	let statusUrl = "http://" + bluOs: host() + ":" + bluOs: port() + "/Status"
+function createBluOsPlayerMonitor = |player, httpRequestFactory, cb| {
+	let bluOsImpl = player: bluOsImpl()
+	let statusUrl = "http://" + bluOsImpl: host() + ":" + bluOsImpl: port() + "/Status"
 
 	httpRequestFactory: timeout(REQUEST_TIMEOUT)
 	let httpRequest = httpRequestFactory: createHttpRequest()
-	
-	let monitor = DynamicObject("BluOsPlayerMonitor"):
-		define("_statusUrl", statusUrl):
-		define("_etag", null):
-		define("_httpRequest", |this| -> httpRequest):
-		define("player", |this| -> player):
-		define("monitorPlayer", |this| -> monitorPlayer(this))
+
+	let poller = createPoller(player, statusUrl, httpRequest)
+	let monitor = createPollBasedPlayerMonitorHelper(poller, MINIMAL_POLL_INTERVAL, cb)
 
 	return monitor
 }
 
-local function monitorPlayer = |monitor| {
-	let status = requestPlayerState(monitor)
+local function createPoller = |player, statusUrl, httpRequest| {
+	let poller = DynamicObject("BluOsPlayerMonitorPoller"):
+		define("_statusUrl", statusUrl):
+		define("_etag", null):
+		define("_httpRequest", httpRequest):
+		define("player", player):
+		define("poll", |this| -> pollBluOsStatus(this))
+
+	return poller
+}
+
+local function pollBluOsStatus = |poller| {
+	# println("Polling BluOs player...")
+	let status = requestPlayerState(poller)
 	
 	validateStatus(status) 
 
-	monitor: _etag(status: etag())
+	poller: _etag(status: etag())
 
-	if (not isPlayerPlaying(status)) {
-		# Let monitor know that player is not playing a song
-		return MonitorStateTypes.MonitorPlayer()
+	if (isPlayerPlaying(status)) {
+		let song = convertPlayerStatusToSong(status)
+		return MonitorThreadTypes.PlayingSong(song)
+	} else {
+		return MonitorThreadTypes.Monitoring()
 	}
-
-	let song = convertPlayerStatusToSong(status)
-	return MonitorStateTypes.MonitorSong(song)
 }
 
-local function requestPlayerState = |monitor| {
-	let url = createUrl(monitor)
+local function requestPlayerState = |poller| {
+	let url = createUrl(poller)
 
-	let httpRequest = monitor: _httpRequest()
+	let httpRequest = poller: _httpRequest()
 	let res = httpRequest: doHttpGetRequest(url, "application/xml", |i| -> parseBluOsStatusXML(i))
 	
 	return res
@@ -60,10 +69,10 @@ local function isPlayerPlaying = |status| {
 	return status: state() == "play" or status: state() == "stream"
 }
 
-local function createUrl = |monitor| {
-	let url = monitor: _statusUrl()
-	if (monitor: _etag() != null) {
-		return url + "?etag=" + monitor: _etag() + "&timeout=" + REQUEST_WITH_ETAG_TIMEOUT
+local function createUrl = |poller| {
+	let url = poller: _statusUrl()
+	if (poller: _etag() != null) {
+		return url + "?etag=" + poller: _etag() + "&timeout=" + REQUEST_WITH_ETAG_TIMEOUT
 	}
 	return url
 }

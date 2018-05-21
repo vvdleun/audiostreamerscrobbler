@@ -7,19 +7,21 @@ import audiostreamerscrobbler.players.musiccast.MusicCastPlayerMonitor
 
 function createPlayerMonitorFactory = {
 	let playerMonitorFactory = DynamicObject("PlayerMonitorFactory"):
-		define("createPlayerMonitor", |this, player| -> createPlayerMonitor(player))
+		define("createPlayerMonitor", |this, player, cb| -> createPlayerMonitor(player, cb))
 	
 	return playerMonitorFactory
 }
 
-local function createPlayerMonitor = |player| {
+local function createPlayerMonitor = |player, cb| {
 	let httpRequestFactory = createHttpRequestFactory()
 	
 	let playerType = player: playerType()
 
-	return match {
-		when playerType: isBluOs() then createBluOsPlayerMonitor(player, httpRequestFactory)
+	let playerMonitor = match {
+		when playerType: isBluOs() then createBluOsPlayerMonitor(player, httpRequestFactory, cb)
 		when playerType: isMusicCast() then createMusicCastPlayerMonitor(player, httpRequestFactory)
 		otherwise raise("Internal error: unknown player: " + player)
 	}
+	
+	return playerMonitor
 }

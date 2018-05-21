@@ -1,11 +1,14 @@
 module audiostreamerscrobbler.factories.ScrobblerErrorHandlerFactory
 
 import audiostreamerscrobbler.factories.Config
+import audiostreamerscrobbler.factories.ScrobblersFactory
 import audiostreamerscrobbler.scrobbler.MissedScrobblerHandler
 
-function createScrobblerErrorHandlerFactory = |scrobblers| {
+function createScrobblerErrorHandlerFactory = {
 	let config = getConfig()
 
+	let scrobblers = createScrobblersFactory(): createScrobblers()
+	
 	let scrobblerErrorHandlerFactory = DynamicObject("ScrobblerErrorHandlerFactory"):
 		define("_config", config):
 		define("_scrobblers", scrobblers):

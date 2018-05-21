@@ -1,69 +1,53 @@
 module audiostreamerscrobbler.players.bluos.BluOsPlayerDetector
 
+import audiostreamerscrobbler.maintypes.Player.types.PlayerTypes
 import audiostreamerscrobbler.players.bluos.BluOsPlayer
 import audiostreamerscrobbler.players.bluos.LSDPHandler
-import audiostreamerscrobbler.states.detector.DetectorStateTypes.types.DetectorStateTypes
 import audiostreamerscrobbler.utils.NetworkUtils
 
 let TIMEOUT_SECONDS = 5
 
-struct DetectedBluOsPlayer = {
-	name,
-	port,
-	model,
-	version,
-	macAddress,
-	ipAddress,
-	LSDPVersionSupposedly,
-	host
-}
+function createBluOsPlayerDetector = |cb| {
+	let lsdpHandler = createLSDPHandler()
 
-function createBluOsPlayerDetector = |playerName| {
 	let detector = DynamicObject("BluOsDetector"):
-		define("_lsdpHandler", |this| -> createLSDPHandler()):
-		define("_playerName", |this| -> playerName):
-		define("detectPlayer", |this| -> detectBluOsPlayer(this: _lsdpHandler(), this: _playerName()))
+		define("_lsdpHandler", |this| -> lsdpHandler):
+		define("_cb", |this| -> cb):
+		define("playerType", PlayerTypes.BluOs()):
+		define("start", |this| -> startBluosDetector(this)):
+		define("stop", |this| -> stopBluosDetector(this))
+
 	return detector
 }
 
-local function detectBluOsPlayer = |lsdpHandler, playerName| {
-	let players = list[]
+local function startBluosDetector = |detector| {
 	let inetAddresses = getBroadcastAddresses()
+	let lsdpHandler = detector: _lsdpHandler()
 
-	lsdpHandler: queryLSDPPlayers(inetAddresses, TIMEOUT_SECONDS, |p, d| {
-		let player = convertLSDPAnswerToDetectedBluOsPlayer(p, d)
-		if (playerName != player: name()) {
-			# Player is not the player that we wanted. Keep searching...
-			return true
-		}
-		
-		players: add(player)
-
-		# We found the requested players...
-		return false
+	lsdpHandler: start(inetAddresses, TIMEOUT_SECONDS, |player, datagramPacket| {
+		let bluOsImpl = convertLSDPAnswerToBluOsPlayerImpl(player, datagramPacket)
+		let bluOsPlayer = createBluOsPlayer(bluOsImpl)
+		let cb = detector: _cb()
+		cb(bluOsPlayer)
 	})
-
-	if (players: isEmpty()) {
-		return DetectorStateTypes.PlayerNotFoundKeepTrying()
-	}
-
-	let bluOsPlayerImpl = createBluOsPlayerImpl(players: get(0))
-	return DetectorStateTypes.PlayerFound(bluOsPlayerImpl)	
 }
 
-local function convertLSDPAnswerToDetectedBluOsPlayer = |p, d| {
-	let mainTable = p: get("tables"): get(0): get(1)
-	let name = mainTable: get("name")
-	let port = mainTable: get("port")
+local function stopBluosDetector = |detector| {
+	let lsdpHandler = detector: _lsdpHandler()
+	lsdpHandler: stop()
+}
 
-	return DetectedBluOsPlayer(
-		name,
-		port,
+local function convertLSDPAnswerToBluOsPlayerImpl = |lsdpAnswer, datagramPacket| {
+	let mainTable = lsdpAnswer: get("tables"): get(0): get(1)
+
+	return BluOsPlayerImpl(
+		mainTable: get("name"),
+		mainTable: get("port"),
 		mainTable: get("model"),
 		mainTable: get("version"),
-		p: get("macAddress"),
-		p: get("ipAddress"),
-		p: get("lsdpVersionSupposedly"),
-		d: getAddress(): getHostAddress()
+		lsdpAnswer: get("macAddress"),
+		lsdpAnswer: get("ipAddress"),
+		lsdpAnswer: get("lsdpVersionSupposedly"),
+		datagramPacket: getAddress(): getHostAddress()
 	)
 }

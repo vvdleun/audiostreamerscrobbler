@@ -1,11 +1,13 @@
 module audiostreamerscrobbler.players.bluos.LSDPHandler
 
 import audiostreamerscrobbler.utils.ByteUtils
+import audiostreamerscrobbler.utils.ThreadUtils
 import nl.vincentvanderleun.lsdp.exceptions.{LSDPException, LSDPNoAnswerException}
 
 import java.lang.Thread
 import java.net.{DatagramPacket, DatagramSocket, SocketTimeoutException, BindException}
 import java.util.Arrays
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
 # Let's hope LSDP answers will not get any bigger than this...
 let LSDP_ANSWER_BUFFER_SIZE = 4096
@@ -17,50 +19,70 @@ let LSDP_DATA_HEADER_ID = newByteArrayFromUnsignedByteHexStringArray(array["4C",
 let LSDP_PORT = 11430
 # Amount of seconds that program will sleep after LSDP requests and no answers within timeout specified by the caller 
 let IDLE_SLEEP_TIME_SECONDS = 10
+# After this amount of timeouts while waiting for a LSDP answer, the LSDP query will be re-sent
+let MAX_TIMEOUTS = 10
 
 function createLSDPHandler = {
+	let isRunning = AtomicReference(AtomicBoolean(false))
+
 	let handler = DynamicObject("LSDPHandler"):
-		define("queryLSDPPlayers", |this, inetAddresses, timeout, playerAnswerCallback| -> queryLSDPPlayers(inetAddresses, timeout, playerAnswerCallback))
+		define("_isRunning", isRunning):
+		define("_thread", null):
+		define("start", |this, inetAddresses, timeout, playerAnswerCallback| -> initAndStartHandler(this, inetAddresses, timeout, playerAnswerCallback)):
+		define("stop", |this| -> stopHandler(this))
 
 	return handler
 }
 
 # Sending LSDP queries
 
-local function queryLSDPPlayers = |inetAddresses, timeout, playerAnswerCallback| {
-	var datagramSocket = null
+local function initAndStartHandler = |handler, inetAddresses, timeout, playerAnswerCallback| {
+	if (handler: _isRunning(): get(): get()) {
+		raise("Internal error: LSDP handler is already running!")
+	}
 
-	var waitForMorePlayers = true
-	while (waitForMorePlayers) {
-		try {
-			if (datagramSocket == null) {
-				# println("Opening socket...")
-				datagramSocket = DatagramSocket(LSDP_PORT)
-			}
+	let thread = runInNewThread("LSDPThread", {
+		var datagramSocket = null
+		let isRunning = -> handler: _isRunning(): get()
 
-			# println("Querying...")
-			foreach inetAddress in inetAddresses {
-				sendLSDPQueryPlayers(datagramSocket, inetAddress)
-			}
-
-			waitForMorePlayers = waitForLSDPPlayers(datagramSocket, timeout, playerAnswerCallback)
-		} catch (ex) {
-			case {
-				when ex oftype BindException.class {
-					println("ERROR: Could not bind to LSDP port. Make sure no other BluOS and/or BlueSound applications are active on this system.")
+		println("LSDP thread started...")
+		isRunning(): set(true)
+		while (isRunning(): get()) {
+			try {
+				if (datagramSocket == null) {
+					println("Opening LSDP socket...")
+					datagramSocket = DatagramSocket(LSDP_PORT)
+					println("Opened LSDP socket...")
 				}
-				otherwise {
-					throw ex
+
+				println("Querying...")
+				foreach inetAddress in inetAddresses {
+					sendLSDPQueryPlayers(datagramSocket, inetAddress)
 				}
-			}		
-		} finally {
-			if (waitForMorePlayers) {
+
+				waitForLSDPPlayers(handler, datagramSocket, timeout, playerAnswerCallback)
+			} catch (ex) {
+				case {
+					when ex oftype BindException.class {
+						println("ERROR: Could not bind to LSDP port. Make sure no other BluOS and/or BlueSound applications are active on this system.")
+					}
+					otherwise {
+						throw ex
+					}
+				}
 				Thread.sleep(IDLE_SLEEP_TIME_SECONDS * 1000_L)
 			}
 		}
-	}
-	# println("Closing socket...")
-	datagramSocket: close()
+		println("Closing LSDP socket...")
+		datagramSocket: close()
+		println("LSDP thread stopped")
+	})
+	handler: _thread(thread)
+}
+
+local function stopHandler = |lsdpHandler| {
+	println("TRYING TO STOP THREAD...")
+	lsdpHandler: _isRunning(): get(): set(false)
 }
 
 # Lower level functions
@@ -76,33 +98,44 @@ local function sendLSDPQuery = |datagramSocket, inetAddress, port, dataQuery| {
 
 # Receiving LSDP answers
 
-local function waitForLSDPPlayers = |datagramSocket, timeoutSeconds, playerAnswerCallback| {
+local function waitForLSDPPlayers = |handler, datagramSocket, timeoutSeconds, cb| {
+	let isRunning = -> handler: _isRunning(): get()
+
 	let answerBuffer = newTypedArray(byte.class, LSDP_ANSWER_BUFFER_SIZE)
 	let answerPacket = DatagramPacket(answerBuffer, answerBuffer: length())
 	datagramSocket: setSoTimeout(timeoutSeconds * 1000 )
+
+	var timeouts = 0
 	var waitForMorePlayers = true
-	while (waitForMorePlayers) {
+	while (waitForMorePlayers and isRunning(): get()) {
 		try {
+			println("Waiting for LSDP data...")
 			datagramSocket: receive(answerPacket)
-			let player = extractLSDPPlayer(answerPacket)
-			waitForMorePlayers = playerAnswerCallback(player, answerPacket)
+			println("LSDP data received")
+			timeouts = 0
+			let lsdpPlayer = extractLSDPPlayer(answerPacket)
+			cb(lsdpPlayer, answerPacket)
 		} catch (ex) {
 			case {
 				when ex oftype LSDPException.class {
 					case {
 						when ex oftype LSDPNoAnswerException.class {
-							# println("* Incoming data was not LSDP answer: " + ex: getMessage())
+							println("* Incoming data was not LSDP answer: " + ex: getMessage())
 						}
 						otherwise {
-							# println("* Unknown LSDP related error: " + ex: getMessage())
+							println("* Unknown LSDP related error: " + ex: getMessage())
+							throw ex
 						}
 					}
 				}
 				when ex oftype SocketTimeoutException.class {
-					# println("* Timeout occurred")
-					# Let queryLSDPPlayers() know it needs to send LSDP query via UDP yet again...
-					# TODO Replace true/false this with LSDPHandlerStates union...
-					return true
+					println("* Timeout occurred")
+					timeouts = timeouts + 1
+					println("Timeouts: " + timeouts)
+					if (timeouts > MAX_TIMEOUTS) {
+						println("Stop trying...")
+						waitForMorePlayers = false
+					}
 				}
 				otherwise {
 					throw ex
@@ -110,7 +143,6 @@ local function waitForLSDPPlayers = |datagramSocket, timeoutSeconds, playerAnswe
 			}
 		}
 	}
-	return waitForMorePlayers
 }
 
 local function extractLSDPPlayer = |datagramPacket| {
@@ -143,7 +175,6 @@ local function extractLSDPPlayer = |datagramPacket| {
 		["ipAddress", readIPAddress(context)],
 		["tables", readTables(context, msgEndOffset)]
 	]
-		
 }
 
 local function isIncomingDataLSDPQuery = |context| {

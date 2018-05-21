@@ -1,16 +1,9 @@
-#!/usr/bin/env golosh
+#!/usr/bin/env golosh 
 module audiostreamerscrobbler.Audiostreamerscrobbler
 
 import audiostreamerscrobbler.factories.Config
-import audiostreamerscrobbler.factories.PlayerDetectorFactory
-import audiostreamerscrobbler.factories.PlayerMonitorFactory
+import audiostreamerscrobbler.factories.PlayerControlThreadFactory
 import audiostreamerscrobbler.factories.ScrobblerErrorHandlerFactory
-import audiostreamerscrobbler.factories.ScrobblersFactory
-import audiostreamerscrobbler.scrobbler.ScrobblersHandler
-import audiostreamerscrobbler.states.detector.PlayerDetectorState
-import audiostreamerscrobbler.states.monitor.PlayerMonitorState
-import audiostreamerscrobbler.states.StateManager
-import audiostreamerscrobbler.states.PlayerThreadStates.types.PlayerThreadStates
 import audiostreamerscrobbler.utils.VerySimpleArgsParser
 
 import gololang.IO
@@ -31,30 +24,12 @@ local function run = |args| {
 		return
 	}
 	
-	let scrobblers = createScrobblersFactory(): createScrobblers()
-	let scrobblerErrorHandler = createScrobblerErrorHandlerFactory(scrobblers): createScrobblerErrorHandler()
+	let scrobblerErrorHandler = createScrobblerErrorHandlerFactory(): createScrobblerErrorHandler()
 	scrobblerErrorHandler: start()
-	
-	let stateManager = createStateManager(PlayerThreadStates.DetectPlayer(), |stateType| {
-		# Helper methods
-		let createPlayerDetector = -> createPlayerDetectorFactory(): createPlayerDetector()
-		let createPlayerMonitor = |player| -> createPlayerMonitorFactory(): createPlayerMonitor(player)
-		let createHandlerWithScrobblers = -> createScrobblersHandler(createScrobblersFactory(): createScrobblers(), scrobblerErrorHandler)
 
-		# Methods to create states
-		let createDetectorState = -> createPlayerDetectorState(createPlayerDetector())
-		let createMonitorState = |player| -> createPlayerMonitorState(createPlayerMonitor(player), createHandlerWithScrobblers())
-		
-		# Create requested state
-		let state = match {
-			when stateType: isDetectPlayer() then createDetectorState()
-			when stateType: isMonitorPlayer() then createMonitorState(stateType: player())
-			otherwise raise("Internal error: unknown request PlayerThreadState state: " + stateType)
-		}
-		return state
-	})
-	
-	stateManager: run()
+	let playerControlThreadFactory = createPlayerControlThreadFactory()
+	let playerControlThread = playerControlThreadFactory: createPlayerControlThread(scrobblerErrorHandler)
+	playerControlThread: start()
 }
 
 local function validateConfig = {
@@ -144,4 +119,3 @@ local function _authorizeService = |parser| {
 
 	authorizer: authorize()
 }
-

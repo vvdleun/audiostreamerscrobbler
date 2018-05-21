@@ -11,20 +11,18 @@ function createPlayerDetectorFactory = {
 
 	let playerDetectorFactory = DynamicObject("PlayerDetectorFactory"):
 		define("_config", config):
-		define("createPlayerDetector", |this| -> createPlayerDetector(this: _config()))
+		define("createPlayerDetector", |this, cb| -> createPlayerDetector(cb, this: _config()))
 	
 	return playerDetectorFactory
 }
 
-local function createPlayerDetector = |config| {
+local function createPlayerDetector = |cb, config| {
 	let playerConfig = config: getOrElse("player", map[])
 	let playerType = playerConfig: get("type")
-	
-	let playerName = playerConfig: get("name")
 
 	let detector = match {
 		when playerType == "musiccast"  then musicCastDetectorInstance
-		when playerType == "bluos" then createBluOsPlayerDetector(playerName)
+		when playerType == "bluos" then createBluOsPlayerDetector(cb)
 		otherwise raise("Internal error: Unknown player type in config.json: '" + playerType + "'")
 	}
 	
