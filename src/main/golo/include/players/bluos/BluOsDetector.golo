@@ -1,18 +1,16 @@
-module audiostreamerscrobbler.players.bluos.BluOsPlayerDetector
+module audiostreamerscrobbler.players.bluos.BluOsDetector
 
 import audiostreamerscrobbler.maintypes.Player.types.PlayerTypes
-import audiostreamerscrobbler.players.bluos.BluOsPlayer
-import audiostreamerscrobbler.players.bluos.LSDPHandler
+import audiostreamerscrobbler.players.bluos.{BluOsPlayer, LSDPHandler}
 import audiostreamerscrobbler.utils.NetworkUtils
 
 let TIMEOUT_SECONDS = 5
 
-function createBluOsPlayerDetector = |cb| {
-	let lsdpHandler = createLSDPHandler()
-
+function createBluOsDetector = |socketFactory, cb| {
+	let lsdpHandler = createLsdpHandlerInstance(socketFactory, cb)
+	
 	let detector = DynamicObject("BluOsDetector"):
 		define("_lsdpHandler", |this| -> lsdpHandler):
-		define("_cb", |this| -> cb):
 		define("playerType", PlayerTypes.BluOs()):
 		define("start", |this| -> startBluosDetector(this)):
 		define("stop", |this| -> stopBluosDetector(this))
@@ -20,16 +18,17 @@ function createBluOsPlayerDetector = |cb| {
 	return detector
 }
 
-local function startBluosDetector = |detector| {
-	let inetAddresses = getBroadcastAddresses()
-	let lsdpHandler = detector: _lsdpHandler()
-
-	lsdpHandler: start(inetAddresses, TIMEOUT_SECONDS, |player, datagramPacket| {
+local function createLsdpHandlerInstance = |socketFactory, cb| {
+	return createLSDPHandler(socketFactory, TIMEOUT_SECONDS, |player, datagramPacket| {
 		let bluOsImpl = convertLSDPAnswerToBluOsPlayerImpl(player, datagramPacket)
 		let bluOsPlayer = createBluOsPlayer(bluOsImpl)
-		let cb = detector: _cb()
 		cb(bluOsPlayer)
 	})
+}
+
+local function startBluosDetector = |detector| {
+	let lsdpHandler = detector: _lsdpHandler()
+	lsdpHandler: start()
 }
 
 local function stopBluosDetector = |detector| {

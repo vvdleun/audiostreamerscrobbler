@@ -50,7 +50,7 @@ local function initMonitorThread = |monitorThread| {
 local function startMonitorThread = |monitorThread| {
 	println("Starting monitor thread...")
 	let monitor = monitorThread: _monitor()
-	monitor: start( )
+	monitor: start()
 }
 
 local function stopMonitorThread = |monitorThread| {
@@ -62,7 +62,7 @@ local function stopMonitorThread = |monitorThread| {
 local function monitorCallback = |monitorThread, monitorState| {
 	# This callback function is called by the player's monitor and passes the
 	# status the player to this PlayerMonitorThread.
-	# println("Receiving player input...")
+	# println("Receiving player input: " + monitorState)
 
 	# Let PlayerControlThread know that this player is alive and well
 	let cbPlayerAlive = monitorThread: _cbPlayerAlive()

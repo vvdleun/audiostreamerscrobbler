@@ -111,9 +111,9 @@ public class BluOsStatusXMLParserTest {
 			"<autofill>241</autofill>\r\n" + 
 			"<canMovePlayback>true</canMovePlayback>\r\n" + 
 			"<canSeek>0</canSeek>\r\n" + 
-			"<currentImage>http://cdn-radiotime-logos.tunein.com/s225199q.png</currentImage>\r\n" + 
+			"<currentImage>http://www.exampe.com/image.png</currentImage>\r\n" + 
 			"<cursor>245</cursor>\r\n" + 
-			"<image>http://cdn-radiotime-logos.tunein.com/s225199q.png</image>\r\n" + 
+			"<image>http://www.example.com/image.png</image>\r\n" + 
 			"<indexing>0</indexing>\r\n" + 
 			"<mid>11</mid>\r\n" + 
 			"<mode>1</mode>\r\n" + 
@@ -132,7 +132,7 @@ public class BluOsStatusXMLParserTest {
 			"<state>stream</state>\r\n" + 
 			"<stationImage>http://cdn-radiotime-logos.tunein.com/s225199q.png</stationImage>\r\n" + 
 			"<streamFormat>AAC 208 kb/s</streamFormat>\r\n" + 
-			"<streamUrl>TuneIn:s225199/http://opml.radiotime.com/Tune.ashx?id=s225199&amp;formats=wma,mp3,aac,ogg,hls&amp;partnerId=8OeGua6y&amp;serial=68:94:23:E6:72:5B</streamUrl>\r\n" + 
+			"<streamUrl>TuneIn:123/http://example.com/Blabla.ashx?id=s225199&amp;formats=wma,mp3,aac,ogg,hls&amp;partnerId=555ABC&amp;serial=01:02:03:04:05:06</streamUrl>\r\n" + 
 			"<syncStat>21</syncStat>\r\n" + 
 			"<title1>Classic Jazz</title1>\r\n" + 
 			"<title2>Sam Braysher with Michael Kanan - Golden Eaarings</title2>\r\n" + 

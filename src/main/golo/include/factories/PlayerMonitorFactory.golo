@@ -1,9 +1,8 @@
 module audiostreamerscrobbler.factories.PlayerMonitorFactory
 
-import audiostreamerscrobbler.factories.Config
-import audiostreamerscrobbler.factories.RequestFactory
-import audiostreamerscrobbler.players.bluos.BluOsPlayerMonitor
-import audiostreamerscrobbler.players.musiccast.MusicCastPlayerMonitor
+import audiostreamerscrobbler.factories.{Config, RequestFactory, SocketFactory}
+import audiostreamerscrobbler.players.bluos.BluOsMonitor
+import audiostreamerscrobbler.players.musiccast.MusicCastMonitor
 
 function createPlayerMonitorFactory = {
 	let playerMonitorFactory = DynamicObject("PlayerMonitorFactory"):
@@ -14,13 +13,14 @@ function createPlayerMonitorFactory = {
 
 local function createPlayerMonitor = |player, cb| {
 	let httpRequestFactory = createHttpRequestFactory()
+	let socketFactory = createSocketFactory()
 	
 	let playerType = player: playerType()
 
 	let playerMonitor = match {
-		when playerType: isBluOs() then createBluOsPlayerMonitor(player, httpRequestFactory, cb)
-		when playerType: isMusicCast() then createMusicCastPlayerMonitor(player, httpRequestFactory)
-		otherwise raise("Internal error: unknown player: " + player)
+		when playerType: isBluOs() then createBluOsMonitor(player, httpRequestFactory, cb)
+		when playerType: isMusicCast() then createMusicCastMonitor(player, socketFactory, httpRequestFactory, cb)
+		otherwise raise("Internal error: unknown player type: " + player)
 	}
 	
 	return playerMonitor

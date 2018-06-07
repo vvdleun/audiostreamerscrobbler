@@ -1,4 +1,4 @@
-module audiostreamerscrobbler.players.bluos.BluOsPlayerMonitor
+module audiostreamerscrobbler.players.bluos.BluOsMonitor
 
 import audiostreamerscrobbler.maintypes.Song.types.Song
 import audiostreamerscrobbler.players.bluos.BluOsStatusXMLParser
@@ -9,7 +9,7 @@ let REQUEST_WITH_ETAG_TIMEOUT = 60
 let REQUEST_TIMEOUT = REQUEST_WITH_ETAG_TIMEOUT + 10
 let MINIMAL_POLL_INTERVAL = 10
 
-function createBluOsPlayerMonitor = |player, httpRequestFactory, cb| {
+function createBluOsMonitor = |player, httpRequestFactory, cb| {
 	let bluOsImpl = player: bluOsImpl()
 	let statusUrl = "http://" + bluOsImpl: host() + ":" + bluOsImpl: port() + "/Status"
 

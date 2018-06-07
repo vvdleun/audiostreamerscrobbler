@@ -1,6 +1,6 @@
 package audiostreamerscrobbler.players.bluos;
 
-import audiostreamerscrobbler.players.bluos.BluOsPlayerDetector;
+import audiostreamerscrobbler.players.bluos.BluOsDetector;
 
 import gololang.DynamicObject;
 import gololang.FunctionReference;
@@ -29,7 +29,8 @@ public class BluOsPlayerDetectorTests {
 
 	@Test
 	public void shouldContinueSearchWhenPlayerNotFound() throws Throwable {
-		DynamicObject bluOsDetector = (DynamicObject)BluOsPlayerDetector.createBluOsPlayerDetector("PlayerThatDoesNotExist");
+		Object socketFactory = new Object();
+		DynamicObject bluOsDetector = (DynamicObject)BluOsDetector.createBluOsDetector(socketFactory, );
 		DynamicObject lsdpHandler = createMockedLSDPHandler(MockedLSDPHandler.class, "queryLsdpPlayerNotFound");
 
 		MethodHandle detectPlayerInvoker = setupBlueOsDetectorAndCreateDetectPlayerInvoker(bluOsDetector, lsdpHandler);
@@ -45,6 +46,7 @@ public class BluOsPlayerDetectorTests {
 	public void shouldReturnPlayerWhenExpectedPlayerIsFound() throws Throwable {
 		MockedLSDPHandler.reportedPlayer = "SearchedPlayer";
 
+		Object socketFactory = new Object();
 		DynamicObject bluOsDetector = (DynamicObject)BluOsPlayerDetector.createBluOsPlayerDetector("SearchedPlayer");
 		DynamicObject lsdpHandler = createMockedLSDPHandler(MockedLSDPHandler.class, "queryLsdpReportedPlayerFound");
 
@@ -79,7 +81,7 @@ public class BluOsPlayerDetectorTests {
 	public void shouldKeepSearchingWhenUnwantedPlayerIsDetected() throws Throwable {
 		MockedLSDPHandler.reportedPlayer = "ThisIsNotThePlayerThatYouAreLookingFor";
 		
-		DynamicObject bluOsDetector = (DynamicObject)BluOsPlayerDetector.createBluOsPlayerDetector("ThisPlayerWillNeverBeFound");
+		DynamicObject bluOsDetector = (DynamicObject)BluOsPlayerDetector.createBluOsPlayerDetector(socketFactory, null);
 		DynamicObject lsdpHandler = createMockedLSDPHandler(MockedLSDPHandler.class, "queryLsdpReportedPlayerFound");
 
 		MethodHandle detectPlayerInvoker = setupBlueOsDetectorAndCreateDetectPlayerInvoker(bluOsDetector, lsdpHandler);

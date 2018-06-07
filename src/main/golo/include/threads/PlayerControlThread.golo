@@ -54,13 +54,13 @@ local function initAndStartPlayerControlThread = |controlThread| {
 	controlThread: _env(env)
 	controlThread: _port(port)
 
-	let aliveThread = _setupAliveThread(controlThread)
+	let aliveThread = _createAndRunPlayerAliveCheckThread(controlThread)
 	controlThread: _aliveThread(aliveThread)
 
 	port: send(PlayerControlThreadMsgs.StartMsg())
 }
 
-local function _setupAliveThread = |controlThread| {
+local function _createAndRunPlayerAliveCheckThread = |controlThread| {
 	return runInNewThread("PlayersAliveCheckThread", {
 		let isRunning = -> controlThread: _isRunning(): get()
 		
@@ -135,7 +135,7 @@ local function _stopThreads = |controlThread| {
 }
 
 local function _handleDetectedPlayer = |controlThread, player| {
-	# println("FOUND PLAYER: " + player)
+	println("Detected player: " + player: friendlyName())
 	if (not _isPlayerKnown(controlThread, player) or not _isPlayerDetecting(controlThread, player)) {
 		return
 	}
@@ -161,10 +161,10 @@ local function _isPlayerDetecting = |controlThread, player| {
 
 	let playerType = player: playerType()
 	if (detectorThreads: get(playerType) is null) {
-		println("Internal error: player type '" + playerType + "' detection thread is not active")
+		println("Ignored: Player type '" + playerType + "' was not being detected")
 		return false
 	} else if (monitorThreads: get(player) isnt null) {
-		println("Internal error: player '" + player: friendlyName() + "' monitoring thread is already started")
+		println("Player '" + player: friendlyName() + "' is already being monitored")
 		return false
 	}
 	return true
@@ -175,6 +175,7 @@ local function _removeAndStopDetector = |controlThread, player| {
 	let playerType = player: playerType()
 
 	let detector = detectorThreads: remove(playerType)
+	println("Stopping detector...")
 	detector: stop()
 }
 
@@ -193,6 +194,7 @@ local function _addAndStartMonitorThread = |controlThread, player| {
 			[MONITOR_ALIVE_KEY, null]])
 	_registerPlayerAlive(monitorThreads, player)
 
+	println("Starting monitor...")
 	monitorThread: start()
 }
 
@@ -224,7 +226,7 @@ local function _checkAndScheduleDeadPlayersRemoval = |controlThread| {
 }
 
 local function _handleLostPlayer = |controlThread, player| {
-	println("LOST PLAYER: " + player)
+	println("LOST PLAYER: " + player: friendlyName())
 	if (not _isPlayerKnown(controlThread, player) or not _isPlayerMonitoring(controlThread, player)) {
 		return
 	}

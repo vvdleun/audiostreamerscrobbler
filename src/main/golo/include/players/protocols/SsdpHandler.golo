@@ -1,73 +1,197 @@
 module audiostreamerscrobbler.players.protocols.SSDPHandler
 
-import audiostreamerscrobbler.utils.ThreadUtils
+import audiostreamerscrobbler.factories.SocketFactory
+import audiostreamerscrobbler.utils.{NetworkUtils, ThreadUtils}
 
-import gololang.Observable
+import gololang.concurrent.workers.WorkerEnvironment
 import java.lang.Thread
-import java.net.{DatagramPacket, InetAddress,  MulticastSocket, SocketTimeoutException}
-import java.util.concurrent.atomic.AtomicBoolean
+import java.net.{DatagramPacket, InetAddress, SocketTimeoutException}
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
 let MULTICAST_ADDRESS_IP4 = "239.255.255.250"
 let MULTICAST_ADDRESS_IP6 = "FF05::C"
 let MULTICAST_UDP_PORT = 1900
 let BUFFER_SIZE = 4 * 1024
+let SSDP_SECS = 1
 
 let ssdpHandler = createSsdpHandler()
 
 function getSsdpHandlerInstance = -> ssdpHandler
 
+union SsdpHandlerMsgs = {
+	AddCallbackMsg = { searchText, cb }
+	RemoveCallbackMsg = { searchText, cb }
+	ExecuteMSearchQueriesMsg
+	ExecuteCallbacksMsg = { values }
+	ShutdownMsg
+}
+
 local function createSsdpHandler = {
-	let observable = Observable("SSDPObservable")
-	let isRunning = AtomicBoolean(false)
-	
 	let ssdpHandler = DynamicObject("SSDPHandler"):
+		define("_env", null):
+		define("_port", null):
 		define("_multicastAddress", null):
-		define("_threadMSearchHandler", null):
+		define("_threadSender", null):
+		define("_threadReceiver", null):
 		define("_socketMSearch", null):
-		define("_isRunning", isRunning):
-		define("_observable", observable):
-		define("_clients", 0):
-		define("start", |this| -> initAndStartThreads(this)):
-		define("stop", |this| -> scheduleStopThreads(this)):
-		define("mSearch", |this, searchText, seconds| -> mSearch(this, searchText, seconds)):
-		define("registerCallback", |this, searchText, cb| -> registerCallback(this, searchText, cb))
-		
+		define("_isRunning", null):
+		define("_callbacks", null):
+		define("shutdown", |this| -> shutdownSsdpHandler(this)):
+		define("addCallback", |this, searchText, cb| -> scheduleAddCallback(this, searchText, cb)):
+		define("removeCallback", |this, searchText, cb| -> scheduleRemoveCallback(this, searchText, cb))
+ 	
+	initAndStartSsdpHandler(ssdpHandler)
+	
 	return ssdpHandler
 }
 
-local function initAndStartThreads = |handler| {
-	# To do: locking...
-	let clients = handler: _clients() + 1
-	handler: _clients(clients)
-	if (clients > 1) {
-		# println("Already started...")
-		return
+local function initAndStartSsdpHandler = |handler| {
+	if (handler: _env() isnt null) {
+		raise("Internal error: player control thread was already running")
+	}
+
+	let env = WorkerEnvironment.builder(): withSingleThreadExecutor() 
+	let port = env: spawn(^_portIncomingMsgHandler: bindTo(handler))
+
+	handler: _env(env)
+	handler: _port(port)
+	handler: _callbacks(map[])
+	handler: _isRunning(AtomicReference(AtomicBoolean(false)))
+
+	# Sender / Receiver threads will be created once callbacks are added
+	handler: _threadSender(null)
+	handler: _threadReceiver(null)
+}
+
+local function shutdownSsdpHandler = |handler| {
+	handler: _isRunning(): get(): set(false)
+}
+
+local function scheduleAddCallback = |handler, searchText, cb| {
+	if (handler: _port() is null) {
+		raise("Internal error: SSDP handler thread is not started")
+	}
+	handler: _port(): send(SsdpHandlerMsgs.AddCallbackMsg(searchText, cb))
+}
+
+local function scheduleRemoveCallback = |handler, searchText, cb| {
+	# println("*** Scheduling removal of callback...")
+	if (handler: _port() is null) {
+		raise("Internal error: SSDP handler thread is not started")
+	}
+
+	handler: _port(): send(SsdpHandlerMsgs.RemoveCallbackMsg(searchText, cb))
+}
+
+# Port message handler
+
+local function _portIncomingMsgHandler = |handler, msg| {
+	case {
+		when msg: isAddCallbackMsg() {
+			_addCallbackAndStartWhenAddedFirstCallback(handler, msg)
+		}
+		when msg: isRemoveCallbackMsg() {
+			_removeCallbackAndStopWhenLastItemRemoved(handler, msg)
+		}
+		when msg: isExecuteMSearchQueriesMsg() {
+			_executeMSearchQueries(handler)
+		}
+		when msg: isExecuteCallbacksMsg() {
+			_executeCallbacks(handler, msg)
+		}
+		when msg: isShutdownMsg() {
+			_shutdown(handler)
+		}
+		otherwise {
+			raise("Internal error, received unknown message: " + msg)
+		}
+	}
+}
+
+# Functions that should be called via _portIncomingMsgHandler (direct or indirectly) only
+
+local function _addCallbackAndStartWhenAddedFirstCallback = |handler, msg| {
+	let callbacks = handler: _callbacks()
+	let st = msg: searchText()
+	var init = false
+	
+	if (not callbacks: containsKey(st)) {
+		callbacks: put(st, list[])
+		init = true
 	}
 	
+	let stCallbacks = callbacks: get(st)
+	let cb = msg: cb()
+	stCallbacks: add(cb)
+	
+	if (init and callbacks: size() == 1) {
+		_startSdpSearchHandler(handler)
+	}
+}
+
+local function _startSdpSearchHandler = |handler| {
 	let multicastAddress = InetAddress.getByName(MULTICAST_ADDRESS_IP4)
-	let isRunning = handler: _isRunning()
+
+	# TODO Usually objects do not import factories, but what to do with this singleton?!
+	let socketFactory = createSocketFactory()
+
+	# let socketMSearch = MulticastSocket()
+	# Experiment
+	# =====
+	# let networkInterfaces = getNetworkInterfaces()
+	# let networkInterface = networkInterfaces: get(INTERFACE_INDEX)
+	# let inetAddresses = getInetAddresses(networkInterface)
+	# let inetAddress = inetAddresses: get(0)
+	# socketMSearch: setInterface(inetAddress)
+	# =====
 	
-	# Init M-SEARCH handling thread
-	let socketMSearch = MulticastSocket()
+	let socketMSearch = socketFactory: createMulticastSocket()
 	socketMSearch: setSoTimeout(10 * 1000)
-	
-	isRunning: set(true)
-	
-	let threadMSearchHandler = runInNewThread({
-		# println("MSEARCH thread starts")
-		var index = 0
-		while(isRunning: get()) {
+
+	handler: _multicastAddress(multicastAddress)
+	handler: _socketMSearch(socketMSearch)
+
+	let isRunning = -> handler: _isRunning(): get()
+	isRunning(): set(true)
+
+	let threadSender = _createAndRunSendThread(handler)
+	let threadReceiver = _createAndRunReceiveThread(handler)
+	handler: _threadSender(threadSender)
+	handler: _threadReceiver(threadReceiver)
+}
+
+local function _createAndRunSendThread = |handler| {
+	return runInNewThread("SsdpSenderThread", {
+		let isRunning = -> handler: _isRunning(): get()
+
+		while (isRunning(): get()) {
+			handler: _port(): send(SsdpHandlerMsgs.ExecuteMSearchQueriesMsg())
+			Thread.sleep(10000_L)
+		}
+		print("Stopped SSDP search sender thread")
+	})
+}
+
+local function _createAndRunReceiveThread = |handler| {
+	return runInNewThread("SsdpReceiverThread", {
+		let isRunning = -> handler: _isRunning(): get()
+
+		print("MSEARCH thread starts")
+		while(isRunning(): get()) {
 			let buffer = newTypedArray(byte.class, BUFFER_SIZE)
 			let recv = DatagramPacket(buffer, buffer: length())
 			try {
-				# println("MSEARCH THREAD: Waiting for data...")
+				# print("MSEARCH THREAD: Waiting for data...")
+				let socketMSearch = handler: _socketMSearch()
 				socketMSearch: receive(recv)
 			} catch (ex) {
 				case {
 					when ex oftype SocketTimeoutException.class {
 						# println(ex)
+						# log_print("SSDP timeout")
 						continue
 					} otherwise {
+						println("SSDP error: " + ex)
 						throw ex
 					}
 				}
@@ -76,15 +200,11 @@ local function initAndStartThreads = |handler| {
 			let status, headers = _getValues(incomingMsg)
 
 			if (status: size() > 1 and status: get(1) == "200") {
-				handler: _observable(): set(headers)
+				handler: _port(): send(SsdpHandlerMsgs.ExecuteCallbacksMsg(headers))
 			}
 		}
-		# println("MSEARCH THREAD: stopped")
+		print("Stopped SSDP search receiver thread")
 	})
-	
-	handler: _multicastAddress(multicastAddress)
-	handler: _socketMSearch(socketMSearch)
-	handler: _threadMSearchHandler(threadMSearchHandler)
 }
 
 local function _getValues = |msg| {
@@ -108,39 +228,52 @@ local function _getValues = |msg| {
 	return [header: split(" ", 3): asList(), mapHeader]
 }
 
-local function scheduleStopThreads = |handler| {
-	# To do: locking...
+local function _removeCallbackAndStopWhenLastItemRemoved = |handler, msg| {
+	let callbacks = handler: _callbacks()
+	let st = msg: searchText()
+	let cb = msg: cb()
 
-	var clients = handler: _clients()
+	let stCallbacks = callbacks: get(st)
 
-	if (clients >= 1) {
-		clients = clients - 1
-		handler: _clients(clients)
+	stCallbacks: remove(cb)
+
+	if (stCallbacks: size() == 0) {
+		callbacks: remove(st)
 	}
-	
-	if (clients == 0) {
-		handler: _isRunning(): set(false)
+		
+	if (callbacks: size() == 0) {
+		_stopSdpSearchHandler(handler)
 	}
 }
 
-local function mSearch = |handler, searchText, seconds| {
-	# println("Sending MSearch query... ")
+local function _stopSdpSearchHandler = |handler| {
+	handler: _isRunning(): get(): set(false)
+}
+
+local function _executeMSearchQueries = |handler| {
+	handler: _callbacks(): keySet(): each(|st| {
+		let isRunning = -> handler: _isRunning(): get()
+
+		foreach (i in range(3)) {
+			if (not isRunning(): get()) {
+				break
+			}
+			sendMSearchQuery(handler, st, SSDP_SECS)
+			Thread.sleep(1000_L)
+		}
+	})
+}
+
+local function sendMSearchQuery = |handler, searchText, seconds| {
+	# print("Sending MSearch query... ")
 	let msg = createMSearchString(MULTICAST_ADDRESS_IP4, MULTICAST_UDP_PORT, searchText, seconds)
-	# println("'" + msg + "'")
+	# print("'" + msg + "'")
 	let msgBytes = msg: getBytes("UTF-8")
 	let multicastAddress = handler: _multicastAddress()
 	let mSearchPacket = DatagramPacket(msgBytes, msgBytes: length(), multicastAddress, MULTICAST_UDP_PORT)
 	
 	let socketMSearch = handler: _socketMSearch()
 	socketMSearch: send(mSearchPacket)
-}
-
-local function registerCallback = |handler, st, cb| {
-	handler: _observable(): onChange(|v| {
-		if st == null or (v: containsKey("st") and v: getOrElse("st", "") == st) {
-			cb(v)
-		}
-	})
 }
 
 local function createMSearchString = |multicastAddress, multicastPort, searchTarget, seconds| {
@@ -162,4 +295,21 @@ local function createMSearchString = |multicastAddress, multicastPort, searchTar
 	msg: append("\r\n")
 
 	return msg: toString()
+}
+
+local function _executeCallbacks = |handler, msg| {
+	handler: _callbacks(): entrySet(): each(|e| {
+		let st = e: getKey()
+		let stCallbacks = e: getValue()
+		let v = msg: values()
+		if (st == null) or (v: containsKey("st") and v: getOrElse("st", "") == st) {
+			stCallbacks: each(|cb| -> cb(v))
+		}
+	})
+}
+
+local function _shutdown = |handler| {
+	handler: _env(): shutdown()
+	handler: _env(null)
+	handler: _port(null)
 }

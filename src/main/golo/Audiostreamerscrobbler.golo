@@ -4,7 +4,7 @@ module audiostreamerscrobbler.Audiostreamerscrobbler
 import audiostreamerscrobbler.factories.Config
 import audiostreamerscrobbler.factories.PlayerControlThreadFactory
 import audiostreamerscrobbler.factories.ScrobblerErrorHandlerFactory
-import audiostreamerscrobbler.utils.VerySimpleArgsParser
+import audiostreamerscrobbler.utils.{NetworkUtils, VerySimpleArgsParser}
 
 import gololang.IO
 import java.util.Arrays
@@ -61,7 +61,9 @@ local function handleCommandLineOptions = |args| {
 			when option == "--authorize" {
 				return authorizeService(parser)
 			}
-
+			when option == "--networkinterfaces" {
+				return showNetworkInterfaces()
+			}
 			otherwise {
 				return showHelp(option)
 			}
@@ -80,6 +82,8 @@ local function showHelp = |option| {
 	println("Valid options:\n")
 	println("--authorize [" + getScrobblerKeyNames():join("|") + "]")
 	println("    Starts the authorization process for the specified music tracking service.\n")
+	println("--networkinterfaces")
+	println("    Shows network interface names and addresses that can be used in configuration file")
 	println("--help")
 	println("    Shows this help screen\n")
 
@@ -118,4 +122,15 @@ local function _authorizeService = |parser| {
 	}
 
 	authorizer: authorize()
+}
+
+local function showNetworkInterfaces = {
+	getNetworkInterfaces(): each(|i| {
+		println("Alias    : \"" + i: getName() + "\"")
+		println("Name     : \"" + i: getDisplayName() + "\"")
+		println("Addresses: " + ["\"" + a: getHostAddress() + "\"" foreach a in getInetAddresses(i)]: join("  "))
+		println("\n\n")
+	})
+
+	return true
 }

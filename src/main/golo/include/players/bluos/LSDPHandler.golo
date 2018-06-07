@@ -1,11 +1,10 @@
 module audiostreamerscrobbler.players.bluos.LSDPHandler
 
-import audiostreamerscrobbler.utils.ByteUtils
-import audiostreamerscrobbler.utils.ThreadUtils
+import audiostreamerscrobbler.utils.{ByteUtils, ThreadUtils}
 import nl.vincentvanderleun.lsdp.exceptions.{LSDPException, LSDPNoAnswerException}
 
 import java.lang.Thread
-import java.net.{DatagramPacket, DatagramSocket, SocketTimeoutException, BindException}
+import java.net.{DatagramPacket, SocketTimeoutException, BindException}
 import java.util.Arrays
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
@@ -22,13 +21,16 @@ let IDLE_SLEEP_TIME_SECONDS = 10
 # After this amount of timeouts while waiting for a LSDP answer, the LSDP query will be re-sent
 let MAX_TIMEOUTS = 10
 
-function createLSDPHandler = {
+function createLSDPHandler = |socketFactory, timeout, cb| {
 	let isRunning = AtomicReference(AtomicBoolean(false))
 
 	let handler = DynamicObject("LSDPHandler"):
 		define("_isRunning", isRunning):
 		define("_thread", null):
-		define("start", |this, inetAddresses, timeout, playerAnswerCallback| -> initAndStartHandler(this, inetAddresses, timeout, playerAnswerCallback)):
+		define("_socketFactory", socketFactory):
+		define("_timeout", timeout):
+		define("_cb", cb):
+		define("start", |this| -> initAndStartHandler(this)):
 		define("stop", |this| -> stopHandler(this))
 
 	return handler
@@ -36,7 +38,7 @@ function createLSDPHandler = {
 
 # Sending LSDP queries
 
-local function initAndStartHandler = |handler, inetAddresses, timeout, playerAnswerCallback| {
+local function initAndStartHandler = |handler| {
 	if (handler: _isRunning(): get(): get()) {
 		raise("Internal error: LSDP handler is already running!")
 	}
@@ -44,23 +46,25 @@ local function initAndStartHandler = |handler, inetAddresses, timeout, playerAns
 	let thread = runInNewThread("LSDPThread", {
 		var datagramSocket = null
 		let isRunning = -> handler: _isRunning(): get()
-
+		let socketFactory = handler: _socketFactory()
+		let timeout = handler: _timeout()
+		let cb = handler: _cb()
+		let broadcastAddresses = socketFactory: getBroadcastAddresses()
+		
 		println("LSDP thread started...")
 		isRunning(): set(true)
 		while (isRunning(): get()) {
 			try {
 				if (datagramSocket == null) {
 					println("Opening LSDP socket...")
-					datagramSocket = DatagramSocket(LSDP_PORT)
+					datagramSocket = socketFactory: createDatagramSocket(LSDP_PORT)
 					println("Opened LSDP socket...")
 				}
 
 				println("Querying...")
-				foreach inetAddress in inetAddresses {
-					sendLSDPQueryPlayers(datagramSocket, inetAddress)
-				}
+				sendLSDPQueryPlayers(broadcastAddresses, datagramSocket)
 
-				waitForLSDPPlayers(handler, datagramSocket, timeout, playerAnswerCallback)
+				waitForLSDPPlayers(handler, datagramSocket, timeout, cb)
 			} catch (ex) {
 				case {
 					when ex oftype BindException.class {
@@ -87,13 +91,19 @@ local function stopHandler = |lsdpHandler| {
 
 # Lower level functions
 
-local function sendLSDPQueryPlayers = |datagramSocket, inetAddress| {
-	sendLSDPQuery(datagramSocket, inetAddress, LSDP_PORT, LSDP_DATA_QUERY_PLAYERS)
+local function sendLSDPQueryPlayers = |broadcastAddresses, datagramSocket| {
+	broadcastAddresses: each(|a| -> sendLSDPQuery(datagramSocket, a, LSDP_DATA_QUERY_PLAYERS))
 }
 
-local function sendLSDPQuery = |datagramSocket, inetAddress, port, dataQuery| {
-	let datagramPacket = DatagramPacket(dataQuery, dataQuery: length(), inetAddress, port)
+local function sendLSDPQuery = |datagramSocket, broadcastAddress, dataQuery| {
+	println("B: " + broadcastAddress)
+	let port = datagramSocket: getLocalPort()
+	println("P: " + port)
+	let datagramPacket = DatagramPacket(dataQuery, dataQuery: length(), broadcastAddress, port)
+	println("dp: " + datagramPacket)
+	println("xxx")
 	datagramSocket: send(datagramPacket)
+	println("zzz")
 }
 
 # Receiving LSDP answers
