@@ -31,6 +31,10 @@
 		}
 	},
 	"settings": {
+		"network": {
+			"networkInterface": "",
+			"networkInterfaceAddress": ""
+		},
 		"errorHandling": {
 			"maxSongs": 250,
 			"retryIntervalMinutes": 30
