@@ -99,13 +99,13 @@ local function _createAndRunThread = |monitor| {
 						let tooManyTimeouts = handleTimeouts(monitor)
 						# println("TIMEOUTS: " + monitor: _timeouts())
 						if (tooManyTimeouts) {
-							println("TOO MANY TIMEOUTS IN A ROW. POLLING PLAYER STATUS...")
+							# println("TOO MANY TIMEOUTS IN A ROW. POLLING PLAYER STATUS...")
 							# This will update _lastSuccess() field
 							getAndRegisterCurrentStatus(monitor) 
 						}
 						
 						if (monitor: _lastSuccess()) {
-							println("PLAYER IS STILL ALIVE")
+							# println("PLAYER IS STILL ALIVE")
 							let cb = monitor: _cb()
 							cb(MonitorThreadTypes.Monitoring())
 						}

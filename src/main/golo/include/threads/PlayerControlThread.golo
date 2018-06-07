@@ -66,8 +66,8 @@ local function _createAndRunPlayerAliveCheckThread = |controlThread| {
 		
 		isRunning(): set(true)
 		while (isRunning(): get()) {
-			controlThread: _port(): send(PlayerControlThreadMsgs.CheckForDeadPlayers())
 			Thread.sleep(DEAD_PLAYER_CHECK_INTERVAL * 1000_L)
+			controlThread: _port(): send(PlayerControlThreadMsgs.CheckForDeadPlayers())
 		}
 		
 		controlThread: _aliveThread(null)
@@ -208,7 +208,7 @@ local function _registerPlayerAlive = |monitorThreads, player| {
 }
 
 local function _checkAndScheduleDeadPlayersRemoval = |controlThread| {
-	println("Checking for dead players...")
+	println("Looking for inactive players...")
 	let monitorThreads = controlThread: _monitorThreads()
 
 	monitorThreads: entrySet(): each(|e| {
@@ -217,12 +217,12 @@ local function _checkAndScheduleDeadPlayersRemoval = |controlThread| {
 		let timeDiff = Duration.between(timeLastActive, timeNow): getSeconds()
 		if timeDiff > DEAD_PLAYER_CHECK_INTERVAL {
 			let player = e: getKey()
-			println("Player '" + player: friendlyName() + "' active " + timeDiff + " seconds ago")
+			println("Lost player '" + player: friendlyName() + "'. Last time data was received from this player was " + timeDiff + " seconds ago.")
 			controlThread: _port(): send(PlayerControlThreadMsgs.LostPlayerMsg(player))
 		}
 	})
 	
-	println("Done.")
+	println("Done looking for inactive players")
 }
 
 local function _handleLostPlayer = |controlThread, player| {

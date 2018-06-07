@@ -5,11 +5,11 @@
 This program is not ready for prime time yet, it's under heavy development. At this time it can only monitor 1 chosen BluOS or Yamaha MusicCast device. In a future version, a single instance should be able to monitor all players of all supported audiostreamer standards at the same time.
 
 The program has almost been completely rewritten in a course of a month. Among the changes are:
-* The program is now async events-based, instead being based on synchronious function calls
+* The program is now fully async events-based, instead of being based on synchronious function calls
 * There's a new PlayerControl thread that keeps track of player monitor and detector threads. This will make it much easier to add support for multiple players.
-* The used network interface (and IP addresses that program binds to) can now be configured
 * MusicCast support has been completely rewritten and is now based on MusicCast's Event update system via UDP
-* Improved, cleaned up and often simplified lots of internal APIs, especially the public ones
+* The used network interface (and IP addresses that program binds to) can now be configured
+* Improved, cleaned up and simplified lots of internal APIs, especially the "public" ones
 
 Note that the program uses the undocumented LSDP protocol to detect BluOs players that are powered on. I could only test it with my BluOS player, which is the built-in streamer (internal BluOS 2 MDC upgrade card) in my NAD C368 amplifier. Therefore I don't know yet whether it will work on other players, like BlueSound's more popular wi-fi speakers, or their Node range of products.
 
@@ -146,7 +146,9 @@ This will start a browser. If you are not logged in to Last FM, you are asked to
 
 To use this program with ListenBrainz, first get yourself an account. In your user profile, you'll find your unique user token. Copy and paste this and place this in the "userToken" field of the "listenbrainz" entry in the config.json file. Don't forget to set the "enabled" field to the "true" value.
 
-You can also choose to download the [ListenBrainz Server](https://github.com/metabrainz/listenbrainz-server) yourself and run a server instance locally, but this is recommended for advanced users only. If you choose to go this route, you must fill the "listenbrainz-server" entry in the config.json file, set its "enabled" field to "true" and fill the "websiteUrl" (the URL where you can access your local instance) and the "apiUrl" (this is the same URL that you entered in ListenBrainz Server's listenbrainz/config.py file's API URL field). You can keep it empty if you chose the same URL for the API as the website. You'll still need to find the User Token in your profiel page.
+##### Local installation
+
+You can also choose to download the [ListenBrainz Server](https://github.com/metabrainz/listenbrainz-server) yourself and run a server instance locally, but this is recommended for advanced users only. If you choose to go this route and have it running in your network, you must fill the "listenbrainz-server" entry in the config.json file, set its "enabled" field to "true" and fill the "websiteUrl" (the URL where you can access your local instance) and the "apiUrl" (this is the same URL that you entered in ListenBrainz Server's listenbrainz/config.py file's API URL field). You can keep it empty if you chose the same URL for the API as the website. You'll still need to find the User Token in your server's user profile page.
 
 #### Libre FM
 
@@ -186,7 +188,7 @@ For Last FM, songs that could not be scrobbled for 14 days in a row are silently
 
 ### Configuring network interface parameters
 
-Normally the program uses the network card that the Java's network library of the Java platform selects as its default. I have seen rare cases where the wrong network card was selected and the program could not communicate with any player on the network.
+Normally the program uses the network card that the Java's network library of the Java platform selects as its default. While developing, I have seen rare cases where the wrong network card was selected and the program could not communicate with any player on the network.
 
 If this happens to you, you can overrule the network interface that is used when opening I/O sockets (at this time HTTP requests are not affected by this, open a GitHub issue if this causes problems for you).
 
@@ -218,7 +220,7 @@ In the config.json configuration file, find or add the "network" section under "
     ...
 
 In the `networkInterface` field, you can fill the output of the `Alias` or `Name` fields, that were listed when using the `--networkinterfaces` parameter.
-Normally that would be enough, the program will then try to bind to the first IP address of that network interface. If you want the program to bind to a different IP address of a specific network interface, you can also fill the `networkInterfaceAddress` field. For example, on my system I could fill `networkInterfaceAddress` with the `"192.168.178.107"` address.
+Normally that would be enough, the program will then try to bind to the first IP address of that network interface. If you want the program to bind to a specific IP address of a network interface, you can also fill the `networkInterfaceAddress` field. For example, on my system I could fill `networkInterfaceAddress` with the `"192.168.178.107"` address.
 	
 ## Plans
 
@@ -232,12 +234,12 @@ Right now I mostly concentrate on features that I'll use myself, but if there's 
 
 ## About the author
 
-I am Vincent van der Leun. I'm a Dutch Java developer for a modern cloud-based software company in Woerden.
+I am Vincent van der Leun. I'm a Dutch Java developer and currently employed by a modern cloud-based software company in Woerden.
 
-If you like scrobbling as much as I do, feel free to add me on my music tracker accounts:
+If you like scrobbling as much as I do, feel free to add me on one of the following public music tracking services:
 
 * Last FM: https://www.last.fm/user/vvdleun
 * ListenBrainz: https://listenbrainz.org/user/vintzend
 * Libre FM: https://libre.fm/user/vintzend
 
-Also, please open GitHub issues if you need support or have questions, concerns, suggestions, etc. about this program.
+Also, please open GitHub issues if you need support, have questions, concerns, suggestions, etc. about this program.

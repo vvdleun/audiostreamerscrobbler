@@ -168,7 +168,7 @@ local function _createAndRunSendThread = |handler| {
 			handler: _port(): send(SsdpHandlerMsgs.ExecuteMSearchQueriesMsg())
 			Thread.sleep(10000_L)
 		}
-		print("Stopped SSDP search sender thread")
+		println("Stopped SSDP search sender thread")
 	})
 }
 
@@ -176,19 +176,19 @@ local function _createAndRunReceiveThread = |handler| {
 	return runInNewThread("SsdpReceiverThread", {
 		let isRunning = -> handler: _isRunning(): get()
 
-		print("MSEARCH thread starts")
+		println("MSEARCH thread starts")
 		while(isRunning(): get()) {
 			let buffer = newTypedArray(byte.class, BUFFER_SIZE)
 			let recv = DatagramPacket(buffer, buffer: length())
 			try {
-				# print("MSEARCH THREAD: Waiting for data...")
+				# println("MSEARCH THREAD: Waiting for data...")
 				let socketMSearch = handler: _socketMSearch()
 				socketMSearch: receive(recv)
 			} catch (ex) {
 				case {
 					when ex oftype SocketTimeoutException.class {
 						# println(ex)
-						# log_print("SSDP timeout")
+						# println("SSDP timeout")
 						continue
 					} otherwise {
 						println("SSDP error: " + ex)
@@ -203,7 +203,7 @@ local function _createAndRunReceiveThread = |handler| {
 				handler: _port(): send(SsdpHandlerMsgs.ExecuteCallbacksMsg(headers))
 			}
 		}
-		print("Stopped SSDP search receiver thread")
+		println("Stopped SSDP search receiver thread")
 	})
 }
 
@@ -265,9 +265,9 @@ local function _executeMSearchQueries = |handler| {
 }
 
 local function sendMSearchQuery = |handler, searchText, seconds| {
-	# print("Sending MSearch query... ")
+	# println("Sending MSearch query... ")
 	let msg = createMSearchString(MULTICAST_ADDRESS_IP4, MULTICAST_UDP_PORT, searchText, seconds)
-	# print("'" + msg + "'")
+	# println("'" + msg + "'")
 	let msgBytes = msg: getBytes("UTF-8")
 	let multicastAddress = handler: _multicastAddress()
 	let mSearchPacket = DatagramPacket(msgBytes, msgBytes: length(), multicastAddress, MULTICAST_UDP_PORT)
