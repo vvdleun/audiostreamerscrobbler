@@ -15,7 +15,7 @@ Note that the program uses the undocumented LSDP protocol to detect BluOs player
 
 ## Description  
 
-AudioStreamerScrobbler is an application that monitors hardware audiostreamers (BluOS and - experimental! - Yamaha MusicCast support) and scrobbles played tracks to one or more of the following scrobbler services:
+AudioStreamerScrobbler is an application that monitors hardware audiostreamers - currently supporting BluOS by BlueSound or Yamaha MusicCast devices - and scrobbles played tracks to one or more of the following scrobbler services:
 
 * Last FM (https://last.fm)
 * ListenBrainz (https://listenbrainz.org/)
@@ -24,11 +24,11 @@ AudioStreamerScrobbler is an application that monitors hardware audiostreamers (
 
 The program is intended to be used 24/7 on Raspberry pi-alike devices, although the program has not been tested on those small computers yet. Hopefully BluOS and Yamaha will one day implement native Last FM support in their streaming platforms, but until that time you'll be able to use this workaround. As it is unlikely that those  companies will offer compatibility with the alternative scrobbler services, this program could still be useful, even when official Last FM support will be available.
 
-AudioStreamerScrobbler was written in [Eclipse Golo, a lesser known dynamic language that runs on the Java Virtual Machine (JVM)](http://golo-lang.org). It was a design goal to write as much code in Golo as possible and not to use additional Java dependencies (unless very unpractical). We'll see how that wil turn out on the longer run. I had to write some code in Java to work around omissions in the Golo run-time library, but luckily Gradle takes care of those complexities when building the project. Although I'm personally not the biggest fan of dynamic languages, I really started to like Golo while I was developing this program. In my opinion it's a nice, small and clean language, with a surprisingly powerful run-time library.
+AudioStreamerScrobbler was written in [Eclipse Golo, a lesser known dynamic language that runs on the Java Virtual Machine (JVM)](http://golo-lang.org). It was a design goal to write as much code in Golo as possible and not to use additional Java dependencies, unless very unpractical. We'll see how that wil turn out on the longer run. I had to write some code in Java to work around omissions in the Golo run-time library, but luckily Gradle takes care of those complexities when building the project. Although I'm personally not the biggest fan of dynamic languages, I really started to like Golo while I was developing this program. In my opinion it's a nice, small and clean language, with a surprisingly powerful run-time library.
 
 ## Requirements
 
-AudioStreamerScrobbler is a project powered by the Java Virtual Machine. To run it, the Java Runtime Environment (JRE) version 8 is required. As Golo is not yet compatible with Java 9 and higher, I'm certain that it won't work yet with Java 9 or Java 10 at this time.
+AudioStreamerScrobbler is a project powered by the Java Virtual Machine. To run it, the Java Runtime Environment (JRE) version 8 is required. As Golo is not yet compatible with Java 9 and higher, I'm certain that it won't work yet with Java 9 or Java 10 at this time. This is very unfortunate and hope this will be resolved in the near future.
 
 Since this is a alpha pre-release, the program must be compiled before it can be used. To compile the program, both the Java Developers Kit (JDK) version 8 and the Gradle build tool (https://gradle.org) are required. Gradle will download the required dependencies, compile the project and build a stand-alone JAR file that can be used to run the program. To compile, issue the following command in the project's root directory (the directory containing the "build.gradle" file):
 
@@ -73,6 +73,10 @@ After compiling the project, copy the builds/libs/audiostreamerscrobbler-0.1.0-S
 		    }
         },
         "settings": {
+            "network": {
+                "networkInterface": "",
+                "networkInterfaceAddress": ""
+            },
             "errorHandling": {
                 "maxSongs": 100,
                 "retryIntervalMinutes": 30
@@ -97,13 +101,13 @@ First, ensure that the type of the player is "bluos", as displayed below. Enter 
         },
         ...
 
-The player name must match your BluOS device name exactly. Note that the name is CaSe SeNsItIvE. My BluOS device is called "Living Room C368" (when translated to English), so that's what's in my config.json file.
+The player name must match your BluOS device name exactly. Note that the name is CaSe SeNsItIvE.
 
 The program should be compatible with the new third party BluOS powered devices that have appeared on the market (I believe Dali has them), but this has not been tested yet.
 
 #### Monitor a Yamaha MusicCast player
 
-At this stage, the program can only monitor the Net/USB input of MusicCast players. Also, despite some players having support for multiple zones, only the Main zone is supported for now. I hope to improve this soon.
+At this stage, the program can only monitor the Net/USB input of MusicCast players. Also, despite some players having support for multiple zones, only the Main zone is supported for now. I hope to improve this one day.
 
         ...
         "player": {
@@ -114,7 +118,7 @@ At this stage, the program can only monitor the Net/USB input of MusicCast playe
 
 Note that the player name is case sensitive.
 
-I have seen that when playing local songs from my NAS (Western Digital MyCloud), the MusicCast player does not recognize the length of songs and therefore cannot be scrobbled. Yamaha's confirmed this is a known current implementation issue of the MusicCast platform. I'll do some investigating and try to come up with an optional workaround.
+I have seen that when playing local songs from my NAS, that the MusicCast player does not recognize the length of songs and therefore cannot scrobble those songs. Yamaha UK support team confirmed to me that this is a known current implementation limitation of the MusicCast platform. I'll do some investigating and try to come up with an optional workaround.
 
 ### Setting up scrobbler services
 
