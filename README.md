@@ -4,9 +4,14 @@
 
 This program is not ready for prime time yet, it's under heavy development. At this time it can only monitor 1 chosen BluOS or Yamaha MusicCast device. In a future version, a single instance should be able to monitor all players of all supported audiostreamer standards at the same time.
 
-Note that the program uses the undocumented LSDP protocol to detect BluOs players that are powered on. I could only test it with my BluOS player, which is the built-in streamer (internal BluOS 2 MDC upgrade card) in my NAD C368 amplifier. Therefore I don't know yet whether it will work on other players, like BlueSound's more popular wi-fi speakers, or their Node range of products.
+The program has almost been completely rewritten in a course of a month. Among the changes are:
+* The program is now async events-based, instead being based on synchronious function calls
+* There's a new PlayerControl thread that keeps track of player monitor and detector threads. This will make it much easier to add support for multiple players.
+* The used network interface (and IP addresses that program binds to) can now be configured
+* MusicCast support has been completely rewritten and is now based on MusicCast's Event update system via UDP
+* Improved, cleaned up and often simplified lots of internal APIs, especially the public ones
 
-MusicCast support was only added very recently and is not as robust as the BluOS implementation. I am still working on many improvements.
+Note that the program uses the undocumented LSDP protocol to detect BluOs players that are powered on. I could only test it with my BluOS player, which is the built-in streamer (internal BluOS 2 MDC upgrade card) in my NAD C368 amplifier. Therefore I don't know yet whether it will work on other players, like BlueSound's more popular wi-fi speakers, or their Node range of products.
 
 ## Description  
 
@@ -96,9 +101,9 @@ The player name must match your BluOS device name exactly. Note that the name is
 
 The program should be compatible with the new third party BluOS powered devices that have appeared on the market (I believe Dali has them), but this has not been tested yet.
 
-#### Monitor a Yamaha MusicCast player (EXPERIMENTAL!)
+#### Monitor a Yamaha MusicCast player
 
-At this early stage, the program can only monitor the Net/USB input of MusicCast players. Also, despite some players having support for multiple zones, only the Main zone is supported for now.
+At this stage, the program can only monitor the Net/USB input of MusicCast players. Also, despite some players having support for multiple zones, only the Main zone is supported for now. I hope to improve this soon.
 
         ...
         "player": {
@@ -109,9 +114,7 @@ At this early stage, the program can only monitor the Net/USB input of MusicCast
 
 Note that the player name is case sensitive.
 
-I have seen that when playing local songs from my NAS (Western Digital MyCloud), the MusicCast player does not recognize the length of songs and therefore cannot be scrobbled. Yamaha's official MusicCast Android app also has the same problem, it is not possible to skip inside a song. I don't know yet whether this is an incompatibility with my NAS' media server, or simply implemented this way. I'll do some more investigating, in the worst case I'll try to come up with an optional workaround.
-
-At this time, the MusicCast implementation polls the status of the MusicCast device every 10 seconds. A better solution, that is based on event updates that are sent by the MusicCast device itself, is under development.
+I have seen that when playing local songs from my NAS (Western Digital MyCloud), the MusicCast player does not recognize the length of songs and therefore cannot be scrobbled. Yamaha's confirmed this is a known current implementation issue of the MusicCast platform. I'll do some investigating and try to come up with an optional workaround.
 
 ### Setting up scrobbler services
 
@@ -175,14 +178,62 @@ As this program was created for Raspberry pi-alike devices, it currently can onl
 
 You can choose how many songs it can store per scrobbler by setting the desired amount in the "maxSongs" entry. You can also configure the interval on which it will try to scrobble those songs by setting the "retryIntervalMinutes" entry in the confgiuration file. This interval is always specified in minutes.
 
-Songs that could not be scrobbled for 14 days in a row are silently dropped, as required by Last FM. For the other services this limit is set to 30 days.
+For Last FM, songs that could not be scrobbled for 14 days in a row are silently dropped, as required by Last FM. For the other services this limit has been set to 30 days.
 
+### Configuring network interface parameters
+
+Normally the program uses the network card that the Java's network library of the Java platform selects as its default. I have seen rare cases where the wrong network card was selected and the program could not communicate with any player on the network.
+
+If this happens to you, you can overrule the network interface that is used when opening I/O sockets (at this time HTTP requests are not affected by this, open a GitHub issue if this causes problems for you).
+
+To list the network interfaces that are available on your computer, run the following command:
+
+    java -jar audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar --networkinterfaces
+
+This will list the currently available and enabled network interfaces and their addresses. Sample output of my Windows desktop PC:
+
+    Alias    : "wlan3"
+    Name     : "Dell Wireless 1705 802.11b/g/n (2.4GHZ)"
+    Addresses: "192.168.178.107"  "fe80:0:0:0:49bc:efb0:4553:60e2%wlan3"
+
+    Alias    : "eth6"
+    Name     : "VirtualBox Host-Only Ethernet Adapter"
+    Addresses: "192.168.99.1"  "fe80:0:0:0:a949:fd47:3561:4b76%eth6"
+
+In the config.json configuration file, find or add the "network" section under "settings":
+
+    ...
+	"settings": {
+	    ....
+	    "network": {
+			"networkInterface": "wlan3",
+			"networkInterfaceAddress": ""
+		},
+	    ....
+    }
+    ...
+
+In the `networkInterface` field, you can fill the output of the `Alias` or `Name` fields, that were listed when using the `--networkinterfaces` parameter.
+Normally that would be enough, the program will then try to bind to the first IP address of that network interface. If you want the program to bind to a different IP address of a specific network interface, you can also fill the `networkInterfaceAddress` field. For example, on my system I could fill `networkInterfaceAddress` with the `"192.168.178.107"` address.
+	
 ## Plans
 
-At the top of my list is improving the Yamaha MusicCast support. Then the time will be right to make the program multi-threaded, so that it will be able to monitor multiple players (of multiple types) at once. After that, I'd like to add HEOS by Denon support as well.
+At the top of my list is adding support for multiple players (of multiple types) at once. After that, I'd like to add an optional GUI mode to make it possible to configure the program in a much more user-friendly way.
 
-Please let me know if there's any demand for support of other types/brands.
+Then, I'd like to add HEOS by Denon support. Please let me know if there's any demand for support of other types/brands of audio streamers.
 
-On the longer term I'd like to add more advanced grouping possibilities, so that different group of devices can scrobble to different accounts on different services. Also, I'd like to add a GUI mode to configure the program in a more user friendly way. Time will tell if this application will ever get that advanced.
+On the longer term I'd like to add more advanced grouping possibilities, so that different group of devices can scrobble to different accounts on different services.
 
 Right now I mostly concentrate on features that I'll use myself, but if there's demand I'd love to switch priorities.
+
+## About the author
+
+I am Vincent van der Leun. I'm a Dutch Java developer for a modern cloud-based software company in Woerden.
+
+If you like scrobbling as much as I do, feel free to add me on my music tracker accounts:
+
+* Last FM: https://www.last.fm/user/vvdleun
+* ListenBrainz: https://listenbrainz.org/user/vintzend
+* Libre FM: https://libre.fm/user/vintzend
+
+Also, please open GitHub issues if you need support or have questions, concerns, suggestions, etc. about this program.
