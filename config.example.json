@@ -36,7 +36,7 @@
 			"networkInterfaceAddress": ""
 		},
 		"errorHandling": {
-			"maxSongs": 250,
+			"maxSongs": 1500,
 			"retryIntervalMinutes": 30
 		}
 	}	

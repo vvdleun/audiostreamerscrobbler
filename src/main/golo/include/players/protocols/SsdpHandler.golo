@@ -134,16 +134,6 @@ local function _startSdpSearchHandler = |handler| {
 
 	# TODO Usually objects do not import factories, but what to do with this singleton?!
 	let socketFactory = createSocketFactory()
-
-	# let socketMSearch = MulticastSocket()
-	# Experiment
-	# =====
-	# let networkInterfaces = getNetworkInterfaces()
-	# let networkInterface = networkInterfaces: get(INTERFACE_INDEX)
-	# let inetAddresses = getInetAddresses(networkInterface)
-	# let inetAddress = inetAddresses: get(0)
-	# socketMSearch: setInterface(inetAddress)
-	# =====
 	
 	let socketMSearch = socketFactory: createMulticastSocket()
 	socketMSearch: setSoTimeout(10 * 1000)
