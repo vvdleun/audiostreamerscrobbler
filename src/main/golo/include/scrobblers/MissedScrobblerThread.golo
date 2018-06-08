@@ -74,6 +74,7 @@ local function _createMissedScrobbleRunThread = |handler| {
 				}
 			}
 		}
+		println("Stopped Scrobbler Error Handler thread...")
 		handler: _env(): shutdown()
 		handler: _port(null)
 		handler: _thread(null)

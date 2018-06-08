@@ -56,12 +56,12 @@ local function initAndStartHandler = |handler| {
 		while (isRunning(): get()) {
 			try {
 				if (datagramSocket == null) {
-					println("Opening LSDP socket...")
+					# println("Opening LSDP socket...")
 					datagramSocket = socketFactory: createDatagramSocket(LSDP_PORT)
-					println("Opened LSDP socket...")
+					# println("Opened LSDP socket...")
 				}
 
-				println("Querying...")
+				# println("Querying...")
 				sendLSDPQueryPlayers(broadcastAddresses, datagramSocket)
 
 				waitForLSDPPlayers(handler, datagramSocket, timeout, cb)
@@ -77,7 +77,6 @@ local function initAndStartHandler = |handler| {
 				Thread.sleep(IDLE_SLEEP_TIME_SECONDS * 1000_L)
 			}
 		}
-		println("Closing LSDP socket...")
 		datagramSocket: close()
 		println("LSDP thread stopped")
 	})
@@ -85,7 +84,6 @@ local function initAndStartHandler = |handler| {
 }
 
 local function stopHandler = |lsdpHandler| {
-	println("TRYING TO STOP THREAD...")
 	lsdpHandler: _isRunning(): get(): set(false)
 }
 
@@ -96,14 +94,9 @@ local function sendLSDPQueryPlayers = |broadcastAddresses, datagramSocket| {
 }
 
 local function sendLSDPQuery = |datagramSocket, broadcastAddress, dataQuery| {
-	println("B: " + broadcastAddress)
 	let port = datagramSocket: getLocalPort()
-	println("P: " + port)
 	let datagramPacket = DatagramPacket(dataQuery, dataQuery: length(), broadcastAddress, port)
-	println("dp: " + datagramPacket)
-	println("xxx")
 	datagramSocket: send(datagramPacket)
-	println("zzz")
 }
 
 # Receiving LSDP answers
@@ -119,9 +112,8 @@ local function waitForLSDPPlayers = |handler, datagramSocket, timeoutSeconds, cb
 	var waitForMorePlayers = true
 	while (waitForMorePlayers and isRunning(): get()) {
 		try {
-			println("Waiting for LSDP data...")
+			# println("Waiting for LSDP data...")
 			datagramSocket: receive(answerPacket)
-			println("LSDP data received")
 			timeouts = 0
 			let lsdpPlayer = extractLSDPPlayer(answerPacket)
 			cb(lsdpPlayer, answerPacket)
@@ -130,7 +122,7 @@ local function waitForLSDPPlayers = |handler, datagramSocket, timeoutSeconds, cb
 				when ex oftype LSDPException.class {
 					case {
 						when ex oftype LSDPNoAnswerException.class {
-							println("* Incoming data was not LSDP answer: " + ex: getMessage())
+							# println("* Incoming data was not LSDP answer: " + ex: getMessage())
 						}
 						otherwise {
 							println("* Unknown LSDP related error: " + ex: getMessage())
@@ -139,11 +131,11 @@ local function waitForLSDPPlayers = |handler, datagramSocket, timeoutSeconds, cb
 					}
 				}
 				when ex oftype SocketTimeoutException.class {
-					println("* Timeout occurred")
+					# println("* Timeout occurred")
 					timeouts = timeouts + 1
-					println("Timeouts: " + timeouts)
+					# println("Timeouts: " + timeouts)
 					if (timeouts > MAX_TIMEOUTS) {
-						println("Stop trying...")
+						# println("Stop trying...")
 						waitForMorePlayers = false
 					}
 				}

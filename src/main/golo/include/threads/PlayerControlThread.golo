@@ -3,7 +3,7 @@ module audiostreamerscrobbler.threads.PlayerControlThread
 import audiostreamerscrobbler.utils.ThreadUtils
 
 import gololang.concurrent.workers.WorkerEnvironment
-import java.lang.Thread
+import java.lang.{InterruptedException, Thread}
 import java.time.{Duration, Instant}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
@@ -66,11 +66,21 @@ local function _createAndRunPlayerAliveCheckThread = |controlThread| {
 		
 		isRunning(): set(true)
 		while (isRunning(): get()) {
-			Thread.sleep(DEAD_PLAYER_CHECK_INTERVAL * 1000_L)
-			controlThread: _port(): send(PlayerControlThreadMsgs.CheckForDeadPlayers())
+			try {
+				Thread.sleep(DEAD_PLAYER_CHECK_INTERVAL * 1000_L)
+				controlThread: _port(): send(PlayerControlThreadMsgs.CheckForDeadPlayers())
+			} catch (e) {
+				case {
+					when e oftype InterruptedException.class {				
+					}
+					otherwise {
+						throw(e)
+					}
+				}
+			}
 		}
 		
-		controlThread: _aliveThread(null)
+		println("Stopped player alive thread check")
 	})
 }
 
@@ -125,10 +135,24 @@ local function _startDetector = |controlThread| {
 }
 
 local function _stopThreads = |controlThread| {
-	# TODO stop running detectors
-	
-	# TODO stop running monitors
+	# Stop running detector threads
+	let detectorThreads = controlThread: _detectorThreads()
+	let detectorPlayerTypes = detectorThreads: keySet()
+	foreach (playerType in detectorPlayerTypes) {
+		let detectorThread = detectorThreads: remove(playerType)
+		detectorThread: stop()
+	}
 
+	# Stop running monitors
+	let monitorThreads = controlThread: _monitorThreads()
+	let monitorPlayers = monitorThreads: keySet()
+	foreach (player in monitorPlayers) {
+		_removeAndStopMonitor(controlThread, player)
+	}
+
+	controlThread: _aliveThread(): interrupt()
+	
+	# Stop other threads
 	controlThread: _env(): shutdown()
 	controlThread: _env(null)
 	controlThread: _port(null)

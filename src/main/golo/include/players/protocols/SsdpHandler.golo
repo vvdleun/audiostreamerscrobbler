@@ -65,6 +65,7 @@ local function initAndStartSsdpHandler = |handler| {
 
 local function shutdownSsdpHandler = |handler| {
 	handler: _isRunning(): get(): set(false)
+	handler: _port(): send(SsdpHandlerMsgs.ShutdownMsg())
 }
 
 local function scheduleAddCallback = |handler, searchText, cb| {
@@ -299,6 +300,7 @@ local function _executeCallbacks = |handler, msg| {
 }
 
 local function _shutdown = |handler| {
+	println("SSDP handler shutting down...")
 	handler: _env(): shutdown()
 	handler: _env(null)
 	handler: _port(null)
