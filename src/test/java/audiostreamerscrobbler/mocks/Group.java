@@ -1,6 +1,17 @@
 package audiostreamerscrobbler.mocks;
 
-public interface Group {
-	public String name();
-	public Object event(Object event);
+public class Group {
+	private String name;
+
+	private Group() { }
+	
+	public static Group createMockedGroup(String name) {
+		Group mockedGroup = new Group();
+		mockedGroup.name = name;
+		return mockedGroup;
+	}
+	
+	public String name() {
+		return name;
+	}
 }

@@ -91,18 +91,6 @@ local function handlePlayingEvent = |impl, group, event| {
 	_stopAllMonitorsExcept(impl, player)
 }
 
-local function _stopAllDetectors = |impl| {
-	let cbProcessEvents = impl: cbProcessEvents()
-	let playerTypes = _getPlayerTypes(impl)
-	cbProcessEvents(GroupProcessEvents.stopDetectors(playerTypes))
-}
-
-local function _stopAllMonitorsExcept = |impl, player| {
-	let cbProcessEvents = impl: cbProcessEvents()
-	let players = [p foreach p in _getPlayers(impl) when p: id() != player: id()]
-	cbProcessEvents(GroupProcessEvents.stopMonitors(players))
-}
-
 local function _getPlayerTypes = |impl| {
 	return set[p: playerType() foreach p in _getPlayers(impl)]
 }
@@ -124,15 +112,23 @@ local function handleIdleEvent = |impl, group, event| {
 	let player = event: player()
 	if not hasPlayer(impl, player) {
 		println("Group '" + group: name() + "' does not manage the '" + player: friendlyName() + "' player")
-		return
+		return false
 	} else if (not impl: players(): get(player: id()): get(KEY_STATE): isPlaying()) {
 		println("Player is not playing anymore")
-		return
+		return false
 	}
 	
 	impl: players(): get(player: id()): put(KEY_STATE , PlayerStatus.Idle())
 	
 	_startAllDetectorsExcept(impl, player)
+	
+	return true
+}
+
+local function _stopAllDetectors = |impl| {
+	let cbProcessEvents = impl: cbProcessEvents()
+	let playerTypes = _getPlayerTypes(impl)
+	cbProcessEvents(GroupProcessEvents.stopDetectors(playerTypes))
 }
 
 local function _startAllDetectorsExcept = |impl, player| {
@@ -151,4 +147,10 @@ local function _startAllDetectorsExcept = |impl, player| {
 	
 	let cbProcessEvents = impl: cbProcessEvents()
 	cbProcessEvents(GroupProcessEvents.startDetectors(playerTypes))
+}
+
+local function _stopAllMonitorsExcept = |impl, player| {
+	let cbProcessEvents = impl: cbProcessEvents()
+	let players = [p foreach p in _getPlayers(impl) when p: id() != player: id()]
+	cbProcessEvents(GroupProcessEvents.stopMonitors(players))
 }
