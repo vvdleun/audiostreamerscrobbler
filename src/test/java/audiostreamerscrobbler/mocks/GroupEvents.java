@@ -34,19 +34,19 @@ public class GroupEvents {
 
 	// Factory methods
 
-	public static DetectedEvent createDetectedEvent(Object player) {
+	public static DetectedEvent createMockedDetectedEvent(Object player) {
 		return new DetectedEvent(player);
 	}
 	
-	public static LostEvent createLostEvent(Object player) {
+	public static LostEvent createMockedLostEvent(Object player) {
 		return new LostEvent(player);
 	}
 
-	public static PlayingEvent createPlayingEvent(Object player) {
+	public static PlayingEvent createMockedPlayingEvent(Object player) {
 		return new PlayingEvent(player);
 	}
 
-	public static IdleEvent createIdleEvent(Object player) {
+	public static IdleEvent createMockedIdleEvent(Object player) {
 		return new IdleEvent(player);
 	}
 

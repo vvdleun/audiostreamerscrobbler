@@ -21,11 +21,11 @@ public class PlayerTypes {
 	
 	// Factory methods
 
-	public static BluOsPlayerType createBluOsPlayerType() {
+	public static BluOsPlayerType createMockedBluOsPlayerType() {
 		return new BluOsPlayerType();
 	}
 
-	public static MusicCastPlayerType createMusicCastPlayerType() {
+	public static MusicCastPlayerType createMockedMusicCastPlayerType() {
 		return new MusicCastPlayerType();
 	}
 	

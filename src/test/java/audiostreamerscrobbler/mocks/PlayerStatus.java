@@ -21,11 +21,11 @@ public class PlayerStatus {
 
 	// Factory classes
 	
-	public static Idle createIdlePlayerStatus() {
+	public static Idle createMockedIdlePlayerStatus() {
 		return new Idle();
 	}
 
-	public static Playing createPlayingPlayerStatus() {
+	public static Playing createMockedPlayingPlayerStatus() {
 		return new Playing();
 	}
 	
