@@ -15,7 +15,7 @@ union PlayerControlThreadMsgs = {
 	StartMsg
 	StopMsg
 	DetectedPlayerMsg = { player }
-	PlayerIsAliveMsg = { player }
+	PlayerStatusUpdateMsg = { player, status }
 	LostPlayerMsg = { player }
 	CheckForDeadPlayers
 }
@@ -103,7 +103,7 @@ local function _portIncomingMsgHandler = |controlThread, msg| {
 		when msg: isDetectedPlayerMsg() {
 			_handleDetectedPlayer(controlThread, msg: player())
 		}
-		when msg: isPlayerIsAliveMsg() {
+		when msg: isPlayerStatusUpdateMsg() {
 			_registerPlayerAlive(controlThread: _monitorThreads(), msg: player())
 		}
 		when msg: isCheckForDeadPlayers() {
@@ -206,10 +206,9 @@ local function _removeAndStopDetector = |controlThread, player| {
 local function _addAndStartMonitorThread = |controlThread, player| {
 	let monitorTreadFactory = controlThread: _monitorThreadFactory()
 	let scrobblerHandler = controlThread: _scrobblerHandler()
-	let monitorThread = monitorTreadFactory: createMonitorThread(player, scrobblerHandler, |p| {
-		# Callback that is called by PlayerMonitorThread to let us know that
-		# the player is alive and well.
-		controlThread: _port(): send(PlayerControlThreadMsgs.PlayerIsAliveMsg(p))
+	let monitorThread = monitorTreadFactory: createMonitorThread(player, scrobblerHandler, |p, s| {
+		# Callback that is called by PlayerMonitorThread to report player status changes
+		controlThread: _port(): send(PlayerControlThreadMsgs.PlayerStatusUpdateMsg(p, s))
 	})
 
 	let monitorThreads = controlThread: _monitorThreads()

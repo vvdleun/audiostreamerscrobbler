@@ -8,17 +8,17 @@ let POSITION_ERROR_TOLERANCE_SECONDS = 5
 let MINIMAL_LISTENING_SECONDS = 4 * 60
 
 union MonitorStateActions = {
-	WaitingForAction
+	NoAction
 	NewSong = { song }
 	NewScrobble = { song }
 }
 
-function createPlayerMonitorThread = |monitorFactory, scrobblerHandler, player, cbPlayerAlive| {
+function createPlayerMonitorThread = |monitorFactory, scrobblerHandler, player, cbPlayerStatus| {
 	let monitorThread = DynamicObject("PlayerMonitorState"):
 		define("_monitorFactory", monitorFactory):
 		define("_scrobblerHandler", scrobblerHandler):
 		define("_player", player):
-		define("_cbPlayerAlive", |this| -> cbPlayerAlive):
+		define("_cbPlayerStatus", |this| -> cbPlayerStatus):
 		define("_monitor", null):
 		define("_song", null):
 		define("_lastCall", null):
@@ -48,13 +48,11 @@ local function initMonitorThread = |monitorThread| {
 }
 
 local function startMonitorThread = |monitorThread| {
-	println("Starting monitor thread...")
 	let monitor = monitorThread: _monitor()
 	monitor: start()
 }
 
 local function stopMonitorThread = |monitorThread| {
-	println("Stopping monitor thread...")
 	let monitor = monitorThread: _monitor()
 	monitor: stop()
 }
@@ -64,14 +62,14 @@ local function monitorCallback = |monitorThread, monitorState| {
 	# status the player to this PlayerMonitorThread.
 	# println("Receiving player input: " + monitorState)
 
-	# Let PlayerControlThread know that this player is alive and well
-	let cbPlayerAlive = monitorThread: _cbPlayerAlive()
-	cbPlayerAlive(monitorThread: _player())
+	# Pass monitorState to PlayerControlThread, so that it can act accordingly
+	let cbPlayerStatus = monitorThread: _cbPlayerStatus()
+	cbPlayerStatus(monitorThread: _player(), monitorState)
 
 	let monitorAction = handleMonitorState(monitorThread, monitorState)
 
 	case {
-		when monitorAction: isWaitingForAction() {
+		when monitorAction: isNoAction() {
 		}
 
 		when monitorAction: isNewSong() {
@@ -91,7 +89,7 @@ local function monitorCallback = |monitorThread, monitorState| {
 }
 
 local function handleMonitorState = |monitorThread, monitorState| {
-	var action = monitorAction.WaitingForAction()
+	var action = monitorAction.NoAction()
 	case {
 		when monitorState: isMonitoring() {
 		}
@@ -210,7 +208,6 @@ local function isNewScrobble = |monitorThread, song| {
 # Actions
 
 local function resetSong = |monitorThread, song| {
-	println("SONG CHANGED: " + song)
 	monitorThread: _song(song)
 	monitorThread: _isScrobbled(false)
 	resetSongPositions(monitorThread, song)

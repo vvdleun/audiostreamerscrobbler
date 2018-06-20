@@ -1,6 +1,6 @@
 plugins {
     id 'org.golo-lang.golo' version '0.6'
-	id 'com.github.johnrengelman.shadow' version '2.0.3'
+	id 'com.github.johnrengelman.shadow' version '2.0.4'
 }
 
 apply plugin: 'java'
@@ -12,19 +12,20 @@ description = "AudioStreamer Scrobbler"
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-mainClassName = 'audiostreamerscrobbler.Audiostreamerscrobbler'
-
 repositories {
     jcenter()
     mavenLocal()
 }
 
+mainClassName = 'audiostreamerscrobbler.Audiostreamerscrobbler'
 ext.goloDependency = 'org.eclipse.golo:golo:3.3.0-M1'
 
 dependencies {
     golo goloDependency
     testCompile goloDependency
 	testCompile 'junit:junit:4.12'
+	testCompile 'org.mockito:mockito-core:2.+'
+	testCompile 'org.hamcrest:hamcrest-all:1.3'
 }
 
 jar {
@@ -36,4 +37,3 @@ jar {
 golo {
     mainModule = mainClassName
 }
-

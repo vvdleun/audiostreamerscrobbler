@@ -26,7 +26,7 @@ local function initAndStartPolling = |pollHelper| {
 		raise("Internal error: thread already exists")
 	}
 	
-	let thread = runInNewThread({
+	let thread = runInNewThread("PollBasedMonitorHelper", {
 		let isRunning = pollHelper: _isRunning()
 		let cb = pollHelper: _cb()
 
@@ -39,7 +39,7 @@ local function initAndStartPolling = |pollHelper| {
 			} catch(ex) {
 				let player = pollHelper: player()
 				println("Error occurred while polling " + player + ": " + ex)
-				# throw ex
+				throw ex
 			}
 		}
 		println("Stopped player polling thread")
