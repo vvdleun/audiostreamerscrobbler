@@ -13,13 +13,17 @@ let KEY_STATE = "state"
 let KEY_PLAYER = "player"
 
 function createBaseGroupStragegyImpl = |cbProcessEvents| {
-	let players = map[]
-
 	# Some notes:
-	# 1) This is one of the few objects in this program that can be overwritten
-	#    by the object that creates this object instance (for example to directly
-	#    provide implementations for the unimplemented methods).
-	# 2) Strategies based on this implementation are most definitely not threadsafe
+	# 1) This is one of the few objects in this program that is specifically mean to
+	#    be overwritten by the object that creates this object instance (for example
+	#    to directly provide implementations for the unimplemented methods).
+	# 2) No implementations are provided for the DetectedEvent and LostEvent events
+	# 3) Users of this implementation that do not re-implement the handleIdleEvent()
+	#    function are expected to provide the implementation for the afterIdleEvent
+	#    function, which is called in the default handleIdleEvent implementation.
+	# 4) Strategies based on this implementation are most definitely not threadsafe
+	
+	let players = map[]
 
 	let strategyImpl = DynamicObject("BaseGroupStragegyImpl"):
 		define("cbProcessEvents", |this| -> cbProcessEvents):
@@ -27,11 +31,15 @@ function createBaseGroupStragegyImpl = |cbProcessEvents| {
 		define("removePlayer", |this, player| -> removePlayer(this, player)):
 		define("hasPlayer", |this, player| -> hasPlayer(this, player)):
 		define("players", players):
+		define("allPlayers", |this| -> getPlayers(this)):
+		define("allPlayerTypes", |this| -> getPlayerTypes(this)):
 		define("isPlayerInGroupPlaying", |this| -> isPlayerInGroupPlaying(this)):
 		define("handleDetectedEvent", |this, group, event| -> notImplemented("handleDetectedEvent")):
 		define("handleLostEvent", |this, group, event| -> notImplemented("handleLostEvent")):
 		define("handlePlayingEvent", |this, group, event| -> handlePlayingEvent(this, group, event)):
+		define("afterPlayingEvent", |this, group, event| -> afterPlayingEvent(this, group, event)):
 		define("handleIdleEvent", |this, group, event| -> handleIdleEvent(this, group, event)):
+		define("afterIdleEvent", |this, group, event| -> afterIdleEvent(this, group, event)):
 		define("event", |this, group, event| -> event(this, group, event))
 
 	return strategyImpl
@@ -40,6 +48,8 @@ function createBaseGroupStragegyImpl = |cbProcessEvents| {
 local function notImplemented = |m| {
 	throw IllegalStateException(m + "() was not overwritten")
 }
+
+local function dummy = -> null
 
 local function event = |impl, group, event| {
 	case {
@@ -75,37 +85,37 @@ local function hasPlayer = |impl, player| {
 	return impl: players(): containsKey(player: id())
 }
 
+local function isPlayerInGroupPlaying = |impl| {
+	foreach e in impl: players(): entrySet() {
+		if (e: getValue(): get(KEY_STATE): isPlaying()) {
+			return true
+		}
+	}
+	return false
+}
+
 local function handlePlayingEvent = |impl, group, event| {
 	let player = event: player()
 	if not hasPlayer(impl, player) {
 		println("Group '" + group: name() + "' does not manage the '" + player: friendlyName() + "' player")
-		return
+		return false
 	} else if (isPlayerInGroupPlaying(impl)) {
 		println("A different player in this group is already playing")
-		return
+		return false
 	}
 	
 	impl: players(): get(player: id()): put(KEY_STATE , PlayerStatus.Playing())
 	
-	_stopAllDetectors(impl)
-	_stopAllMonitorsExcept(impl, player)
+	impl: afterPlayingEvent(group, event)
+
+	return true
 }
 
-local function _getPlayerTypes = |impl| {
-	return set[p: playerType() foreach p in _getPlayers(impl)]
-}
+local function afterPlayingEvent = |impl, group, event| {
+	stopAllDetectors(impl)
 
-local function _getPlayers = |impl| {
-	return set[m: get(KEY_PLAYER) foreach m in impl: players(): values()]
-}
-
-local function isPlayerInGroupPlaying = |impl| {
-	impl: players(): entrySet(): each(|e| {
-		if (e: getValue(): get(KEY_STATE): isPlaying()) {
-			return true
-		}
-	})
-	return false
+	let player = event: player()
+	stopMonitors(impl, |p| -> p: id() != player: id())
 }
 
 local function handleIdleEvent = |impl, group, event| {
@@ -120,37 +130,65 @@ local function handleIdleEvent = |impl, group, event| {
 	
 	impl: players(): get(player: id()): put(KEY_STATE , PlayerStatus.Idle())
 	
-	_startAllDetectorsExcept(impl, player)
+	impl: afterIdleEvent(group, event)
 	
 	return true
 }
 
-local function _stopAllDetectors = |impl| {
-	let cbProcessEvents = impl: cbProcessEvents()
-	let playerTypes = _getPlayerTypes(impl)
-	cbProcessEvents(GroupProcessEvents.stopDetectors(playerTypes))
+local function afterIdleEvent = |impl, group, event| {
+	let player = event: player()
+	startAllDetectorsExceptForPlayer(impl, player)
 }
 
-local function _startAllDetectorsExcept = |impl, player| {
+local function startAllDetectorsExceptForPlayer = |impl, player| {
 	let playerType = player: playerType()
 	
 	# Include detector for current player's type only when group has other players
 	# of the same type. Otherwise, there is no need to start the detector of that
 	# type, as the player is already being monitored.
-	let allPlayerTypes = list[p: playerType() foreach p in _getPlayers(impl)]
+	let allPlayerTypes = list[p: playerType() foreach p in getPlayers(impl)]
 	let multiplePlayersOfType = frequency(allPlayerTypes, playerType) > 1
 
 	let playerTypes = set[t foreach t in allPlayerTypes]
 	if (not multiplePlayersOfType) {
 		playerTypes: remove(playerType)
 	}
+
+	startDetectors(impl, |t| -> playerTypes: contains(t))
+}
+
+local function startDetectors = |impl, f| {
+	# Include detector for current player's type only when group has other players
+	# of the same type. Otherwise, there is no need to start the detector of that
+	# type, as the player is already being monitored.
 	
 	let cbProcessEvents = impl: cbProcessEvents()
+	let playerTypes = [t foreach t in getPlayerTypes(impl) when f(t)]
 	cbProcessEvents(GroupProcessEvents.startDetectors(playerTypes))
 }
 
-local function _stopAllMonitorsExcept = |impl, player| {
+local function stopAllDetectors = |impl| -> stopDetectors(impl, |t| -> true)
+
+local function stopDetectors = |impl, f| {
 	let cbProcessEvents = impl: cbProcessEvents()
-	let players = [p foreach p in _getPlayers(impl) when p: id() != player: id()]
+	let playerTypes = [t foreach t in getPlayerTypes(impl) when f(t)]
+	cbProcessEvents(GroupProcessEvents.stopDetectors(playerTypes))
+}
+
+local function stopAllMonitors = |impl| -> stopMonitors(impl, |p| -> true)
+
+local function stopMonitors = |impl, f| {
+	let cbProcessEvents = impl: cbProcessEvents()
+	let players = [p foreach p in getPlayers(impl) when f(p)]
 	cbProcessEvents(GroupProcessEvents.stopMonitors(players))
+}
+
+# Support functions
+
+local function getPlayerTypes = |impl| {
+	return set[p: playerType() foreach p in getPlayers(impl)]
+}
+
+local function getPlayers = |impl| {
+	return set[m: get(KEY_PLAYER) foreach m in impl: players(): values()]
 }

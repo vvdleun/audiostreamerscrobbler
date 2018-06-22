@@ -28,4 +28,10 @@ public class Player {
 	public PlayerTypes playerType() {
 		return playerType;
 	}
+	
+	// Methods
+	
+	public String friendlyName() {
+		return "Player '" + id + "'";
+	}
 }

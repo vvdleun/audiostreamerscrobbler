@@ -3,11 +3,13 @@ package audiostreamerscrobbler.facades;
 import static java.lang.invoke.MethodType.genericMethodType;
 
 import java.util.LinkedHashMap;
+import java.util.Set;
 
 import audiostreamerscrobbler.groups.BaseGroupStragegyImpl;
 import audiostreamerscrobbler.mocks.Group;
 import audiostreamerscrobbler.mocks.GroupEvents;
 import audiostreamerscrobbler.mocks.Player;
+import audiostreamerscrobbler.mocks.PlayerTypes;
 import gololang.DynamicObject;
 import gololang.FunctionReference;
 
@@ -17,17 +19,9 @@ public class GroupStrategyImplFacade {
 	private GroupStrategyImplFacade() { }
 	
 	public static GroupStrategyImplFacade createStrategyImplFacade(FunctionReference processEventsCallback) {
-		GroupStrategyImplFacade groupStrategyImpl = new GroupStrategyImplFacade();
-		groupStrategyImpl.groupStrategyImpl = (DynamicObject)BaseGroupStragegyImpl.createBaseGroupStragegyImpl(processEventsCallback);
-		return groupStrategyImpl;
-	}
-	
-	public LinkedHashMap<Object, Object> players() {
-		try {
-			return (LinkedHashMap<Object, Object>)groupStrategyImpl.invoker("players", genericMethodType(1)).invoke(groupStrategyImpl);
-		} catch (Throwable t) {
-			throw new RuntimeException(t);
-		}
+		GroupStrategyImplFacade facade = new GroupStrategyImplFacade();
+		facade.groupStrategyImpl = (DynamicObject)BaseGroupStragegyImpl.createBaseGroupStragegyImpl(processEventsCallback);
+		return facade;
 	}
 	
 	public void addPlayer(Player player) {
@@ -49,6 +43,38 @@ public class GroupStrategyImplFacade {
 	public boolean hasPlayer(Player player) {
 		try {
 			return (Boolean)groupStrategyImpl.invoker("hasPlayer", genericMethodType(2)).invoke(groupStrategyImpl, player);		
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
+	}
+	
+	public LinkedHashMap<Object, Object> players() {
+		try {
+			return (LinkedHashMap<Object, Object>)groupStrategyImpl.invoker("players", genericMethodType(1)).invoke(groupStrategyImpl);
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
+	}
+
+	public Set<Player> allPlayers() {
+		try {
+			return (Set<Player>)groupStrategyImpl.invoker("allPlayers", genericMethodType(1)).invoke(groupStrategyImpl);
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
+	}
+
+	public Set<PlayerTypes> allPlayerTypes() {
+		try {
+			return (Set<PlayerTypes>)groupStrategyImpl.invoker("allPlayerTypes", genericMethodType(1)).invoke(groupStrategyImpl);
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
+	}
+	
+	public boolean isPlayerInGroupPlaying() {
+		try {
+			return (Boolean)groupStrategyImpl.invoker("isPlayerInGroupPlaying", genericMethodType(1)).invoke(groupStrategyImpl);
 		} catch (Throwable t) {
 			throw new RuntimeException(t);
 		}

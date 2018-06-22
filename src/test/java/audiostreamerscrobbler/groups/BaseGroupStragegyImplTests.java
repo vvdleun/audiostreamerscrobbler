@@ -24,8 +24,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
 
 public class BaseGroupStragegyImplTests {
 	private static GroupStrategyImplFacade groupStrategyImpl;
@@ -39,14 +37,14 @@ public class BaseGroupStragegyImplTests {
 	}
 	
 	@Test
-	public void shouldBeInitiallyEmpty() throws Throwable {
+	public void shouldBeInitiallyEmpty() {
 		LinkedHashMap<Object, Object> players = groupStrategyImpl.players();
 		assertTrue(players.isEmpty());
 	}
 	
 	@Test
 	@SuppressWarnings("unchecked")
-	public void addedPlayerShouldBeAddedToGroup() throws Throwable {
+	public void addedPlayerShouldBeAddedToGroupAndIdle() {
 		Player mockedPlayer = Player.createMockedPlayer("playerId");
 		
 		groupStrategyImpl.addPlayer(mockedPlayer);
@@ -60,7 +58,7 @@ public class BaseGroupStragegyImplTests {
 	}
 	
 	@Test
-	public void removedPlayerShouldBeRemovedFromGroup() throws Throwable {
+	public void removedPlayerShouldBeRemovedFromGroup() {
 		Player mockedPlayer = Player.createMockedPlayer("playerId");
 		
 		groupStrategyImpl.addPlayer(mockedPlayer);
@@ -71,32 +69,81 @@ public class BaseGroupStragegyImplTests {
 	}
 	
 	@Test
-	public void playerThatIsInGroupShouldBeFound() throws Throwable {
+	public void playerThatIsInGroupShouldBeFound() {
 		Player mockedPlayer = Player.createMockedPlayer("playerId");
-		
 		groupStrategyImpl.addPlayer(mockedPlayer);
 
 		assertTrue(groupStrategyImpl.hasPlayer(mockedPlayer));
 	}
 
 	@Test
-	public void playerThatIsNotInGroupShouldNotBeFound() throws Throwable {
+	public void playerThatIsNotInGroupShouldNotBeFound() {
 		Player mockedPlayerThatIsNotInGroup = Player.createMockedPlayer("playerIdNotInGroup");
 
 		assertFalse(groupStrategyImpl.hasPlayer(mockedPlayerThatIsNotInGroup));
 	}
+	
+	@Test
+	public void allPlayersShouldBeReturned() {
+		Player mockedPlayer1 = Player.createMockedPlayer("playerId1");
+		groupStrategyImpl.addPlayer(mockedPlayer1);
 
+		Player mockedPlayer2 = Player.createMockedPlayer("playerId2");
+		groupStrategyImpl.addPlayer(mockedPlayer2);
+		
+		assertThat(groupStrategyImpl.allPlayers(), containsInAnyOrder(mockedPlayer1, mockedPlayer2));
+	}
+
+	@Test
+	public void allPlayerTypesShouldBeReturned() {
+		PlayerTypes bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
+		PlayerTypes musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
+		
+		Player mockedPlayer1 = Player.createMockedPlayer("BluOsPlayer1", bluOsPlayerType);
+		groupStrategyImpl.addPlayer(mockedPlayer1);
+
+		Player mockedPlayer2 = Player.createMockedPlayer("BluOsPlayer2", bluOsPlayerType);
+		groupStrategyImpl.addPlayer(mockedPlayer2);
+
+		Player mockedPlayer3 = Player.createMockedPlayer("MusicCastPlayer1", musicCastPlayerType);
+		groupStrategyImpl.addPlayer(mockedPlayer3);
+		
+		assertThat(groupStrategyImpl.allPlayerTypes(), containsInAnyOrder(bluOsPlayerType, musicCastPlayerType));
+	}
+	
+	@Test
+	public void playingPlayerShouldBeDetected() {
+		Player playingPlayer = Player.createMockedPlayer("playingPlayer");
+		groupStrategyImpl.addPlayer(playingPlayer);
+		markPlayerAsPlaying(groupStrategyImpl, "playingPlayer");
+
+		Player idlePlayer = Player.createMockedPlayer("idlePlayer");
+		groupStrategyImpl.addPlayer(idlePlayer);
+
+		assertTrue(groupStrategyImpl.isPlayerInGroupPlaying());
+	}
+
+	@Test
+	public void onlyIdlePlayerShouldBeDetected() {
+		Player idlePlayer1 = Player.createMockedPlayer("idlePlayer1");
+		groupStrategyImpl.addPlayer(idlePlayer1);
+
+		Player idlePlayer2 = Player.createMockedPlayer("idlePlayer2");
+		groupStrategyImpl.addPlayer(idlePlayer2);
+		
+		assertFalse(groupStrategyImpl.isPlayerInGroupPlaying());
+	}
+	
 	@Test(expected = IllegalStateException.class)	
-	public void handleDetectedEventShouldThrowException() throws Throwable {
+	public void handleDetectedEventShouldThrowException() {
 		groupStrategyImpl.handleDetectedEvent(null, null);
 	}
 
 	@Test(expected = IllegalStateException.class)	
-	public void handleLostEventShouldThrowException() throws Throwable {
+	public void handleLostEventShouldThrowException() {
 		groupStrategyImpl.handleLostEvent(null, null);
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Test
 	public void handlePlayingEventShouldStopAllDetectorsAndOtherMonitors() throws Throwable {
 		audiostreamerscrobbler.mocks.Group group = audiostreamerscrobbler.mocks.Group.createMockedGroup("Group");
@@ -105,7 +152,6 @@ public class BaseGroupStragegyImplTests {
 		PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
 		Player playingPlayer = Player.createMockedPlayer("PlayingBluOsPlayerId", bluOsPlayerType);
 		groupStrategyImpl.addPlayer(playingPlayer);
-		markPlayerAsPlaying(groupStrategyImpl, "PlayingBluOsPlayerId");
 
 		PlayerTypes.MusicCastPlayerType musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
 		Player idlePlayer = Player.createMockedPlayer("IdleMusicCastPlayerId", musicCastPlayerType);
@@ -121,7 +167,7 @@ public class BaseGroupStragegyImplTests {
 		Tuple stopDetectorsMembers = stopDetectors.destruct();
 		assertEquals(1, stopDetectorsMembers.size());
 
-		Set<Object> stopDetectorsPlayerTypes = (Set<Object>)stopDetectorsMembers.get(0);
+		Tuple stopDetectorsPlayerTypes = (Tuple)stopDetectorsMembers.get(0);
 		assertThat(stopDetectorsPlayerTypes, containsInAnyOrder(bluOsPlayerType, musicCastPlayerType));
 
 		Union stopMonitors = (Union)processedEvents.get(1);
@@ -132,7 +178,6 @@ public class BaseGroupStragegyImplTests {
 		assertThat(stopMonitorsPlayers, contains(idlePlayer));
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Test
 	public void handleIdleEventShouldStartIdlePlayersDetectors() throws Throwable {
 		audiostreamerscrobbler.mocks.Group group = audiostreamerscrobbler.mocks.Group.createMockedGroup("GroupWithPlayersOfDifferentTypes");
@@ -157,11 +202,10 @@ public class BaseGroupStragegyImplTests {
 		Tuple startDetectorsMembers = startDetectors.destruct();
 		assertEquals(1, startDetectorsMembers.size());
 
-		Set<Object> startDetectorsPlayerTypes = (Set<Object>)startDetectorsMembers.get(0);
+		Tuple startDetectorsPlayerTypes = (Tuple)startDetectorsMembers.get(0);
 		assertThat(startDetectorsPlayerTypes, contains(musicCastPlayerType));
 	}
 
-	@SuppressWarnings("unchecked")
 	@Test
 	public void handleIdleEventShouldIncludePlayingPlayerTypeDetectorIfMoreThanOnePlayerOfThatTypeIsInGroup() throws Throwable {
 		audiostreamerscrobbler.mocks.Group group = audiostreamerscrobbler.mocks.Group.createMockedGroup("GroupWithPlayersOfSameType");
@@ -186,7 +230,7 @@ public class BaseGroupStragegyImplTests {
 		Tuple startDetectorsMembers = startDetectors.destruct();
 		assertEquals(1, startDetectorsMembers.size());
 
-		Set<Object> startDetectorsPlayerTypes = (Set<Object>)startDetectorsMembers.get(0);
+		Tuple startDetectorsPlayerTypes = (Tuple)startDetectorsMembers.get(0);
 		assertThat(startDetectorsPlayerTypes, containsInAnyOrder(bluOsPlayerType));
 	}
 
@@ -200,7 +244,7 @@ public class BaseGroupStragegyImplTests {
 	// Helpers
 
 	@SuppressWarnings("unchecked")
-	private static void markPlayerAsPlaying(GroupStrategyImplFacade groupStrategyImpl, String playerId) throws Throwable {
+	private static void markPlayerAsPlaying(GroupStrategyImplFacade groupStrategyImpl, String playerId) {
 		// Mark player as playing
 		Map<Object, Object> mapPlayers = groupStrategyImpl.players();
 		Map<Object, Object> mapPlayer = (Map<Object, Object>)mapPlayers.get(playerId);

@@ -11,11 +11,11 @@ public class PlayerStatus {
 
 	// Getters
 
-	public Boolean getIsIdle() {
+	public Boolean isIdle() {
 		return isIdle;
 	}
 
-	public Boolean getIsPlaying() {
+	public Boolean isPlaying() {
 		return isPlaying;
 	}
 
