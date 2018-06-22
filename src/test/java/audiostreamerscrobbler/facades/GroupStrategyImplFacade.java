@@ -80,6 +80,54 @@ public class GroupStrategyImplFacade {
 		}
 	}
 	
+	public void startAllDetectors() {
+		try {
+			groupStrategyImpl.invoker("startAllDetectors", genericMethodType(1)).invoke(groupStrategyImpl);
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
+	}
+
+	public void startDetectors(FunctionReference f) {
+		try {
+			groupStrategyImpl.invoker("startDetectors", genericMethodType(2)).invoke(groupStrategyImpl, f);
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
+	}
+	
+	public void stopAllDetectors() {
+		try {
+			groupStrategyImpl.invoker("stopAllDetectors", genericMethodType(1)).invoke(groupStrategyImpl);
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
+	}
+
+	public void stopDetectors(FunctionReference f) {
+		try {
+			groupStrategyImpl.invoker("stopDetectors", genericMethodType(2)).invoke(groupStrategyImpl, f);
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
+	}
+
+	public void stopAllMonitors() {
+		try {
+			groupStrategyImpl.invoker("stopAllMonitors", genericMethodType(1)).invoke(groupStrategyImpl);
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
+	}
+
+	public void stopMonitors(FunctionReference f) {
+		try {
+			groupStrategyImpl.invoker("stopMonitors", genericMethodType(2)).invoke(groupStrategyImpl, f);
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
+	}
+	
 	public void handleDetectedEvent(Group group, GroupEvents event) {
 		handleEvent("handleDetectedEvent", group, event);
 	}

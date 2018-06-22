@@ -133,6 +133,143 @@ public class BaseGroupStragegyImplTests {
 		
 		assertFalse(groupStrategyImpl.isPlayerInGroupPlaying());
 	}
+
+	@Test
+	public void allDetectorsShouldBeStarted() {
+		PlayerTypes bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
+		Player bluOsPlayer = Player.createMockedPlayer("BluOsPlayer", bluOsPlayerType);
+		groupStrategyImpl.addPlayer(bluOsPlayer);
+		
+		PlayerTypes musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
+		Player musicCastPlayer = Player.createMockedPlayer("MusicCastPlayer", musicCastPlayerType);
+		groupStrategyImpl.addPlayer(musicCastPlayer);
+
+		groupStrategyImpl.startAllDetectors();
+		
+		Union startDetectors = (Union)processedEvents.get(0);
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$startDetectors", startDetectors.getClass().getName());
+		Tuple startDetectorsMembers = startDetectors.destruct();
+		assertEquals(1, startDetectorsMembers.size());
+
+		Tuple startDetectorsPlayerTypes = (Tuple)startDetectorsMembers.get(0);
+		assertThat(startDetectorsPlayerTypes, containsInAnyOrder(bluOsPlayerType, musicCastPlayerType));
+
+		assertEquals(1, processedEvents.size());
+	}
+
+	@Test
+	public void noDetectorShouldBeStarted() throws Throwable {
+		PlayerTypes bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
+		Player bluOsPlayer = Player.createMockedPlayer("BluOsPlayer", bluOsPlayerType);
+		groupStrategyImpl.addPlayer(bluOsPlayer);
+		
+		FunctionReference doNotAcceptAnyPlayerTypeReference = GoloUtils.createFunctionReference(this.getClass(), "doNotAcceptAnyPlayerType", 1);
+		groupStrategyImpl.startDetectors(doNotAcceptAnyPlayerTypeReference);
+		
+		Union startDetectors = (Union)processedEvents.get(0);
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$startDetectors", startDetectors.getClass().getName());
+		Tuple startDetectorsMembers = startDetectors.destruct();
+		assertEquals(1, startDetectorsMembers.size());
+
+		Tuple startDetectorsPlayerTypes = (Tuple)startDetectorsMembers.get(0);
+		assertTrue(startDetectorsPlayerTypes.isEmpty());
+
+		assertEquals(1, processedEvents.size());
+	}
+
+	public static Object doNotAcceptAnyPlayerType(Object playerType) {
+		return false;
+	}
+	
+	@Test
+	public void allDetectorsShouldBeStopped() {
+		PlayerTypes bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
+		Player bluOsPlayer = Player.createMockedPlayer("BluOsPlayer", bluOsPlayerType);
+		groupStrategyImpl.addPlayer(bluOsPlayer);
+		
+		PlayerTypes musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
+		Player musicCastPlayer = Player.createMockedPlayer("MusicCastPlayer", musicCastPlayerType);
+		groupStrategyImpl.addPlayer(musicCastPlayer);
+
+		groupStrategyImpl.stopAllDetectors();
+		
+		Union stopDetectors = (Union)processedEvents.get(0);
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$stopDetectors", stopDetectors.getClass().getName());
+		Tuple stopDetectorsMembers = stopDetectors.destruct();
+		assertEquals(1, stopDetectorsMembers.size());
+
+		Tuple stopDetectorsPlayerTypes = (Tuple)stopDetectorsMembers.get(0);
+		assertThat(stopDetectorsPlayerTypes, containsInAnyOrder(bluOsPlayerType, musicCastPlayerType));
+
+		assertEquals(1, processedEvents.size());
+	}
+
+	@Test
+	public void noDetectorShouldBeStopped() throws Throwable {
+		PlayerTypes bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
+		Player bluOsPlayer = Player.createMockedPlayer("BluOsPlayer", bluOsPlayerType);
+		groupStrategyImpl.addPlayer(bluOsPlayer);
+		
+		FunctionReference doNotAcceptAnyPlayerTypeReference = GoloUtils.createFunctionReference(this.getClass(), "doNotAcceptAnyPlayerType", 1);
+		groupStrategyImpl.stopDetectors(doNotAcceptAnyPlayerTypeReference);
+		
+		Union stopDetectors = (Union)processedEvents.get(0);
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$stopDetectors", stopDetectors.getClass().getName());
+		Tuple stopDetectorsMembers = stopDetectors.destruct();
+		assertEquals(1, stopDetectorsMembers.size());
+
+		Tuple stopDetectorsPlayerTypes = (Tuple)stopDetectorsMembers.get(0);
+		assertTrue(stopDetectorsPlayerTypes.isEmpty());
+
+		assertEquals(1, processedEvents.size());
+	}
+
+	@Test
+	public void allMonitorsShouldBeStopped() {
+		PlayerTypes bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
+		Player bluOsPlayer = Player.createMockedPlayer("BluOsPlayer", bluOsPlayerType);
+		groupStrategyImpl.addPlayer(bluOsPlayer);
+		
+		PlayerTypes musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
+		Player musicCastPlayer = Player.createMockedPlayer("MusicCastPlayer", musicCastPlayerType);
+		groupStrategyImpl.addPlayer(musicCastPlayer);
+
+		groupStrategyImpl.stopAllMonitors();
+		
+		Union stopMonitors = (Union)processedEvents.get(0);
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$stopMonitors", stopMonitors.getClass().getName());
+		Tuple stopMonitorsMembers = stopMonitors.destruct();
+		assertEquals(1, stopMonitorsMembers.size());
+
+		Tuple stopMonitorsPlayers = (Tuple)stopMonitorsMembers.get(0);
+		assertThat(stopMonitorsPlayers, containsInAnyOrder(bluOsPlayer, musicCastPlayer));
+
+		assertEquals(1, processedEvents.size());
+	}
+
+	@Test
+	public void noMonitorsShouldBeStopped() throws Throwable {
+		PlayerTypes bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
+		Player bluOsPlayer = Player.createMockedPlayer("BluOsPlayer", bluOsPlayerType);
+		groupStrategyImpl.addPlayer(bluOsPlayer);
+		
+		FunctionReference doNotAcceptAnyPlayerReference = GoloUtils.createFunctionReference(this.getClass(), "doNotAcceptAnyPlayer", 1);
+		groupStrategyImpl.stopMonitors(doNotAcceptAnyPlayerReference);
+		
+		Union stopMonitors = (Union)processedEvents.get(0);
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$stopMonitors", stopMonitors.getClass().getName());
+		Tuple stopMonitorsMembers = stopMonitors.destruct();
+		assertEquals(1, stopMonitorsMembers.size());
+
+		Tuple stopMonitorsPlayers = (Tuple)stopMonitorsMembers.get(0);
+		assertTrue(stopMonitorsPlayers.isEmpty());
+
+		assertEquals(1, processedEvents.size());
+	}
+
+	public static Object doNotAcceptAnyPlayer(Object player) {
+		return false;
+	}
 	
 	@Test(expected = IllegalStateException.class)	
 	public void handleDetectedEventShouldThrowException() {
@@ -164,6 +301,7 @@ public class BaseGroupStragegyImplTests {
 		assertEquals(2, processedEvents.size());
 		
 		Union stopDetectors = (Union)processedEvents.get(0);
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$stopDetectors", stopDetectors.getClass().getName());
 		Tuple stopDetectorsMembers = stopDetectors.destruct();
 		assertEquals(1, stopDetectorsMembers.size());
 
@@ -171,6 +309,7 @@ public class BaseGroupStragegyImplTests {
 		assertThat(stopDetectorsPlayerTypes, containsInAnyOrder(bluOsPlayerType, musicCastPlayerType));
 
 		Union stopMonitors = (Union)processedEvents.get(1);
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$stopMonitors", stopMonitors.getClass().getName());
 		Tuple stopMonitorsMembers = stopMonitors.destruct();
 		assertEquals(1, stopMonitorsMembers.size());
 
@@ -199,6 +338,7 @@ public class BaseGroupStragegyImplTests {
 		assertEquals(1, processedEvents.size());
 		
 		Union startDetectors = (Union)processedEvents.get(0);
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$startDetectors", startDetectors.getClass().getName());
 		Tuple startDetectorsMembers = startDetectors.destruct();
 		assertEquals(1, startDetectorsMembers.size());
 
@@ -227,6 +367,7 @@ public class BaseGroupStragegyImplTests {
 		assertEquals(1, processedEvents.size());
 		
 		Union startDetectors = (Union)processedEvents.get(0);
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$startDetectors", startDetectors.getClass().getName());
 		Tuple startDetectorsMembers = startDetectors.destruct();
 		assertEquals(1, startDetectorsMembers.size());
 

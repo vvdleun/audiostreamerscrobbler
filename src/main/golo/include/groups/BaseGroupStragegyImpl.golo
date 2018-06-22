@@ -34,6 +34,12 @@ function createBaseGroupStragegyImpl = |cbProcessEvents| {
 		define("allPlayers", |this| -> getPlayers(this)):
 		define("allPlayerTypes", |this| -> getPlayerTypes(this)):
 		define("isPlayerInGroupPlaying", |this| -> isPlayerInGroupPlaying(this)):
+		define("startAllDetectors", |this| -> this: startDetectors(|t| -> true)):
+		define("startDetectors", |this, f| -> startDetectors(this, f)):
+		define("stopAllDetectors", |this| -> this: stopDetectors(|t| -> true)):
+		define("stopDetectors", |this, f| -> stopDetectors(this, f)):
+		define("stopAllMonitors", |this| -> this: stopMonitors(|p| -> true)):
+		define("stopMonitors", |this, f| -> stopMonitors(this, f)):
 		define("handleDetectedEvent", |this, group, event| -> notImplemented("handleDetectedEvent")):
 		define("handleLostEvent", |this, group, event| -> notImplemented("handleLostEvent")):
 		define("handlePlayingEvent", |this, group, event| -> handlePlayingEvent(this, group, event)):
@@ -112,7 +118,7 @@ local function handlePlayingEvent = |impl, group, event| {
 }
 
 local function afterPlayingEvent = |impl, group, event| {
-	stopAllDetectors(impl)
+	impl: stopAllDetectors()
 
 	let player = event: player()
 	stopMonitors(impl, |p| -> p: id() != player: id())
@@ -158,24 +164,16 @@ local function startAllDetectorsExceptForPlayer = |impl, player| {
 }
 
 local function startDetectors = |impl, f| {
-	# Include detector for current player's type only when group has other players
-	# of the same type. Otherwise, there is no need to start the detector of that
-	# type, as the player is already being monitored.
-	
 	let cbProcessEvents = impl: cbProcessEvents()
 	let playerTypes = [t foreach t in getPlayerTypes(impl) when f(t)]
 	cbProcessEvents(GroupProcessEvents.startDetectors(playerTypes))
 }
-
-local function stopAllDetectors = |impl| -> stopDetectors(impl, |t| -> true)
 
 local function stopDetectors = |impl, f| {
 	let cbProcessEvents = impl: cbProcessEvents()
 	let playerTypes = [t foreach t in getPlayerTypes(impl) when f(t)]
 	cbProcessEvents(GroupProcessEvents.stopDetectors(playerTypes))
 }
-
-local function stopAllMonitors = |impl| -> stopMonitors(impl, |p| -> true)
 
 local function stopMonitors = |impl, f| {
 	let cbProcessEvents = impl: cbProcessEvents()
