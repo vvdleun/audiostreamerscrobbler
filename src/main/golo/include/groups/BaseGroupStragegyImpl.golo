@@ -2,8 +2,6 @@ module audiostreamerscrobbler.groups.BaseGroupStragegyImpl
 
 import audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents
 
-import java.util.Collections
-
 union PlayerStatus = {
 	Idle
 	Playing
@@ -17,10 +15,11 @@ function createBaseGroupStragegyImpl = |cbProcessEvents| {
 	# 1) This is one of the few objects in this program that is specifically mean to
 	#    be overwritten by the object that creates this object instance (for example
 	#    to directly provide implementations for the unimplemented methods).
-	# 2) No implementations are provided for the DetectedEvent and LostEvent events
+	# 2) No implementations are provided for the DetectedEvent event handler and the
+	#    afterIdleEvent() function.
 	# 3) Users of this implementation that do not re-implement the handleIdleEvent()
-	#    function are expected to provide the implementation for the afterIdleEvent
-	#    function, which is called in the default handleIdleEvent implementation.
+	#    function are required to provide the implementation for the afterIdleEvent
+	#    function, which is called in the default handleIdleEvent() implementation.
 	# 4) Strategies based on this implementation are most definitely not threadsafe
 	
 	let players = map[]
@@ -45,7 +44,7 @@ function createBaseGroupStragegyImpl = |cbProcessEvents| {
 		define("handlePlayingEvent", |this, group, event| -> handlePlayingEvent(this, group, event)):
 		define("afterPlayingEvent", |this, group, event| -> afterPlayingEvent(this, group, event)):
 		define("handleIdleEvent", |this, group, event| -> handleIdleEvent(this, group, event)):
-		define("afterIdleEvent", |this, group, event| -> afterIdleEvent(this, group, event)):
+		define("afterIdleEvent", |this, group, event| -> notImplemented("afterIdleEvent")):
 		define("event", |this, group, event| -> event(this, group, event))
 
 	return strategyImpl
@@ -54,8 +53,6 @@ function createBaseGroupStragegyImpl = |cbProcessEvents| {
 local function notImplemented = |m| {
 	throw IllegalStateException(m + "() was not overwritten")
 }
-
-local function dummy = -> null
 
 local function event = |impl, group, event| {
 	case {
@@ -139,28 +136,6 @@ local function handleIdleEvent = |impl, group, event| {
 	impl: afterIdleEvent(group, event)
 	
 	return true
-}
-
-local function afterIdleEvent = |impl, group, event| {
-	let player = event: player()
-	startAllDetectorsExceptForPlayer(impl, player)
-}
-
-local function startAllDetectorsExceptForPlayer = |impl, player| {
-	let playerType = player: playerType()
-	
-	# Include detector for current player's type only when group has other players
-	# of the same type. Otherwise, there is no need to start the detector of that
-	# type, as the player is already being monitored.
-	let allPlayerTypes = list[p: playerType() foreach p in getPlayers(impl)]
-	let multiplePlayersOfType = frequency(allPlayerTypes, playerType) > 1
-
-	let playerTypes = set[t foreach t in allPlayerTypes]
-	if (not multiplePlayersOfType) {
-		playerTypes: remove(playerType)
-	}
-
-	startDetectors(impl, |t| -> playerTypes: contains(t))
 }
 
 local function startDetectors = |impl, f| {

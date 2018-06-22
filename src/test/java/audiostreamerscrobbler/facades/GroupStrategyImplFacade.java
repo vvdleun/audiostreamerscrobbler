@@ -16,7 +16,7 @@ import gololang.FunctionReference;
 public class GroupStrategyImplFacade {
 	private DynamicObject groupStrategyImpl;
 
-	private GroupStrategyImplFacade() { }
+	protected GroupStrategyImplFacade() { }
 	
 	public static GroupStrategyImplFacade createStrategyImplFacade(FunctionReference processEventsCallback) {
 		GroupStrategyImplFacade facade = new GroupStrategyImplFacade();

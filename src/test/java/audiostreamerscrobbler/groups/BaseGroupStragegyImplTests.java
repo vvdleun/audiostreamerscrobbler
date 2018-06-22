@@ -11,7 +11,6 @@ import audiostreamerscrobbler.facades.GroupStrategyImplFacade;
 import audiostreamerscrobbler.mocks.GoloUtils;
 import audiostreamerscrobbler.mocks.GroupEvents;
 import audiostreamerscrobbler.mocks.Player;
-import audiostreamerscrobbler.mocks.PlayerStatus;
 import audiostreamerscrobbler.mocks.PlayerTypes;
 
 import static org.junit.Assert.assertEquals;
@@ -20,15 +19,10 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.hamcrest.Matchers.*;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
-public class BaseGroupStragegyImplTests {
+public class BaseGroupStragegyImplTests extends GroupTests {
 	private static GroupStrategyImplFacade groupStrategyImpl;
-	private static final FunctionReference cbProcessEventFunctionReference = createFunctionReferenceToCbProcessEvent();
-	private static final List<Object> processedEvents = new ArrayList<>();
 	
 	@Before
 	public void before() {
@@ -315,88 +309,5 @@ public class BaseGroupStragegyImplTests {
 
 		Tuple stopMonitorsPlayers = (Tuple)stopMonitorsMembers.get(0);
 		assertThat(stopMonitorsPlayers, contains(idlePlayer));
-	}
-	
-	@Test
-	public void handleIdleEventShouldStartIdlePlayersDetectors() throws Throwable {
-		audiostreamerscrobbler.mocks.Group group = audiostreamerscrobbler.mocks.Group.createMockedGroup("GroupWithPlayersOfDifferentTypes");
-		
-		// Create and add players to group
-		PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
-		Player playingPlayer = Player.createMockedPlayer("PlayingBluOsPlayerId", bluOsPlayerType);
-		groupStrategyImpl.addPlayer(playingPlayer);
-		markPlayerAsPlaying(groupStrategyImpl, "PlayingBluOsPlayerId");
-		
-		PlayerTypes.MusicCastPlayerType musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
-		Player idlePlayer = Player.createMockedPlayer("IdleMusicCastPlayerId", musicCastPlayerType);
-		groupStrategyImpl.addPlayer(idlePlayer);
-
-		// Create Idle event for the previously playing player
-		GroupEvents.IdleEvent idleEvent = GroupEvents.createMockedIdleEvent(playingPlayer);
-		groupStrategyImpl.handleIdleEvent(group, idleEvent);
-
-		assertEquals(1, processedEvents.size());
-		
-		Union startDetectors = (Union)processedEvents.get(0);
-		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$startDetectors", startDetectors.getClass().getName());
-		Tuple startDetectorsMembers = startDetectors.destruct();
-		assertEquals(1, startDetectorsMembers.size());
-
-		Tuple startDetectorsPlayerTypes = (Tuple)startDetectorsMembers.get(0);
-		assertThat(startDetectorsPlayerTypes, contains(musicCastPlayerType));
-	}
-
-	@Test
-	public void handleIdleEventShouldIncludePlayingPlayerTypeDetectorIfMoreThanOnePlayerOfThatTypeIsInGroup() throws Throwable {
-		audiostreamerscrobbler.mocks.Group group = audiostreamerscrobbler.mocks.Group.createMockedGroup("GroupWithPlayersOfSameType");
-
-		// Create and add players to group
-		PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
-
-		Player playingPlayer = Player.createMockedPlayer("PlayingBluOsPlayerId1", bluOsPlayerType);
-		groupStrategyImpl.addPlayer(playingPlayer);
-		markPlayerAsPlaying(groupStrategyImpl, "PlayingBluOsPlayerId1");
-		
-		Player idlePlayer = Player.createMockedPlayer("IdleBluOsPlayerId2", bluOsPlayerType);
-		groupStrategyImpl.addPlayer(idlePlayer);
-
-		// Create Idle event and pass to handler function
-		GroupEvents.IdleEvent idleEvent = GroupEvents.createMockedIdleEvent(playingPlayer);
-		groupStrategyImpl.handleIdleEvent(group, idleEvent);
-
-		assertEquals(1, processedEvents.size());
-		
-		Union startDetectors = (Union)processedEvents.get(0);
-		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$startDetectors", startDetectors.getClass().getName());
-		Tuple startDetectorsMembers = startDetectors.destruct();
-		assertEquals(1, startDetectorsMembers.size());
-
-		Tuple startDetectorsPlayerTypes = (Tuple)startDetectorsMembers.get(0);
-		assertThat(startDetectorsPlayerTypes, containsInAnyOrder(bluOsPlayerType));
-	}
-
-	// Callback functions
-
-	public static Object cbProcessEvent(Object event) {
-		processedEvents.add(event);
-		return null;
-	}
-
-	// Helpers
-
-	@SuppressWarnings("unchecked")
-	private static void markPlayerAsPlaying(GroupStrategyImplFacade groupStrategyImpl, String playerId) {
-		// Mark player as playing
-		Map<Object, Object> mapPlayers = groupStrategyImpl.players();
-		Map<Object, Object> mapPlayer = (Map<Object, Object>)mapPlayers.get(playerId);
-		mapPlayer.put("state", PlayerStatus.createMockedPlayingPlayerStatus());
-	}
-
-	private static FunctionReference createFunctionReferenceToCbProcessEvent() {
-		try {
-			return GoloUtils.createFunctionReference(BaseGroupStragegyImplTests.class, "cbProcessEvent", 1);
-		} catch (Throwable t) {
-			throw new RuntimeException(t);
-		}
 	}
 } 
