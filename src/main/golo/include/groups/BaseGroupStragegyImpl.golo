@@ -12,11 +12,11 @@ let KEY_PLAYER = "player"
 
 function createBaseGroupStragegyImpl = |cbProcessEvents| {
 	# Some notes:
-	# 1) This is one of the few objects in this program that is specifically mean to
+	# 1) This is one of the few objects in this program that is specifically meant to
 	#    be overwritten by the object that creates this object instance (for example
 	#    to directly provide implementations for the unimplemented methods).
-	# 2) No implementations are provided for the DetectedEvent event handler and the
-	#    afterIdleEvent() function.
+	# 2) No implementations are provided for the handleDetectedEvent() and handleLostEvent()
+	#	 event handlers and the afterIdleEvent() function.
 	# 3) Users of this implementation that do not re-implement the handleIdleEvent()
 	#    function are required to provide the implementation for the afterIdleEvent
 	#    function, which is called in the default handleIdleEvent() implementation.

@@ -5,6 +5,10 @@ union PlayerTypes = {
 	MusicCast
 }
 
+augment PlayerTypes {
+	function playerTypeId = |this| -> getPlayerTypeID(this)
+}
+
 local function getPlayerTypeID = |playerType| {
 	case {
 		when playerType: isBluOs() {
@@ -20,10 +24,12 @@ local function getPlayerTypeID = |playerType| {
 }
 
 function createPlayer = |playerImpl| {
-	let id = getPlayerTypeID(playerImpl: playerType()) + "/" + playerImpl: name()
+	let playerTypeId = getPlayerTypeID(playerImpl: playerType())
+	let id = playerTypeId + "/" + playerImpl: name()
 	let player = DynamicObject("PlayerProxy"):
 		define("impl", playerImpl):
 		define("id", id):
+		define("playerTypeId", getPlayerTypeID(playerImpl: playerType())):
 		fallback(DynamicObject.delegate(playerImpl))
 
 	return player

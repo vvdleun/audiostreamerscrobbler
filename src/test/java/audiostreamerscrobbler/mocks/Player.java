@@ -19,7 +19,7 @@ public class Player {
 		return mockedPlayer;
 	}
 
-	// Getters
+	// Methods
 	
 	public String id() {
 		return id;
@@ -29,9 +29,11 @@ public class Player {
 		return playerType;
 	}
 	
-	// Methods
-	
+	public String playerTypeId() {
+		return playerType.playerTypeId();
+	}
+
 	public String friendlyName() {
-		return "Player '" + id + "'";
+		return id;
 	}
 }

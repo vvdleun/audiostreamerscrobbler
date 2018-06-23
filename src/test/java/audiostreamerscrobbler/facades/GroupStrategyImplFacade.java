@@ -24,6 +24,15 @@ public class GroupStrategyImplFacade {
 		return facade;
 	}
 	
+	// Setter for afterIdleEvent() function reference
+	public void afterIdleEvent(FunctionReference functionReference) {
+		try {
+			groupStrategyImpl.invoker("afterIdleEvent", genericMethodType(2)).invoke(groupStrategyImpl, functionReference);
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
+	}
+	
 	public void addPlayer(Player player) {
 		try {
 			groupStrategyImpl.invoker("addPlayer", genericMethodType(2)).invoke(groupStrategyImpl, player);
@@ -128,19 +137,19 @@ public class GroupStrategyImplFacade {
 		}
 	}
 	
-	public void handleDetectedEvent(Group group, GroupEvents event) {
+	public void handleDetectedEvent(Group group, GroupEvents.DetectedEvent event) {
 		handleEvent("handleDetectedEvent", group, event);
 	}
 	
-	public void handleLostEvent(Group group, GroupEvents event) {
+	public void handleLostEvent(Group group, GroupEvents.LostEvent event) {
 		handleEvent("handleLostEvent", group, event);
 	}
 
-	public void handlePlayingEvent(Group group, GroupEvents event) {
+	public void handlePlayingEvent(Group group, GroupEvents.PlayingEvent event) {
 		handleEvent("handlePlayingEvent", group, event);
 	}
 	
-	public void handleIdleEvent(Group group, GroupEvents event) {
+	public void handleIdleEvent(Group group, GroupEvents.IdleEvent event) {
 		handleEvent("handleIdleEvent", group, event);	
 	}
 	

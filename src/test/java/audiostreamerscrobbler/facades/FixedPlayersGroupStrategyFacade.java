@@ -4,6 +4,7 @@ import static java.lang.invoke.MethodType.genericMethodType;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import audiostreamerscrobbler.groups.FixedPlayersGroupStrategy;
 import audiostreamerscrobbler.mocks.Group;
@@ -17,9 +18,9 @@ public class FixedPlayersGroupStrategyFacade {
 
 	private FixedPlayersGroupStrategyFacade() { }
 
-	public static FixedPlayersGroupStrategyFacade createStrategyImplFacade(List<String> playerIds, FunctionReference processEventsCallback) {
+	public static FixedPlayersGroupStrategyFacade createStrategyImplFacade(Map<String, List<String>> expectedPlayers, FunctionReference processEventsCallback) {
 		FixedPlayersGroupStrategyFacade facade = new FixedPlayersGroupStrategyFacade();
-		facade.fixedPlayersGroupStrategy = (DynamicObject)FixedPlayersGroupStrategy.createFixedPlayersGroupStrategy(playerIds, processEventsCallback);
+		facade.fixedPlayersGroupStrategy = (DynamicObject)FixedPlayersGroupStrategy.createFixedPlayersGroupStrategy(expectedPlayers, processEventsCallback);
 		return facade;
 	}
 
@@ -47,7 +48,15 @@ public class FixedPlayersGroupStrategyFacade {
 		}
 	}
 
-	public void handleIdleEvent(Group group, GroupEvents event) {
+	public void handleDetectedEvent(Group group, GroupEvents.DetectedEvent event) {
+		handleEvent("handleDetectedEvent", group, event);	
+	}
+
+	public void handleLostEvent(Group group, GroupEvents.LostEvent event) {
+		handleEvent("handleLostEvent", group, event);	
+	}
+	
+	public void handleIdleEvent(Group group, GroupEvents.IdleEvent event) {
 		handleEvent("handleIdleEvent", group, event);	
 	}
 

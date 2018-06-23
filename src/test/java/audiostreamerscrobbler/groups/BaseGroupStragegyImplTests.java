@@ -23,11 +23,13 @@ import java.util.LinkedHashMap;
 
 public class BaseGroupStragegyImplTests extends GroupTests {
 	private static GroupStrategyImplFacade groupStrategyImpl;
+	private static boolean afterIdleEventCalled;
 	
 	@Before
 	public void before() {
 		groupStrategyImpl = GroupStrategyImplFacade.createStrategyImplFacade(cbProcessEventFunctionReference);
 		processedEvents.clear();
+		afterIdleEventCalled = false;
 	}
 	
 	@Test
@@ -47,8 +49,8 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		assertEquals(1, players.size());
 		
 		LinkedHashMap<Object, Object> playerMap = (LinkedHashMap<Object, Object>)players.get("playerId");
-		assertEquals("audiostreamerscrobbler.groups.BaseGroupStragegyImpl.types.PlayerStatus$Idle", ((Union)playerMap.get("state")).getClass().getName());
 		assertEquals(mockedPlayer, playerMap.get("player"));
+		assertEquals("audiostreamerscrobbler.groups.BaseGroupStragegyImpl.types.PlayerStatus$Idle", ((Union)playerMap.get("state")).getClass().getName());
 	}
 	
 	@Test
@@ -309,5 +311,37 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 
 		Tuple stopMonitorsPlayers = (Tuple)stopMonitorsMembers.get(0);
 		assertThat(stopMonitorsPlayers, contains(idlePlayer));
+	}
+	
+	@Test
+	public void idleEventShouldMarkPlayerAsIdleAndCallAfterIdleEventFunction() throws Throwable {
+		audiostreamerscrobbler.mocks.Group group = audiostreamerscrobbler.mocks.Group.createMockedGroup("Group");
+
+		// Create and add players to group
+		PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
+		Player playingPlayer = Player.createMockedPlayer("PlayingBluOsPlayerId", bluOsPlayerType);
+		groupStrategyImpl.addPlayer(playingPlayer);
+		markPlayerAsPlaying(groupStrategyImpl, "PlayingBluOsPlayerId");
+		
+		PlayerTypes.MusicCastPlayerType musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
+		Player idlePlayer = Player.createMockedPlayer("IdleMusicCastPlayerId", musicCastPlayerType);
+		groupStrategyImpl.addPlayer(idlePlayer);
+
+		// Overwrite afterIdleEvent() function
+		groupStrategyImpl.afterIdleEvent(GoloUtils.createFunctionReference(getClass(), "afterIdleEventHandler", 3));
+		
+		// Create PlayingEvent event and pass to handler function
+		GroupEvents.IdleEvent idleEvent = GroupEvents.createMockedIdleEvent(playingPlayer);
+		groupStrategyImpl.handleIdleEvent(group, idleEvent);
+		
+		assertFalse(groupStrategyImpl.isPlayerInGroupPlaying());
+		assertTrue(afterIdleEventCalled);
+
+		assertEquals(0, processedEvents.size());
+	}
+	
+	public static Object afterIdleEventHandler(Object strategyImpl, Object group, Object event) {
+		afterIdleEventCalled = true;
+		return null;
 	}
 } 

@@ -3,8 +3,10 @@ package audiostreamerscrobbler.mocks;
 public class PlayerTypes {
 	private Boolean isBluOs;
 	private Boolean isMusicCast;
+	private String playerTypeId;
 	
-	private PlayerTypes(Boolean isBluOs, Boolean isMusicCast) {
+	private PlayerTypes(String playerTypeId, Boolean isBluOs, Boolean isMusicCast) {
+		this.playerTypeId = playerTypeId;
 		this.isBluOs = isBluOs;
 		this.isMusicCast = isMusicCast;
 	}
@@ -17,6 +19,10 @@ public class PlayerTypes {
 
 	public Boolean getIsMusicCast() {
 		return isMusicCast;
+	}
+	
+	public String playerTypeId() {
+		return playerTypeId;
 	}
 	
 	// Factory methods
@@ -33,13 +39,13 @@ public class PlayerTypes {
 	
 	public static class BluOsPlayerType extends PlayerTypes {
 		private BluOsPlayerType() {
-			super(true, false);
+			super("BluOs", true, false);
 		}
 	}
 
 	public static class MusicCastPlayerType extends PlayerTypes {
 		private MusicCastPlayerType() {
-			super(false, true);
+			super("MusicCast", false, true);
 		}
 	}
 }
