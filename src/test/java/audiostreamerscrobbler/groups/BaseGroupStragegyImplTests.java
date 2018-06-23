@@ -279,8 +279,6 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 	
 	@Test
 	public void handlePlayingEventShouldStopAllDetectorsAndOtherMonitors() throws Throwable {
-		audiostreamerscrobbler.mocks.Group group = audiostreamerscrobbler.mocks.Group.createMockedGroup("Group");
-
 		// Create and add players to group
 		PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
 		Player playingPlayer = Player.createMockedPlayer("PlayingBluOsPlayerId", bluOsPlayerType);
@@ -315,8 +313,6 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 	
 	@Test
 	public void idleEventShouldMarkPlayerAsIdleAndCallAfterIdleEventFunction() throws Throwable {
-		audiostreamerscrobbler.mocks.Group group = audiostreamerscrobbler.mocks.Group.createMockedGroup("Group");
-
 		// Create and add players to group
 		PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
 		Player playingPlayer = Player.createMockedPlayer("PlayingBluOsPlayerId", bluOsPlayerType);

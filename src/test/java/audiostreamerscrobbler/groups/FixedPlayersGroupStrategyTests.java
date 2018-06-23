@@ -21,10 +21,9 @@ import gololang.Tuple;
 import gololang.Union;
 
 public class FixedPlayersGroupStrategyTests extends GroupTests {
-	// Create expected players
 	private Map<String, List<String>> expectedPlayers;
 	private FixedPlayersGroupStrategyFacade fixedPlayersGroupStrategy;
-	private final audiostreamerscrobbler.mocks.Group group = audiostreamerscrobbler.mocks.Group.createMockedGroup("GroupWithPlayersOfDifferentTypes");
+	private final audiostreamerscrobbler.mocks.Group group = audiostreamerscrobbler.mocks.Group.createMockedGroup("FixedPlayersGroupStrategyGroup");
 	
 	@Before
 	public void before() {
@@ -86,8 +85,6 @@ public class FixedPlayersGroupStrategyTests extends GroupTests {
 		GroupEvents.DetectedEvent detectedEvent1 = GroupEvents.createMockedDetectedEvent(foundPlayer1);
 		fixedPlayersGroupStrategy.handleDetectedEvent(group, detectedEvent1);
 
-		assertTrue(processedEvents.isEmpty());
-
 		// Create foundPlayer2 and create/send event that will detect the player
 		Player foundPlayer2 = Player.createMockedPlayer("foundPlayer2", bluOsPlayerType);
 		GroupEvents.DetectedEvent detectedEvent2 = GroupEvents.createMockedDetectedEvent(foundPlayer2);
@@ -133,13 +130,22 @@ public class FixedPlayersGroupStrategyTests extends GroupTests {
 	
 	@Test
 	public void handleIdleEventShouldStartIdlePlayerDetectors() throws Throwable {
-		// Create and add players to group
 		PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
+		PlayerTypes.MusicCastPlayerType musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
+
+		// Add expected players
+		List<String> bluOsPlayerIds = new ArrayList<>();
+		bluOsPlayerIds.add("PlayingBluOsPlayerId");
+		expectedPlayers.put(bluOsPlayerType.playerTypeId(), bluOsPlayerIds);
+		List<String> musicCastPlayerIds = new ArrayList<>();
+		musicCastPlayerIds.add("IdleMusicCastPlayerId");
+		expectedPlayers.put(musicCastPlayerType.playerTypeId(), musicCastPlayerIds);
+		
+		// Create and add players to group
 		Player playingPlayer = Player.createMockedPlayer("PlayingBluOsPlayerId", bluOsPlayerType);
 		fixedPlayersGroupStrategy.addPlayer(playingPlayer);
 		markPlayerAsPlaying(fixedPlayersGroupStrategy.players(), "PlayingBluOsPlayerId");
 		
-		PlayerTypes.MusicCastPlayerType musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
 		Player idlePlayer = Player.createMockedPlayer("IdleMusicCastPlayerId", musicCastPlayerType);
 		fixedPlayersGroupStrategy.addPlayer(idlePlayer);
 
@@ -163,11 +169,17 @@ public class FixedPlayersGroupStrategyTests extends GroupTests {
 		// Create and add players to group
 		PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
 
-		Player playingPlayer = Player.createMockedPlayer("PlayingBluOsPlayerId1", bluOsPlayerType);
-		fixedPlayersGroupStrategy.addPlayer(playingPlayer);
-		markPlayerAsPlaying(fixedPlayersGroupStrategy.players(), "PlayingBluOsPlayerId1");
+		// Add expected players
+		List<String> bluOsPlayerIds = new ArrayList<>();
+		bluOsPlayerIds.add("PlayingBluOsPlayerId");
+		bluOsPlayerIds.add("IdleBluOsPlayerId");
+		expectedPlayers.put(bluOsPlayerType.playerTypeId(), bluOsPlayerIds);
 		
-		Player idlePlayer = Player.createMockedPlayer("IdleBluOsPlayerId2", bluOsPlayerType);
+		Player playingPlayer = Player.createMockedPlayer("PlayingBluOsPlayerId", bluOsPlayerType);
+		fixedPlayersGroupStrategy.addPlayer(playingPlayer);
+		markPlayerAsPlaying(fixedPlayersGroupStrategy.players(), "PlayingBluOsPlayerId");
+		
+		Player idlePlayer = Player.createMockedPlayer("IdleBluOsPlayerId", bluOsPlayerType);
 		fixedPlayersGroupStrategy.addPlayer(idlePlayer);
 
 		// Create Idle event and pass to handler function

@@ -12,7 +12,9 @@ import gololang.FunctionReference;
 public abstract class GroupTests {
 	protected static final FunctionReference cbProcessEventFunctionReference = createFunctionReferenceToCbProcessEvent();
 	protected static final List<Object> processedEvents = new ArrayList<>();
+	protected final audiostreamerscrobbler.mocks.Group group = audiostreamerscrobbler.mocks.Group.createMockedGroup("Group");
 
+	
 	@SuppressWarnings("unchecked")
 	protected static void markPlayerAsPlaying(Map<Object, Object> players, String playerId) {
 		// Mark player as playing
