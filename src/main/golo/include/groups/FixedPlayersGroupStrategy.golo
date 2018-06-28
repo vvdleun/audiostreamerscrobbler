@@ -7,7 +7,6 @@ import java.util.Collections
 
 function createFixedPlayersGroupStrategy = |expectedPlayers, cbProcessEvents| {
 	let playerTypes = list[getPlayerType(ptid) foreach ptid in expectedPlayers: keySet()]
-	println(playerTypes)
 	
 	let strategy = createBaseGroupStragegyImpl(playerTypes, cbProcessEvents)
 
