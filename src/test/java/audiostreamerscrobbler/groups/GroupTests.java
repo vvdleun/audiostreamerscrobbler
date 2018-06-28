@@ -7,13 +7,15 @@ import java.util.Map;
 import audiostreamerscrobbler.facades.GroupStrategyImplFacade;
 import audiostreamerscrobbler.mocks.GoloUtils;
 import audiostreamerscrobbler.mocks.PlayerStatus;
+import audiostreamerscrobbler.mocks.PlayerTypes;
 import gololang.FunctionReference;
 
 public abstract class GroupTests {
 	protected static final FunctionReference cbProcessEventFunctionReference = createFunctionReferenceToCbProcessEvent();
 	protected static final List<Object> processedEvents = new ArrayList<>();
 	protected final audiostreamerscrobbler.mocks.Group group = audiostreamerscrobbler.mocks.Group.createMockedGroup("Group");
-
+	protected final PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
+	protected final PlayerTypes.MusicCastPlayerType musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
 	
 	@SuppressWarnings("unchecked")
 	protected static void markPlayerAsPlaying(Map<Object, Object> players, String playerId) {

@@ -19,7 +19,9 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.hamcrest.Matchers.*;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 public class BaseGroupStragegyImplTests extends GroupTests {
 	private static GroupStrategyImplFacade groupStrategyImpl;
@@ -27,7 +29,11 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 	
 	@Before
 	public void before() {
-		groupStrategyImpl = GroupStrategyImplFacade.createStrategyImplFacade(cbProcessEventFunctionReference);
+		List<PlayerTypes> playerTypes = new ArrayList<>();
+		playerTypes.add(bluOsPlayerType);
+		playerTypes.add(musicCastPlayerType);
+		
+		groupStrategyImpl = GroupStrategyImplFacade.createStrategyImplFacade(playerTypes, cbProcessEventFunctionReference);
 		processedEvents.clear();
 		afterIdleEventCalled = false;
 	}
@@ -52,7 +58,7 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		assertEquals(mockedPlayer, playerMap.get("player"));
 		assertEquals("audiostreamerscrobbler.groups.BaseGroupStragegyImpl.types.PlayerStatus$Idle", ((Union)playerMap.get("state")).getClass().getName());
 	}
-	
+
 	@Test
 	public void removedPlayerShouldBeRemovedFromGroup() {
 		Player mockedPlayer = Player.createMockedPlayer("playerId");
@@ -63,7 +69,7 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		LinkedHashMap<Object, Object> players = groupStrategyImpl.players();
 		assertTrue(players.isEmpty());
 	}
-	
+
 	@Test
 	public void playerThatIsInGroupShouldBeFound() {
 		Player mockedPlayer = Player.createMockedPlayer("playerId");
@@ -80,33 +86,16 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 	}
 	
 	@Test
-	public void allPlayersShouldBeReturned() {
+	public void allAddedPlayersShouldBeFound() {
 		Player mockedPlayer1 = Player.createMockedPlayer("playerId1");
 		groupStrategyImpl.addPlayer(mockedPlayer1);
 
 		Player mockedPlayer2 = Player.createMockedPlayer("playerId2");
 		groupStrategyImpl.addPlayer(mockedPlayer2);
 		
-		assertThat(groupStrategyImpl.allPlayers(), containsInAnyOrder(mockedPlayer1, mockedPlayer2));
+		assertThat(groupStrategyImpl.activePlayers(), containsInAnyOrder(mockedPlayer1, mockedPlayer2));
 	}
 
-	@Test
-	public void allPlayerTypesShouldBeReturned() {
-		PlayerTypes bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
-		PlayerTypes musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
-		
-		Player mockedPlayer1 = Player.createMockedPlayer("BluOsPlayer1", bluOsPlayerType);
-		groupStrategyImpl.addPlayer(mockedPlayer1);
-
-		Player mockedPlayer2 = Player.createMockedPlayer("BluOsPlayer2", bluOsPlayerType);
-		groupStrategyImpl.addPlayer(mockedPlayer2);
-
-		Player mockedPlayer3 = Player.createMockedPlayer("MusicCastPlayer1", musicCastPlayerType);
-		groupStrategyImpl.addPlayer(mockedPlayer3);
-		
-		assertThat(groupStrategyImpl.allPlayerTypes(), containsInAnyOrder(bluOsPlayerType, musicCastPlayerType));
-	}
-	
 	@Test
 	public void playingPlayerShouldBeDetected() {
 		Player playingPlayer = Player.createMockedPlayer("playingPlayer");
@@ -131,12 +120,10 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 	}
 
 	@Test
-	public void allDetectorsShouldBeStarted() {
-		PlayerTypes bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
+	public void whenStartingAllDetectorsAllDetectorsMustBeStarted() {
 		Player bluOsPlayer = Player.createMockedPlayer("BluOsPlayer", bluOsPlayerType);
 		groupStrategyImpl.addPlayer(bluOsPlayer);
 		
-		PlayerTypes musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
 		Player musicCastPlayer = Player.createMockedPlayer("MusicCastPlayer", musicCastPlayerType);
 		groupStrategyImpl.addPlayer(musicCastPlayer);
 
@@ -154,8 +141,7 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 	}
 
 	@Test
-	public void noDetectorShouldBeStarted() throws Throwable {
-		PlayerTypes bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
+	public void whenStartingNoDetectorNoDetectorShouldBeStarted() throws Throwable {
 		Player bluOsPlayer = Player.createMockedPlayer("BluOsPlayer", bluOsPlayerType);
 		groupStrategyImpl.addPlayer(bluOsPlayer);
 		
@@ -178,12 +164,10 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 	}
 	
 	@Test
-	public void allDetectorsShouldBeStopped() {
-		PlayerTypes bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
+	public void whenAllDetectorsAreStoppedTheyShouldBeStopped() {
 		Player bluOsPlayer = Player.createMockedPlayer("BluOsPlayer", bluOsPlayerType);
 		groupStrategyImpl.addPlayer(bluOsPlayer);
 		
-		PlayerTypes musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
 		Player musicCastPlayer = Player.createMockedPlayer("MusicCastPlayer", musicCastPlayerType);
 		groupStrategyImpl.addPlayer(musicCastPlayer);
 
@@ -201,12 +185,14 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 	}
 
 	@Test
-	public void noDetectorShouldBeStopped() throws Throwable {
-		PlayerTypes bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
+	public void whenStoppingOnlyMusicCastDetectorsOnlyMusicCastDetectorsShouldBeStopped() throws Throwable {
 		Player bluOsPlayer = Player.createMockedPlayer("BluOsPlayer", bluOsPlayerType);
 		groupStrategyImpl.addPlayer(bluOsPlayer);
+
+		Player musicCastPlayer = Player.createMockedPlayer("MusicCastPlayer", musicCastPlayerType);
+		groupStrategyImpl.addPlayer(musicCastPlayer);
 		
-		FunctionReference doNotAcceptAnyPlayerTypeReference = GoloUtils.createFunctionReference(this.getClass(), "doNotAcceptAnyPlayerType", 1);
+		FunctionReference doNotAcceptAnyPlayerTypeReference = GoloUtils.createFunctionReference(this.getClass(), "acceptOnlyMusicCastPlayerType", 1);
 		groupStrategyImpl.stopDetectors(doNotAcceptAnyPlayerTypeReference);
 		
 		Union stopDetectors = (Union)processedEvents.get(0);
@@ -215,22 +201,25 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		assertEquals(1, stopDetectorsMembers.size());
 
 		Tuple stopDetectorsPlayerTypes = (Tuple)stopDetectorsMembers.get(0);
-		assertTrue(stopDetectorsPlayerTypes.isEmpty());
+		assertThat(stopDetectorsPlayerTypes, contains(musicCastPlayerType));
 
 		assertEquals(1, processedEvents.size());
 	}
 
+	public static Object acceptOnlyMusicCastPlayerType(Object playerType) {
+		return ((PlayerTypes)playerType).getIsMusicCast();
+	}
+	
 	@Test
-	public void allMonitorsShouldBeStopped() {
-		PlayerTypes bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
+	public void whenStoppingOnlyBluOSMonitorOnlyBluOSMonitorMustBeStopped() throws Throwable {
 		Player bluOsPlayer = Player.createMockedPlayer("BluOsPlayer", bluOsPlayerType);
 		groupStrategyImpl.addPlayer(bluOsPlayer);
-		
-		PlayerTypes musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
+
 		Player musicCastPlayer = Player.createMockedPlayer("MusicCastPlayer", musicCastPlayerType);
 		groupStrategyImpl.addPlayer(musicCastPlayer);
-
-		groupStrategyImpl.stopAllMonitors();
+		
+		FunctionReference acceptOnlyBluOsPlayerReference = GoloUtils.createFunctionReference(this.getClass(), "acceptOnlyBlueOsPlayer", 1);
+		groupStrategyImpl.stopMonitors(acceptOnlyBluOsPlayerReference);
 		
 		Union stopMonitors = (Union)processedEvents.get(0);
 		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$stopMonitors", stopMonitors.getClass().getName());
@@ -238,33 +227,13 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		assertEquals(1, stopMonitorsMembers.size());
 
 		Tuple stopMonitorsPlayers = (Tuple)stopMonitorsMembers.get(0);
-		assertThat(stopMonitorsPlayers, containsInAnyOrder(bluOsPlayer, musicCastPlayer));
+		assertThat(stopMonitorsPlayers, contains(bluOsPlayer));
 
 		assertEquals(1, processedEvents.size());
 	}
 
-	@Test
-	public void noMonitorsShouldBeStopped() throws Throwable {
-		PlayerTypes bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
-		Player bluOsPlayer = Player.createMockedPlayer("BluOsPlayer", bluOsPlayerType);
-		groupStrategyImpl.addPlayer(bluOsPlayer);
-		
-		FunctionReference doNotAcceptAnyPlayerReference = GoloUtils.createFunctionReference(this.getClass(), "doNotAcceptAnyPlayer", 1);
-		groupStrategyImpl.stopMonitors(doNotAcceptAnyPlayerReference);
-		
-		Union stopMonitors = (Union)processedEvents.get(0);
-		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$stopMonitors", stopMonitors.getClass().getName());
-		Tuple stopMonitorsMembers = stopMonitors.destruct();
-		assertEquals(1, stopMonitorsMembers.size());
-
-		Tuple stopMonitorsPlayers = (Tuple)stopMonitorsMembers.get(0);
-		assertTrue(stopMonitorsPlayers.isEmpty());
-
-		assertEquals(1, processedEvents.size());
-	}
-
-	public static Object doNotAcceptAnyPlayer(Object player) {
-		return false;
+	public static Object acceptOnlyBlueOsPlayer(Object player) {
+		return "BluOsPlayer".equals(((Player)player).id());
 	}
 	
 	@Test(expected = IllegalStateException.class)	
@@ -276,15 +245,29 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 	public void handleLostEventShouldThrowException() {
 		groupStrategyImpl.handleLostEvent(null, null);
 	}
+
+	@Test
+	public void handleInitializationEventShouldThrowException() {
+		GroupEvents.InitializationEvent initializationEvent = GroupEvents.createMockedInitializationEvent();
+		groupStrategyImpl.handleInitializationEvent(group, initializationEvent);
+
+		assertEquals(1, processedEvents.size());
+
+		Union startDetectors = (Union)processedEvents.get(0);
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$startDetectors", startDetectors.getClass().getName());
+		Tuple startDetectorsMembers = startDetectors.destruct();
+		assertEquals(1, startDetectorsMembers.size());
+
+		Tuple startDetectorsPlayerTypes = (Tuple)startDetectorsMembers.get(0);
+		assertThat(startDetectorsPlayerTypes, contains(bluOsPlayerType, musicCastPlayerType));
+	}
 	
 	@Test
 	public void handlePlayingEventShouldStopAllDetectorsAndOtherMonitors() throws Throwable {
 		// Create and add players to group
-		PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
 		Player playingPlayer = Player.createMockedPlayer("PlayingBluOsPlayerId", bluOsPlayerType);
 		groupStrategyImpl.addPlayer(playingPlayer);
 
-		PlayerTypes.MusicCastPlayerType musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
 		Player idlePlayer = Player.createMockedPlayer("IdleMusicCastPlayerId", musicCastPlayerType);
 		groupStrategyImpl.addPlayer(idlePlayer);
 
@@ -314,12 +297,10 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 	@Test
 	public void idleEventShouldMarkPlayerAsIdleAndCallAfterIdleEventFunction() throws Throwable {
 		// Create and add players to group
-		PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
 		Player playingPlayer = Player.createMockedPlayer("PlayingBluOsPlayerId", bluOsPlayerType);
 		groupStrategyImpl.addPlayer(playingPlayer);
 		markPlayerAsPlaying(groupStrategyImpl, "PlayingBluOsPlayerId");
 		
-		PlayerTypes.MusicCastPlayerType musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
 		Player idlePlayer = Player.createMockedPlayer("IdleMusicCastPlayerId", musicCastPlayerType);
 		groupStrategyImpl.addPlayer(idlePlayer);
 
@@ -329,13 +310,13 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		// Create PlayingEvent event and pass to handler function
 		GroupEvents.IdleEvent idleEvent = GroupEvents.createMockedIdleEvent(playingPlayer);
 		groupStrategyImpl.handleIdleEvent(group, idleEvent);
+
+		assertEquals(0, processedEvents.size());
 		
 		assertFalse(groupStrategyImpl.isPlayerInGroupPlaying());
 		assertTrue(afterIdleEventCalled);
-
-		assertEquals(0, processedEvents.size());
 	}
-	
+
 	public static Object afterIdleEventHandler(Object strategyImpl, Object group, Object event) {
 		afterIdleEventCalled = true;
 		return null;

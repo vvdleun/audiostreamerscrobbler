@@ -1,5 +1,8 @@
 module audiostreamerscrobbler.maintypes.Player
 
+let PLAYERTYPE_ID_BLUOS = "BluOS"
+let PLAYERTYPE_ID_MUSICCAST = "MusicCast"
+
 union PlayerTypes = {
 	BluOs
 	MusicCast
@@ -9,13 +12,27 @@ augment PlayerTypes {
 	function playerTypeId = |this| -> getPlayerTypeID(this)
 }
 
-local function getPlayerTypeID = |playerType| {
+function getPlayerType = |playerTypeId| {
+	case {
+		when playerTypeId == PLAYERTYPE_ID_BLUOS {
+			return PlayerTypes.BluOs()
+		}
+		when playerTypeId == PLAYERTYPE_ID_MUSICCAST {
+			return PlayerTypes.MusicCast()
+		}
+		otherwise {
+			raise("Internal error: unknown player type ID '" + playerTypeId + "'")
+		}
+	}
+}
+
+function getPlayerTypeID = |playerType| {
 	case {
 		when playerType: isBluOs() {
-			return "BluOS"
+			return PLAYERTYPE_ID_BLUOS
 		}
 		when playerType: isMusicCast() {
-			return "MusicCast"
+			return PLAYERTYPE_ID_MUSICCAST
 		}
 		otherwise {
 			raise("Internal error: unknown player type '" + playerType + "'")

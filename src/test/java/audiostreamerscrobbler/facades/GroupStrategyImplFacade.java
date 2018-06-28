@@ -3,6 +3,7 @@ package audiostreamerscrobbler.facades;
 import static java.lang.invoke.MethodType.genericMethodType;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Set;
 
 import audiostreamerscrobbler.groups.BaseGroupStragegyImpl;
@@ -18,12 +19,20 @@ public class GroupStrategyImplFacade {
 
 	protected GroupStrategyImplFacade() { }
 	
-	public static GroupStrategyImplFacade createStrategyImplFacade(FunctionReference processEventsCallback) {
+	public static GroupStrategyImplFacade createStrategyImplFacade(List<PlayerTypes> playerTypes, FunctionReference processEventsCallback) {
 		GroupStrategyImplFacade facade = new GroupStrategyImplFacade();
-		facade.groupStrategyImpl = (DynamicObject)BaseGroupStragegyImpl.createBaseGroupStragegyImpl(processEventsCallback);
+		facade.groupStrategyImpl = (DynamicObject)BaseGroupStragegyImpl.createBaseGroupStragegyImpl(playerTypes, processEventsCallback);
 		return facade;
 	}
-	
+
+	public List<PlayerTypes> playerTypes() {
+		try {
+			return (List<PlayerTypes>)groupStrategyImpl.invoker("playerTypes", genericMethodType(1)).invoke(groupStrategyImpl);
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
+	}
+
 	// Setter for afterIdleEvent() function reference
 	public void afterIdleEvent(FunctionReference functionReference) {
 		try {
@@ -65,22 +74,14 @@ public class GroupStrategyImplFacade {
 		}
 	}
 
-	public Set<Player> allPlayers() {
+	public Set<Player> activePlayers() {
 		try {
-			return (Set<Player>)groupStrategyImpl.invoker("allPlayers", genericMethodType(1)).invoke(groupStrategyImpl);
+			return (Set<Player>)groupStrategyImpl.invoker("activePlayers", genericMethodType(1)).invoke(groupStrategyImpl);
 		} catch (Throwable t) {
 			throw new RuntimeException(t);
 		}
 	}
 
-	public Set<PlayerTypes> allPlayerTypes() {
-		try {
-			return (Set<PlayerTypes>)groupStrategyImpl.invoker("allPlayerTypes", genericMethodType(1)).invoke(groupStrategyImpl);
-		} catch (Throwable t) {
-			throw new RuntimeException(t);
-		}
-	}
-	
 	public boolean isPlayerInGroupPlaying() {
 		try {
 			return (Boolean)groupStrategyImpl.invoker("isPlayerInGroupPlaying", genericMethodType(1)).invoke(groupStrategyImpl);
@@ -135,6 +136,10 @@ public class GroupStrategyImplFacade {
 		} catch (Throwable t) {
 			throw new RuntimeException(t);
 		}
+	}
+
+	public void handleInitializationEvent(Group group, GroupEvents.InitializationEvent event) {
+		handleEvent("handleInitializationEvent", group, event);
 	}
 	
 	public void handleDetectedEvent(Group group, GroupEvents.DetectedEvent event) {

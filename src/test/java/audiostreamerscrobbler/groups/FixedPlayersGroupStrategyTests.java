@@ -16,7 +16,6 @@ import org.junit.Test;
 import audiostreamerscrobbler.facades.FixedPlayersGroupStrategyFacade;
 import audiostreamerscrobbler.mocks.GroupEvents;
 import audiostreamerscrobbler.mocks.Player;
-import audiostreamerscrobbler.mocks.PlayerTypes;
 import gololang.Tuple;
 import gololang.Union;
 
@@ -34,12 +33,13 @@ public class FixedPlayersGroupStrategyTests extends GroupTests {
 
 	@Test
 	public void detectedExpectedPlayersMustBeAdded() {
-		PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
-
 		// Create expected players
 		List<String> expectedBluOsPlayerIds = new ArrayList<>();
 		expectedBluOsPlayerIds.add("foundPlayer");
 		expectedPlayers.put(bluOsPlayerType.playerTypeId(), expectedBluOsPlayerIds);
+
+		// Must be set explicitly because this list is initialized when creating the fixedPlayersGroupStrategy instance
+		fixedPlayersGroupStrategy.playerTypes().add(bluOsPlayerType);
 
 		// Create player that will be detected
 		Player foundPlayer = Player.createMockedPlayer("foundPlayer", bluOsPlayerType);
@@ -53,14 +53,15 @@ public class FixedPlayersGroupStrategyTests extends GroupTests {
 	
 	@Test
 	public void whenDetectingAndMorePlayersAreExpectedDoNotStopDetectors() {
-		PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
-
 		// Create expected players
 		List<String> expectedBluOsPlayerIds = new ArrayList<>();
 		expectedBluOsPlayerIds.add("foundPlayer");
 		expectedBluOsPlayerIds.add("notFoundPlayer");
 		expectedPlayers.put(bluOsPlayerType.playerTypeId(), expectedBluOsPlayerIds);
-		
+
+		// Must be set explicitly because this list is initialized when creating the fixedPlayersGroupStrategy instance
+		fixedPlayersGroupStrategy.playerTypes().add(bluOsPlayerType);
+
 		// Create player that will be detected
 		Player foundPlayer = Player.createMockedPlayer("foundPlayer", bluOsPlayerType);
 		
@@ -73,12 +74,13 @@ public class FixedPlayersGroupStrategyTests extends GroupTests {
 
 	@Test
 	public void whenAllExpectedPlayersAreDetectedStopDetectorForThatType() {
-		PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
-
 		List<String> expectedBluOsPlayerIds = new ArrayList<>();
 		expectedBluOsPlayerIds.add("foundPlayer1");
 		expectedBluOsPlayerIds.add("foundPlayer2");
 		expectedPlayers.put(bluOsPlayerType.playerTypeId(), expectedBluOsPlayerIds);
+		
+		// Must be set explicitly because this list is initialized when creating the fixedPlayersGroupStrategy instance
+		fixedPlayersGroupStrategy.playerTypes().add(bluOsPlayerType);
 
 		// Create foundPlayer1 and create/send event that will detect the player
 		Player foundPlayer1 = Player.createMockedPlayer("foundPlayer1", bluOsPlayerType);
@@ -103,11 +105,12 @@ public class FixedPlayersGroupStrategyTests extends GroupTests {
 
 	@Test
 	public void whenAPlayerIsLostItMustHaveBeenRemovedAndIsDetectorMustBeStarted() {
-		PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
-		
 		List<String> bluOsPlayers = new ArrayList<>();
 		bluOsPlayers.add("player");
 		expectedPlayers.put(bluOsPlayerType.playerTypeId(), bluOsPlayers);
+
+		// Must be set explicitly because this list is initialized when creating the fixedPlayersGroupStrategy instance
+		fixedPlayersGroupStrategy.playerTypes().add(bluOsPlayerType);
 		
 		// Create and add player and create/send event that will detect the player
 		Player player = Player.createMockedPlayer("player", bluOsPlayerType);
@@ -130,9 +133,6 @@ public class FixedPlayersGroupStrategyTests extends GroupTests {
 	
 	@Test
 	public void handleIdleEventShouldStartIdlePlayerDetectors() throws Throwable {
-		PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
-		PlayerTypes.MusicCastPlayerType musicCastPlayerType = PlayerTypes.createMockedMusicCastPlayerType();
-
 		// Add expected players
 		List<String> bluOsPlayerIds = new ArrayList<>();
 		bluOsPlayerIds.add("PlayingBluOsPlayerId");
@@ -140,6 +140,10 @@ public class FixedPlayersGroupStrategyTests extends GroupTests {
 		List<String> musicCastPlayerIds = new ArrayList<>();
 		musicCastPlayerIds.add("IdleMusicCastPlayerId");
 		expectedPlayers.put(musicCastPlayerType.playerTypeId(), musicCastPlayerIds);
+		
+		// Must be set explicitly because this list is initialized when creating the fixedPlayersGroupStrategy instance
+		fixedPlayersGroupStrategy.playerTypes().add(bluOsPlayerType);
+		fixedPlayersGroupStrategy.playerTypes().add(musicCastPlayerType);
 		
 		// Create and add players to group
 		Player playingPlayer = Player.createMockedPlayer("PlayingBluOsPlayerId", bluOsPlayerType);
@@ -166,14 +170,14 @@ public class FixedPlayersGroupStrategyTests extends GroupTests {
 	
 	@Test
 	public void handleIdleEventShouldIncludePlayingPlayerTypeDetectorIfMoreThanOnePlayerOfThatTypeIsInGroup() throws Throwable {
-		// Create and add players to group
-		PlayerTypes.BluOsPlayerType bluOsPlayerType = PlayerTypes.createMockedBluOsPlayerType();
-
 		// Add expected players
 		List<String> bluOsPlayerIds = new ArrayList<>();
 		bluOsPlayerIds.add("PlayingBluOsPlayerId");
 		bluOsPlayerIds.add("IdleBluOsPlayerId");
 		expectedPlayers.put(bluOsPlayerType.playerTypeId(), bluOsPlayerIds);
+
+		// Must be set explicitly because this list is initialized when creating the fixedPlayersGroupStrategy instance
+		fixedPlayersGroupStrategy.playerTypes().add(bluOsPlayerType);
 		
 		Player playingPlayer = Player.createMockedPlayer("PlayingBluOsPlayerId", bluOsPlayerType);
 		fixedPlayersGroupStrategy.addPlayer(playingPlayer);

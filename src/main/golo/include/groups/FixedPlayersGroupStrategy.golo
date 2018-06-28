@@ -6,7 +6,10 @@ import audiostreamerscrobbler.maintypes.Player
 import java.util.Collections
 
 function createFixedPlayersGroupStrategy = |expectedPlayers, cbProcessEvents| {
-	let strategy = createBaseGroupStragegyImpl(cbProcessEvents)
+	let playerTypes = list[getPlayerType(ptid) foreach ptid in expectedPlayers: keySet()]
+	println(playerTypes)
+	
+	let strategy = createBaseGroupStragegyImpl(playerTypes, cbProcessEvents)
 
 	# Provide implementations for missing implementations in the BaseGroupStrategyImpl
 	strategy:
@@ -29,16 +32,20 @@ local function handleDetectedEvent = |impl, group, event| {
 	println("Player '" + player: id() + "' is managed by the '" + group: name() + "' group. Adding player.")
 	impl: addPlayer(player)
 	
-	# When all players of the same type in this group have been found, there's no need to
-	# look for more players of this type
-	let expectedPlayerTypePlayerIds = impl: _expectedPlayers(): get(playerTypeId)
-	let activePlayerTypePlayerIds = set[p: id() foreach p in impl: allPlayers() when p: playerTypeId() == playerTypeId]
-	if (expectedPlayerTypePlayerIds: size() == activePlayerTypePlayerIds: size()) {
+	if (_allExpectedPlayersOfPlayerTypeFound(impl, playerTypeId)) {
+		# When all players of the same type in this group have been found, there's no need to
+		# look for more players of this type
 		println("All players of type '" + playerTypeId + "' in group '" + group: name() + "' have been found. Stop looking for other players of this type.")
 		impl: stopDetectors(|t| -> t: playerTypeId() == playerTypeId)
 	} else {
 		println("Not all players of type '" + playerTypeId + "' in group '" + group: name() + "' have been found yet. Keep looking for other players of this type")
 	}
+}
+
+local function _allExpectedPlayersOfPlayerTypeFound = |impl, playerTypeId| {
+	let expectedPlayerTypePlayerIds = impl: _expectedPlayers(): get(playerTypeId)
+	let activePlayerTypePlayerIds = set[p: id() foreach p in impl: activePlayers() when p: playerTypeId() == playerTypeId]
+	return expectedPlayerTypePlayerIds: size() == activePlayerTypePlayerIds: size()
 }
 
 local function handleLostEvent = |impl, group, event| {
@@ -48,18 +55,19 @@ local function handleLostEvent = |impl, group, event| {
 		return
 	}
 
-	println("Player '" + player: id() + "' is managed by the '" + group: name() + "' group. Removing player and start looking for it")
-	
-	impl: startDetectors(|t| -> t: playerTypeId() == player: playerTypeId())
+	impl: startDetectors(|t| {
+		return t: playerTypeId() == player: playerTypeId()
+	})
+
 	impl: removePlayer(player)
 }
 
 local function afterIdleEvent = |impl, group, event| {
 	let player = event: player()
-	startAllDetectorsExceptForPlayer(impl, player)
+	_startAllDetectorsExceptForPlayer(impl, player)
 }
 
-local function startAllDetectorsExceptForPlayer = |impl, player| {
+local function _startAllDetectorsExceptForPlayer = |impl, player| {
 	let playerType = player: playerType()
 	let playerTypeId = playerType: playerTypeId()
 	
