@@ -9,7 +9,23 @@ union PlayerTypes = {
 }
 
 augment PlayerTypes {
-	function playerTypeId = |this| -> getPlayerTypeID(this)
+ 	function playerTypeId = |this| -> getPlayerTypeID(this)
+}
+
+function createPlayer = |playerImpl| {
+	let playerTypeId = getPlayerTypeID(playerImpl: playerType())
+	let playerId = createPlayerId(playerTypeId, playerImpl: name())
+	let player = DynamicObject("PlayerProxy"):
+		define("impl", playerImpl):
+		define("id", playerId):
+		define("playerTypeId", getPlayerTypeID(playerImpl: playerType())):
+		fallback(DynamicObject.delegate(playerImpl))
+
+	return player
+}
+
+function createPlayerId = |playerTypeId, playerName| {
+	return playerTypeId + "/" + playerName
 }
 
 function getPlayerType = |playerTypeId| {
@@ -38,16 +54,4 @@ function getPlayerTypeID = |playerType| {
 			raise("Internal error: unknown player type '" + playerType + "'")
 		}
 	}
-}
-
-function createPlayer = |playerImpl| {
-	let playerTypeId = getPlayerTypeID(playerImpl: playerType())
-	let id = playerTypeId + "/" + playerImpl: name()
-	let player = DynamicObject("PlayerProxy"):
-		define("impl", playerImpl):
-		define("id", id):
-		define("playerTypeId", getPlayerTypeID(playerImpl: playerType())):
-		fallback(DynamicObject.delegate(playerImpl))
-
-	return player
 }

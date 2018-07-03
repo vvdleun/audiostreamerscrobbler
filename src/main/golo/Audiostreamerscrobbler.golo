@@ -1,9 +1,7 @@
 #!/usr/bin/env golosh 
 module audiostreamerscrobbler.Audiostreamerscrobbler
 
-import audiostreamerscrobbler.factories.Config
-import audiostreamerscrobbler.factories.PlayerControlThreadFactory
-import audiostreamerscrobbler.factories.ScrobblerErrorHandlerFactory
+import audiostreamerscrobbler.factories.{Config, PlayerControlThreadFactory, ScrobblerErrorHandlerFactory}
 import audiostreamerscrobbler.utils.{NetworkUtils, VerySimpleArgsParser}
 
 import gololang.IO
@@ -19,7 +17,7 @@ local function run = |args| {
 		return
 	}
 	
-	let isConfigFileValid = validateConfig()
+	let isConfigFileValid = validateAndInitConfig()
 	if (not isConfigFileValid) {
 		return
 	}
@@ -32,7 +30,7 @@ local function run = |args| {
 	playerControlThread: start()
 }
 
-local function validateConfig = {
+local function validateAndInitConfig = {
 	if not fileExists("config.json") {
 		println("Configuration file \"config.json\" was not found in the current directory.")
 		println("See project's website \"https://github.com/vvdleun/audiostreamerscrobbler\" for an example.")
@@ -41,6 +39,7 @@ local function validateConfig = {
 	}
 
 	try {
+		initConfig()
 		let config = getConfig()
 	} catch(ex) {
 		println("Error while reading config.json. Please check whether the file is valid JSON and uses UTF-8 encoding.")
@@ -109,7 +108,7 @@ local function _authorizeService = |parser| {
 		return
 	}
 
-	let isConfigFileValid = validateConfig()
+	let isConfigFileValid = validateAndInitConfig()
 	if (not isConfigFileValid) {
 		return
 	}

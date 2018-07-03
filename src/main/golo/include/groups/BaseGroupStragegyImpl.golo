@@ -73,7 +73,6 @@ local function activePlayers = |impl| {
 	return set[m: get(KEY_PLAYER) foreach m in impl: players(): values()]
 }
 
-
 local function isPlayerInGroupPlaying = |impl| {
 	foreach e in impl: players(): entrySet() {
 		if (e: getValue(): get(KEY_STATE): isPlaying()) {
@@ -84,11 +83,11 @@ local function isPlayerInGroupPlaying = |impl| {
 }
 
 local function startDetectors = |impl, f| {
-	_startOrStopDetectors(impl, f, |t| -> GroupProcessEvents.startDetectors(t))
+	_startOrStopDetectors(impl, f, |t| -> GroupProcessEvents.StartDetectors(t))
 }
 
 local function stopDetectors = |impl, f| {
-	_startOrStopDetectors(impl, f, |t| -> GroupProcessEvents.stopDetectors(t))
+	_startOrStopDetectors(impl, f, |t| -> GroupProcessEvents.StopDetectors(t))
 }
 
 local function _startOrStopDetectors = |impl, f, groupProcessEvent| {
@@ -98,11 +97,11 @@ local function _startOrStopDetectors = |impl, f, groupProcessEvent| {
 }
 
 local function startMonitors = |impl, f| {
-	_startOrStopMonitors(impl, f, |p| -> GroupProcessEvents.startMonitors(p))
+	_startOrStopMonitors(impl, f, |p| -> GroupProcessEvents.StartMonitors(p))
 }
 
 local function stopMonitors = |impl, f| {
-	_startOrStopMonitors(impl, f, |p| -> GroupProcessEvents.stopMonitors(p))
+	_startOrStopMonitors(impl, f, |p| -> GroupProcessEvents.StopMonitors(p))
 }
 
 local function _startOrStopMonitors = |impl, f, groupProcessEvent| {

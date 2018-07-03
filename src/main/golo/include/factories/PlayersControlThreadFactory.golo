@@ -1,9 +1,6 @@
 module audiostreamerscrobbler.factories.PlayerControlThreadFactory
 
-import audiostreamerscrobbler.factories.Config
-import audiostreamerscrobbler.factories.PlayerDetectorThreadFactory
-import audiostreamerscrobbler.factories.PlayerMonitorThreadFactory
-import audiostreamerscrobbler.factories.ScrobblerHandlerFactory
+import audiostreamerscrobbler.factories.{Config, GroupFactory, PlayerDetectorThreadFactory, PlayerMonitorThreadFactory, ScrobblerHandlerFactory}
 import audiostreamerscrobbler.threads.PlayerControlThread
 
 function createPlayerControlThreadFactory = {
@@ -16,11 +13,12 @@ function createPlayerControlThreadFactory = {
 local function createPlayerControlThreadInstance = |scrobblerErrorHandler| {
 	let config = getConfig()
 
+	let groupFactory = createGroupFactory()
 	let playerDetectorThreadFactory = createPlayerDetectorThreadFactory()
 	let playerMonitorThreadFactory = createPlayerMonitorThreadFactory()
 
 	let scrobblerHandlerFactory = createScrobblerHandlerFactory()
 	let scrobblerHandler = scrobblerHandlerFactory: createScrobblerHandler(scrobblerErrorHandler)
 
-	return createPlayerControlThread(playerDetectorThreadFactory, playerMonitorThreadFactory, scrobblerHandler, config)
+	return createPlayerControlThread(groupFactory, playerDetectorThreadFactory, playerMonitorThreadFactory, scrobblerHandler, config)
 }

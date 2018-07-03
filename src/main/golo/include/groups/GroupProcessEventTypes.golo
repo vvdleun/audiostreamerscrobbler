@@ -1,7 +1,8 @@
 module audiostreamerscrobbler.groups.GroupProcessEventTypes
 
 union GroupProcessEvents = {
-	startDetectors = { playerTypes }
-	stopDetectors = { playerTypes }
-	stopMonitors = { players }
+	StartDetectors = { playerTypes }
+	StopDetectors = { playerTypes }
+	StartMonitors = { players }
+	StopMonitors = { players }
 }

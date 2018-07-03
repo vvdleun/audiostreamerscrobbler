@@ -298,7 +298,7 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 	public void idleEventShouldMarkPlayerAsIdleAndCallAfterIdleEventFunction() throws Throwable {
 		// Create and add players to group
 		Player playingPlayer = Player.createMockedPlayer("PlayingBluOsPlayerId", bluOsPlayerType);
-		groupStrategyImpl.addPlayer(playingPlayer);
+ 		groupStrategyImpl.addPlayer(playingPlayer);
 		markPlayerAsPlaying(groupStrategyImpl, "PlayingBluOsPlayerId");
 		
 		Player idlePlayer = Player.createMockedPlayer("IdleMusicCastPlayerId", musicCastPlayerType);

@@ -23,13 +23,15 @@ function createFixedPlayersGroupStrategy = |expectedPlayers, cbProcessEvents| {
 local function handleDetectedEvent = |impl, group, event| {
 	let player = event: player()
 	let playerTypeId = player: playerTypeId()
-	
+
 	if (not _isPlayerKnown(impl, group, player)) {
 		return
 	}
-		
+	
 	println("Player '" + player: id() + "' is managed by the '" + group: name() + "' group. Adding player.")
 	impl: addPlayer(player)
+
+	impl: startMonitors(|p| -> p: id() == player: id())
 	
 	if (_allExpectedPlayersOfPlayerTypeFound(impl, playerTypeId)) {
 		# When all players of the same type in this group have been found, there's no need to
@@ -54,9 +56,7 @@ local function handleLostEvent = |impl, group, event| {
 		return
 	}
 
-	impl: startDetectors(|t| {
-		return t: playerTypeId() == player: playerTypeId()
-	})
+	impl: startDetectors(|t| -> t: playerTypeId() == player: playerTypeId())
 
 	impl: removePlayer(player)
 }

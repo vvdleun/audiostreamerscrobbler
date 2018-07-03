@@ -1,6 +1,7 @@
 module audiostreamerscrobbler.threads.PlayerControlThread
 
 import audiostreamerscrobbler.utils.ThreadUtils
+import audiostreamerscrobbler.groups.GroupEventTypes.types.GroupEvents
 
 import gololang.concurrent.workers.WorkerEnvironment
 import java.lang.{InterruptedException, Thread}
@@ -8,28 +9,30 @@ import java.time.{Duration, Instant}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
 let DEAD_PLAYER_CHECK_INTERVAL = 80
-let MONITOR_THREAD_KEY = "thread"
 let MONITOR_ALIVE_KEY = "lastActive"
+let MONITOR_PLAYER_KEY = "player"
+let MONITOR_THREAD_KEY = "thread"
 
 union PlayerControlThreadMsgs = {
 	StartMsg
 	StopMsg
-	DetectedPlayerMsg = { player }
-	PlayerStatusUpdateMsg = { player, status }
-	LostPlayerMsg = { player }
+	OutgoingGroupEvent = { event }
+	IncominggGroupProcessEvent = { event }
 	CheckForDeadPlayers
 }
 
-function createPlayerControlThread = |detectorThreadFactory, monitorThreadFactory, scrobblerHandler, config| {
+function createPlayerControlThread = |groupFactory, detectorThreadFactory, monitorThreadFactory, scrobblerHandler, config| {
 	let isRunning = AtomicReference(AtomicBoolean(false))
 
 	let controlThread = DynamicObject("PlayerControlThread"):
+		define("_groupFactory", groupFactory):
 		define("_detectorThreadFactory", detectorThreadFactory):
 		define("_monitorThreadFactory", monitorThreadFactory):
 		define("_scrobblerHandler", scrobblerHandler):
 		define("_config", config):
 		define("_env", null):
 		define("_port", null):
+		define("_group", null):
 		define("_detectorThreads", null):
 		define("_monitorThreads", null):
 		define("_isRunning", isRunning):
@@ -54,9 +57,15 @@ local function initAndStartPlayerControlThread = |controlThread| {
 	controlThread: _env(env)
 	controlThread: _port(port)
 
+	let group = controlThread: _groupFactory(): createGroup(|e| {
+		# Incoming group process event handler
+		controlThread: _port(): send(PlayerControlThreadMsgs.IncominggGroupProcessEvent(e))
+	})
+	controlThread: _group(group)
+	
 	let aliveThread = _createAndRunPlayerAliveCheckThread(controlThread)
 	controlThread: _aliveThread(aliveThread)
-
+	
 	port: send(PlayerControlThreadMsgs.StartMsg())
 }
 
@@ -72,6 +81,7 @@ local function _createAndRunPlayerAliveCheckThread = |controlThread| {
 			} catch (e) {
 				case {
 					when e oftype InterruptedException.class {				
+						return
 					}
 					otherwise {
 						throw(e)
@@ -95,22 +105,19 @@ local function stopPlayerControlThread = |controlThread| {
 local function _portIncomingMsgHandler = |controlThread, msg| {
 	case {
 		when msg: isStartMsg() {
-			_startThreads(controlThread)
+			_sendGroupEvent(controlThread, GroupEvents.InitializationEvent())
 		}
-		when msg: isStopMsg() {
-			_stopThreads(controlThread)
+		when msg: isOutgoingGroupEvent() {
+			_handleOutgoingGroupEvent(controlThread, msg: event())
 		}
-		when msg: isDetectedPlayerMsg() {
-			_handleDetectedPlayer(controlThread, msg: player())
-		}
-		when msg: isPlayerStatusUpdateMsg() {
-			_registerPlayerAlive(controlThread: _monitorThreads(), msg: player())
+		when msg: isIncominggGroupProcessEvent() {
+			_handleIncomingGroupProcessEvent(controlThread, msg: event())
 		}
 		when msg: isCheckForDeadPlayers() {
 			_checkAndScheduleDeadPlayersRemoval(controlThread)
 		}
-		when msg: isLostPlayerMsg() {
-			_handleLostPlayer(controlThread, msg: player())
+		when msg: isStopMsg() {
+			_stopThreads(controlThread)
 		}
 		otherwise {
 			raise("Internal error, received unknown message: " + msg)
@@ -120,101 +127,94 @@ local function _portIncomingMsgHandler = |controlThread, msg| {
 
 # Functions that should be called via _portIncomingMsgHandler (direct or indirectly) only
 
-local function _startThreads = |controlThread| {
-	_startDetector(controlThread)
+local function _sendGroupEvent = |controlThread, event| {
+	controlThread: _port(): send(event)
 }
 
-local function _startDetector = |controlThread| {
-	let detectorThreadFactory = controlThread: _detectorThreadFactory()
-	let detectorThread = detectorThreadFactory: createDetectorThread(|p| {
-		controlThread: _port(): send(PlayerControlThreadMsgs.DetectedPlayerMsg(p))
+local function _handleOutgoingGroupEvent = |controlThread, event| {
+	# Player events need an additional step: letting the AliveThread know
+	# that the player is alive and well.
+	if (event: isPlayingEvent() or event: isIdleEvent()) {
+		let monitorThreads = controlThread: _monitorThreads()
+		_registerPlayerAlive(monitorThreads, event: player())
+	}
+	_sendGroupEvent(controlThread, event)
+}
+
+local function _handleIncomingGroupProcessEvent = |controlThread, event| {
+	case {
+		when event: isStartDetectors() {
+			_startDetectors(controlThread, event: playerTypes())
+		}
+		when event: isStopDetectors() {
+			_stopDetectors(controlThread, event: playerTypes())
+		}
+		when event: isStartMonitors() {
+			_startMonitors(controlThread, event: players())
+		}
+		when event: isStopMonitors() {
+			_stopMonitors(controlThread, event: players())
+		}
+		otherwise {
+			raise("Internal error, received unknown group process event: " + event)
+		}
+	}
+}
+
+local function _startDetectors = |controlThread, playerTypes| {
+	playerTypes: each(|t| {
+		_addAndStartDetector(controlThread, t)
 	})
-	let playerType = detectorThread: playerType()
-	controlThread: _detectorThreads(): put(playerType, detectorThread)
+}
+
+local function _addAndStartDetector = |controlThread, playerType| {
+	let playerTypeId = playerType: playerTypeId()
+	let detectorThreadFactory = controlThread: _detectorThreadFactory()
+	let detectorThread = detectorThreadFactory: createDetectorThread(playerTypeId, |p| {
+		# Detector player detected callback handler
+		let playerDetectedEvent = GroupEvents.DetectedEvent(p)
+		controlThread: _port(): send(PlayerControlThreadMsgs.OutgoingGroupEvent(playerDetectedEvent))
+	})
+	controlThread: _detectorThreads(): put(playerTypeId, detectorThread)
 	detectorThread: start()
 }
 
-local function _stopThreads = |controlThread| {
-	# Stop running detector threads
+local function _stopDetectors = |controlThread, playerTypes| {
+	playerTypes: each(|t| -> _stopAndRemoveDetector(controlThread, t))
+}
+
+local function _stopAndRemoveDetector = |controlThread, playerType| {
 	let detectorThreads = controlThread: _detectorThreads()
-	let detectorPlayerTypes = detectorThreads: keySet()
-	foreach (playerType in detectorPlayerTypes) {
-		let detectorThread = detectorThreads: remove(playerType)
-		detectorThread: stop()
-	}
+	let playerTypeId = playerType: playerTypeId()
 
-	# Stop running monitors
-	let monitorThreads = controlThread: _monitorThreads()
-	let monitorPlayers = monitorThreads: keySet()
-	foreach (player in monitorPlayers) {
-		_removeAndStopMonitor(controlThread, player)
-	}
-
-	controlThread: _aliveThread(): interrupt()
-	
-	# Stop other threads
-	controlThread: _env(): shutdown()
-	controlThread: _env(null)
-	controlThread: _port(null)
-}
-
-local function _handleDetectedPlayer = |controlThread, player| {
-	println("Detected player: " + player: friendlyName())
-	if (not _isPlayerKnown(controlThread, player) or not _isPlayerDetecting(controlThread, player)) {
-		return
-	}
-	_removeAndStopDetector(controlThread, player)
-	_addAndStartMonitorThread(controlThread, player)
-}
-
-local function _isPlayerKnown = |controlThread, player| {
-	let config = controlThread: _config()
-	let playerName = config: get("player"): get("name")
-
-	if (player: name() != playerName) {
-		println("Player '" + player: name() + "' is not the player we are looking for")
-		return false
-	}
-	
-	return true
-}
-
-local function _isPlayerDetecting = |controlThread, player| {
-	let detectorThreads = controlThread: _detectorThreads()
-	let monitorThreads = controlThread: _monitorThreads()
-
-	let playerType = player: playerType()
-	if (detectorThreads: get(playerType) is null) {
-		println("Ignored: Player type '" + playerType + "' was not being detected")
-		return false
-	} else if (monitorThreads: get(player) isnt null) {
-		println("Player '" + player: friendlyName() + "' is already being monitored")
-		return false
-	}
-	return true
-}
-
-local function _removeAndStopDetector = |controlThread, player| {
-	let detectorThreads = controlThread: _detectorThreads()
-	let playerType = player: playerType()
-
-	let detector = detectorThreads: remove(playerType)
+	let detector = detectorThreads: remove(playerTypeId)
 	println("Stopping detector...")
 	detector: stop()
+}
+
+local function _startMonitors = |controlThread, players| {
+	players: each(|p| -> _addAndStartMonitorThread(controlThread, p))
 }
 
 local function _addAndStartMonitorThread = |controlThread, player| {
 	let monitorTreadFactory = controlThread: _monitorThreadFactory()
 	let scrobblerHandler = controlThread: _scrobblerHandler()
 	let monitorThread = monitorTreadFactory: createMonitorThread(player, scrobblerHandler, |p, s| {
-		# Callback that is called by PlayerMonitorThread to report player status changes
-		controlThread: _port(): send(PlayerControlThreadMsgs.PlayerStatusUpdateMsg(p, s))
+		# Monitor player update callback handler
+		# Status should be MonitorThreadTypes union instance
+		let outgoingGroupEvent = match {
+			when s: isMonitoring() then GroupEvents.IdleEvent(p)
+			when s: isPlayingSong() then GroupEvents.PlayingEvent(p)
+			otherwise raise("Internal error: Unknown monitor status: '" + s + "'")
+		}
+		controlThread: _port(): send(PlayerControlThreadMsgs.OutgoingGroupEvent(outgoingGroupEvent))
 	})
 
 	let monitorThreads = controlThread: _monitorThreads()
-	monitorThreads: put(player, map[
+	monitorThreads: put(player: id(), map[
 			[MONITOR_THREAD_KEY, monitorThread],
-			[MONITOR_ALIVE_KEY, null]])
+			[MONITOR_ALIVE_KEY, null],
+			[MONITOR_PLAYER_KEY, player])
 	_registerPlayerAlive(monitorThreads, player)
 
 	println("Starting monitor...")
@@ -222,12 +222,26 @@ local function _addAndStartMonitorThread = |controlThread, player| {
 }
 
 local function _registerPlayerAlive = |monitorThreads, player| {
-	let monitorThread = monitorThreads: get(player)
-	if (monitorThread == null) {
-		println("Internal error: player '" + player + "' is not being monitored. Cannot update alive timestamp")
+	let playerId = player: id()
+	let monitorPlayerMap = monitorThreads: get(playerId)
+	if (monitorPlayerMap == null) {
+		println("Internal error: player '" + playerId + "' is not being monitored. Cannot update alive timestamp")
 		return
 	}
-	monitorThread: put(MONITOR_ALIVE_KEY, Instant.now())
+	monitorPlayerMap: put(MONITOR_ALIVE_KEY, Instant.now())
+}
+
+local function _stopMonitors = |controlThread, players| {
+	players: each(|p| -> _removeAndStopMonitor(controlThread, p))
+}
+
+local function _removeAndStopMonitor = |controlThread, player| {
+	let monitorThreads = controlThread: _monitorThreads()
+
+	let monitorThreadData = monitorThreads: remove(player: id())
+
+	let monitorThread = monitorThreadData: get(MONITOR_THREAD_KEY)
+	monitorThread: stop()
 }
 
 local function _checkAndScheduleDeadPlayersRemoval = |controlThread| {
@@ -240,43 +254,37 @@ local function _checkAndScheduleDeadPlayersRemoval = |controlThread| {
 		let timeDiff = Duration.between(timeLastActive, timeNow): getSeconds()
 		if timeDiff > DEAD_PLAYER_CHECK_INTERVAL {
 			let player = e: getKey()
+			let lostPlayerEvent = GroupEvents.LostEvent(player)
 			println("Lost player '" + player: friendlyName() + "'. Last time data was received from this player was " + timeDiff + " seconds ago.")
-			controlThread: _port(): send(PlayerControlThreadMsgs.LostPlayerMsg(player))
+			controlThread: _port(): send(PlayerControlThreadMsgs.OutgoingGroupEvent(lostPlayerEvent))
 		}
 	})
 	
 	println("Done looking for inactive players")
 }
 
-local function _handleLostPlayer = |controlThread, player| {
-	println("LOST PLAYER: " + player: friendlyName())
-	if (not _isPlayerKnown(controlThread, player) or not _isPlayerMonitoring(controlThread, player)) {
-		return
-	}
-	_removeAndStopMonitor(controlThread, player)
-	_startDetector(controlThread)
-}
-
-local function _isPlayerMonitoring = |controlThread, player| {
+local function _stopThreads = |controlThread| {
+	# Stop running detector threads
 	let detectorThreads = controlThread: _detectorThreads()
-	let monitorThreads = controlThread: _monitorThreads()
-
-	let playerType = player: playerType()
-	if (detectorThreads: get(playerType) isnt null) {
-		println("Internal error: player type '" + playerType + "' detection thread is already active")
-		return false
-	} else if (monitorThreads: get(player) is null) {
-		println("Internal error: player '" + player: friendlyName() + "' monitoring thread is not active")
-		return false
+	let detectorPlayerTypeds = detectorThreads: keySet()
+	foreach (playerTypeId in detectorPlayerTypeds) {
+		let detectorThread = detectorThreads: remove(playerTypeId)
+		detectorThread: stop()
 	}
-	return true
-}
 
-local function _removeAndStopMonitor = |controlThread, player| {
+	# Stop running monitors
 	let monitorThreads = controlThread: _monitorThreads()
+	let monitorPlayerMaps = monitorThreads: valueSet()
+	foreach (monitorPlayerMap in monitorPlayerMaps) {
+		let player = monitorPlayerMap: get(MONITOR_PLAYER_KEY)
+		_removeAndStopMonitor(player)
+	}
 
-	let monitorThreadData = monitorThreads: remove(player)
-
-	let monitorThread = monitorThreadData: get(MONITOR_THREAD_KEY)
-	monitorThread: stop()
+	controlThread: _aliveThread(): interrupt()
+	
+	# Stop other threads
+	controlThread: _env(): shutdown()
+	controlThread: _env(null)
+	controlThread: _port(null)
 }
+
