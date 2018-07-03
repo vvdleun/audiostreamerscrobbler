@@ -4,9 +4,9 @@ function createGroup = |name, groupStrategy| {
 	let players = list[]
 
 	let group = DynamicObject("Group"):
-		define("_groupStrategy", groupStrategy):
+		define("_groupStrategy", |this| -> groupStrategy):
 		define("name", name):
-		define("event", |this, event| -> this: _groupStrategy(): event(this, event))
+		define("event", |this, e| -> this: _groupStrategy(): event(this, e))
 		
 	return group
 }

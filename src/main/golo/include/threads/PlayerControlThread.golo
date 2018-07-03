@@ -1,7 +1,8 @@
 module audiostreamerscrobbler.threads.PlayerControlThread
 
-import audiostreamerscrobbler.utils.ThreadUtils
 import audiostreamerscrobbler.groups.GroupEventTypes.types.GroupEvents
+import audiostreamerscrobbler.maintypes.Player
+import audiostreamerscrobbler.utils.ThreadUtils
 
 import gololang.concurrent.workers.WorkerEnvironment
 import java.lang.{InterruptedException, Thread}
@@ -59,6 +60,7 @@ local function initAndStartPlayerControlThread = |controlThread| {
 
 	let group = controlThread: _groupFactory(): createGroup(|e| {
 		# Incoming group process event handler
+		println("GROUP INCOMING: " + e)
 		controlThread: _port(): send(PlayerControlThreadMsgs.IncominggGroupProcessEvent(e))
 	})
 	controlThread: _group(group)
@@ -103,20 +105,26 @@ local function stopPlayerControlThread = |controlThread| {
 # Port message handler
 
 local function _portIncomingMsgHandler = |controlThread, msg| {
+	println("INCOMING MESSAGE")
 	case {
 		when msg: isStartMsg() {
+			println("START " + msg)
 			_sendGroupEvent(controlThread, GroupEvents.InitializationEvent())
 		}
 		when msg: isOutgoingGroupEvent() {
+			println("OUTGOING GROUP EVENT " + msg)
 			_handleOutgoingGroupEvent(controlThread, msg: event())
 		}
 		when msg: isIncominggGroupProcessEvent() {
+			println("INCOMING EVENT " + msg)
 			_handleIncomingGroupProcessEvent(controlThread, msg: event())
 		}
 		when msg: isCheckForDeadPlayers() {
+			println("CHECK DEAD PLAYER  " + msg)
 			_checkAndScheduleDeadPlayersRemoval(controlThread)
 		}
 		when msg: isStopMsg() {
+			println("STOP MSG  " + msg)
 			_stopThreads(controlThread)
 		}
 		otherwise {
@@ -128,7 +136,8 @@ local function _portIncomingMsgHandler = |controlThread, msg| {
 # Functions that should be called via _portIncomingMsgHandler (direct or indirectly) only
 
 local function _sendGroupEvent = |controlThread, event| {
-	controlThread: _port(): send(event)
+	println("SENDING TO GROUP: " + event)
+	controlThread: _group(): event(event)
 }
 
 local function _handleOutgoingGroupEvent = |controlThread, event| {
@@ -162,9 +171,7 @@ local function _handleIncomingGroupProcessEvent = |controlThread, event| {
 }
 
 local function _startDetectors = |controlThread, playerTypes| {
-	playerTypes: each(|t| {
-		_addAndStartDetector(controlThread, t)
-	})
+	playerTypes: each(|t| -> _addAndStartDetector(controlThread, t))
 }
 
 local function _addAndStartDetector = |controlThread, playerType| {
@@ -214,7 +221,7 @@ local function _addAndStartMonitorThread = |controlThread, player| {
 	monitorThreads: put(player: id(), map[
 			[MONITOR_THREAD_KEY, monitorThread],
 			[MONITOR_ALIVE_KEY, null],
-			[MONITOR_PLAYER_KEY, player])
+			[MONITOR_PLAYER_KEY, player]])
 	_registerPlayerAlive(monitorThreads, player)
 
 	println("Starting monitor...")

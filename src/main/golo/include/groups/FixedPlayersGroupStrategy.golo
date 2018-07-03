@@ -21,6 +21,7 @@ function createFixedPlayersGroupStrategy = |expectedPlayers, cbProcessEvents| {
 }
 
 local function handleDetectedEvent = |impl, group, event| {
+	println("handleDetectedEvent called")
 	let player = event: player()
 	let playerTypeId = player: playerTypeId()
 
@@ -87,6 +88,8 @@ local function _startAllDetectorsExceptForPlayer = |impl, player| {
 local function _isPlayerKnown = |impl, group, player| {
 	let playerId = player: id()
 	let expectedPlayerIds = _getExpectedPlayerIds(impl)
+	println(impl: _expectedPlayers())
+	println(expectedPlayerIds)
 	
 	if (not expectedPlayerIds: contains(playerId)) {
 		println("Player '" + playerId + "' is not managed by the '" + group: name() + "' group")

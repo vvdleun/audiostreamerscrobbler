@@ -16,7 +16,6 @@ local function createConfiguredGroup = |cbProcessEvents| {
 	let config = getConfig()
 	let createGroupTypes = [^_createConfiguredLegacyPlayerGroup]
 	foreach createGroupFunction in createGroupTypes {
-		println("waaaat: " + createGroupFunction)
 		let group = createGroupFunction(cbProcessEvents, config)
 		if (group != null) {
 			return group
@@ -26,7 +25,6 @@ local function createConfiguredGroup = |cbProcessEvents| {
 }
 
 local function _createConfiguredLegacyPlayerGroup = |cbProcessEvents, config| {
-	println("huh")
 	let playerConfig = config: get("player")
 	if playerConfig is null {
 		return null
@@ -42,10 +40,8 @@ local function _createConfiguredLegacyPlayerGroup = |cbProcessEvents, config| {
 	let playerName = playerConfig: get("name")
 	let playerId = createPlayerId(playerTypeId, playerName)
 	
-	let expectedPlayers = map[[playerTypeId, [playerName]]]
+	let expectedPlayers = map[[playerTypeId, list[playerId]]]
 	let group = _createFixedPlayerGroup(expectedPlayers, cbProcessEvents)
-	
-	println("blech: " + group)
 	
 	return group
 }

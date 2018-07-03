@@ -23,9 +23,11 @@ function createBaseGroupStragegyImpl = |playerTypes, cbProcessEvents| {
 	# 4) Strategies based on this implementation are definitely not threadsafe
 	
 	let players = map[]
+	let activePlayerTypes = set[]
 
 	let strategyImpl = DynamicObject("BaseGroupStragegyImpl"):
 		define("playerTypes", playerTypes):
+		define("activePlayerTypes", activePlayerTypes):
 		define("cbProcessEvents", |this| -> cbProcessEvents):
 		define("addPlayer", |this, player| -> addPlayer(this, player)):
 		define("removePlayer", |this, player| -> removePlayer(this, player)):
@@ -46,7 +48,7 @@ function createBaseGroupStragegyImpl = |playerTypes, cbProcessEvents| {
 		define("afterPlayingEvent", |this, group, event| -> afterPlayingEvent(this, group, event)):
 		define("handleIdleEvent", |this, group, event| -> handleIdleEvent(this, group, event)):
 		define("afterIdleEvent", |this, group, event| -> notImplemented("afterIdleEvent")):
-		define("event", |this, group, event| -> event(this, group, event))
+		define("event", |this, group, e| -> onEvent(this, group, e))
 
 	return strategyImpl
 }
@@ -83,16 +85,19 @@ local function isPlayerInGroupPlaying = |impl| {
 }
 
 local function startDetectors = |impl, f| {
-	_startOrStopDetectors(impl, f, |t| -> GroupProcessEvents.StartDetectors(t))
+	let playerTypes = list[t foreach t in impl: playerTypes() when f(t)]
+	_startOrStopDetectors(impl, playerTypes, |t| -> GroupProcessEvents.StartDetectors(t))
+	impl: activePlayerTypes(): addAll(playerTypes)
 }
 
 local function stopDetectors = |impl, f| {
-	_startOrStopDetectors(impl, f, |t| -> GroupProcessEvents.StopDetectors(t))
+	let playerTypes = list[t foreach t in impl: activePlayerTypes() when f(t)]
+	_startOrStopDetectors(impl, playerTypes, |t| -> GroupProcessEvents.StopDetectors(t))
+	impl: activePlayerTypes(): removeAll(playerTypes)
 }
 
-local function _startOrStopDetectors = |impl, f, groupProcessEvent| {
+local function _startOrStopDetectors = |impl, playerTypes, groupProcessEvent| {
 	let cbProcessEvents = impl: cbProcessEvents()
-	let playerTypes = [t foreach t in impl: playerTypes() when f(t)]
 	cbProcessEvents(groupProcessEvent(playerTypes))
 }
 
@@ -155,22 +160,22 @@ local function handleIdleEvent = |impl, group, event| {
 	return true
 }
 
-local function event = |impl, group, event| {
+local function onEvent = |impl, group, event| {
 	case {
 		when event: isInitializationEvent() {
-			impl: handleInitializationEvent(impl, group, event)
+			impl: handleInitializationEvent(group, event)
 		}
 		when event: isDetectedEvent() {
-			impl: handleDetectedEvent(impl, group, event)
+			impl: handleDetectedEvent(group, event)
 		}
 		when event: isLostEvent() {
-			impl: handleLostEvent(impl, group, event)
+			impl: handleLostEvent(group, event)
 		}
 		when event: isPlayingEvent() {
-			impl: handlePlayingEvent(impl, group, event)
+			impl: handlePlayingEvent(group, event)
 		}
 		when event: isIdleEvent() {
-			impl: handleIdleEvent(impl, group, event)
+			impl: handleIdleEvent(group, event)
 		}
 		otherwise {
 			raise("Internal error: unknown group event '" + event + "'")

@@ -5,12 +5,12 @@ import audiostreamerscrobbler.threads.PlayerDetectorThread
 
 function createPlayerDetectorThreadFactory = {
 	let factory = DynamicObject("PlayerDetectorThreadFactory"):
-		define("createDetectorThread", |this, cb| -> createDetectorThread(cb))
+		define("createDetectorThread", |this, playerTypeId, cb| -> createDetectorThread(playerTypeId, cb))
 
 	return factory
 }
 
-local function createDetectorThread = |cb| {
-	let playerDetector = createPlayerDetectorFactory()
-	return createPlayerDetectorThread(playerDetector, cb)
+local function createDetectorThread = |playerTypeId, cb| {
+	let playerDetectorFactory = createPlayerDetectorFactory()
+	return createPlayerDetectorThread(playerTypeId, playerDetectorFactory, cb)
 }
