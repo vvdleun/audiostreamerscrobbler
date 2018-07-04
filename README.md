@@ -37,7 +37,7 @@ AudioStreamerScrobbler was written in [Eclipse Golo, a lesser known dynamic lang
 
 ## Requirements
 
-AudioStreamerScrobbler is a project powered by the Java Virtual Machine. To run it, the Java Runtime Environment (JRE) version 8 is required. As Golo is not yet compatible with Java 9 and higher, I'm certain that it won't work yet with Java 9 or Java 10 at this time. This is very unfortunate and hope this will be resolved in the near future.
+AudioStreamerScrobbler is a project powered by the Java Virtual Machine (JVM). To run it, the Java Runtime Environment (JRE) version 8 is required. As Golo is not yet compatible with Java 9 and higher, I'm certain that it won't work yet with Java 9 or Java 10 at this time. This is very unfortunate and hope this will be resolved in the future, otherwise a port to a different JVM language is not ruled out.
 
 Since this is a alpha pre-release, the program must be compiled before it can be used. To compile the program, both the Java Developers Kit (JDK) version 8 and the Gradle build tool (https://gradle.org) are required. Gradle will download the required dependencies, compile the project and build a stand-alone JAR file that can be used to run the program. To compile, issue the following command in the project's root directory (the directory containing the "build.gradle" file):
 
@@ -53,11 +53,11 @@ After compiling the project, copy the builds/libs/audiostreamerscrobbler-0.1.0-S
         "players" {
             "bluos": {
                 "enabled": true,
-                "players": ["Woonkamer C368"]
+                "players": ["Living Room C368"]
             }
             "musiccast": {
                 "enabled": true,
-                "players": ["Bedroom ISX-18D", "Living Room WX-010"]
+                "players": ["Bedroom ISX-18D", "Kitchen WX-010"]
             }
         },
         "scrobblers": {
@@ -99,11 +99,13 @@ After compiling the project, copy the builds/libs/audiostreamerscrobbler-0.1.0-S
         }
     }
 
-This format may change once support for other type players, new group functionality and/or other features are added to the program. I'll make sure this README.md file will always contain an up-to-date example.
+This format may change once support for other player standards, new group functionality and/or other features are added to the program. I'll make sure this README.md file will always contain an up-to-date example.
 	
-### Setting up the player
+### Setting up the players
 
 The program can monitor all BluOS (BlueSound) and Yamaha MusicCast players that are available in your network.
+
+Do not forget to disable the audiostreamer standards that you do not want to use at this time (by setting the "enabled" setting to value "false"). Otherwise, a lot of unnecessary traffic will be generated on your network.
 
 #### Monitor BluOS (BlueSound) players
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env golosh 
 module audiostreamerscrobbler.Audiostreamerscrobbler
 
-import audiostreamerscrobbler.factories.{Config, PlayerControlThreadFactory, ScrobblerErrorHandlerFactory}
+import audiostreamerscrobbler.factories.{Config, PlayerControlThreadFactory, ScrobblersFactory, ScrobblerErrorHandlerFactory}
 import audiostreamerscrobbler.utils.{NetworkUtils, VerySimpleArgsParser}
 
 import gololang.IO

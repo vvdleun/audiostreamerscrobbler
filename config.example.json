@@ -25,12 +25,12 @@
 			"sessionKey": ""
 		},
 		"gnufm": {
-			"enabled": true,
+			"enabled": false,
 			"nixtapeUrl": "",
 			"sessionKey": ""
 		},
 		"listenbrainz-server": {
-			"enabled": true,
+			"enabled": false,
 			"websiteUrl": "",
 			"apiUrl": "",
 			"userToken": ""
