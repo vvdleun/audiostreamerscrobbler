@@ -4,13 +4,13 @@ import audiostreamerscrobbler.utils.ThreadUtils
 
 import java.lang.Thread
 import java.time.{Duration, Instant}
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
 function createPollBasedPlayerMonitorHelper = |poller, minInterval, cb| {
 	let pollingMonitor = DynamicObject("PollMonitorAdapter"):
 		define("_poller", poller):
 		define("_minInterval", minInterval * 1000_L):
-		define("_isRunning", AtomicBoolean(false)):
+		define("_isRunning", AtomicReference(AtomicBoolean(false))):
 		define("_thread", null):
 		define("_lastCall", null):
 		define("_cb", |this| -> cb):
@@ -26,23 +26,31 @@ local function initAndStartPolling = |pollHelper| {
 		raise("Internal error: thread already exists")
 	}
 	
+	pollHelper: _isRunning(): get(): set(false)
 	let thread = runInNewThread("PollBasedMonitorHelper", {
 		let isRunning = pollHelper: _isRunning()
 		let cb = pollHelper: _cb()
 
-		isRunning: set(true)
-		println("Starting player polling thread...")
-		while (isRunning: get()) {
-			waitIfLastCallWasTooSoon(pollHelper)
+		isRunning: get(): set(true)
+		println("Starting player polling thread for player '" + pollHelper: player(): friendlyName() + "...")
+		while (isRunning: get(): get()) {
 			try {
+				waitIfLastCallWasTooSoon(pollHelper)
 				pollPlayerAnCallCallback(pollHelper, cb)
 			} catch(ex) {
 				let player = pollHelper: player()
-				println("Error occurred while polling " + player + ": " + ex)
-				throw ex
+				case {
+					when ex oftype InterruptedException.class {				
+						break
+					}
+					otherwise {
+						println("Error occurred while polling " + player + ": " + ex)
+						throw(ex)
+					}
+				}
 			}
 		}
-		println("Stopped player polling thread")
+		println("Stopping player polling thread for player '" + pollHelper: player(): friendlyName() + "...")
 	})
 	pollHelper: _thread(thread)
 }
@@ -50,7 +58,10 @@ local function initAndStartPolling = |pollHelper| {
 local function stop = |pollHelper| {
 	let isRunning = pollHelper: _isRunning()
 	let thread = pollHelper: _thread()
-	isRunning: set(false)
+	isRunning: get(): set(false)
+	if (thread isnt null) {
+		thread: interrupt()
+	}
 	pollHelper: _thread(null)
 }
 

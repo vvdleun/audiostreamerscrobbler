@@ -7,6 +7,7 @@ union PlayerStatus = {
 	Playing
 }
 
+let DEBUG = false
 let KEY_STATE = "state"
 let KEY_PLAYER = "player"
 
@@ -126,14 +127,16 @@ local function handleInitializationEvent = |impl, group, event| {
 local function handlePlayingEvent = |impl, group, event| {
 	let player = event: player()
 	if not hasPlayer(impl, player) {
-		println("Group '" + group: name() + "' does not manage the '" + player: friendlyName() + "' player")
+		if (DEBUG) {
+			println("Group '" + group: name() + "' does not manage the '" + player: friendlyName() + "' player at this time")
+		}
 		return false
 	}
 
 	let playingPlayer = playerInGroupPlaying(impl)
 	
 	if (playingPlayer isnt null) {
-		if (player: id() != playingPlayer: id()) {
+		if (DEBUG and player: id() != playingPlayer: id()) {
 			println("A different player in this group is already playing")
 		}
 		return false
@@ -151,18 +154,39 @@ local function afterPlayingEvent = |impl, group, event| {
 
 	let player = event: player()
 	stopMonitors(impl, |p| -> p: id() != player: id())
+
+	# Remove idle players from player list. They will be detected once more, once
+	# the currently playing player becomes idle
+	_removeIdlePlayers(impl)
+}
+
+local function _removeIdlePlayers = |impl| {
+	let idlePlayerIds = list[]
+	foreach e in impl: players(): entrySet() {
+		if (e: getValue(): get(KEY_STATE): isIdle()) {
+			idlePlayerIds: add(e: getKey())
+		}
+	}
+	idlePlayerIds: each(|id| {
+		impl: players(): remove(id)
+	})
 }
 
 local function handleIdleEvent = |impl, group, event| {
 	let player = event: player()
 	if not hasPlayer(impl, player) {
-		println("Group '" + group: name() + "' does not manage the '" + player: friendlyName() + "' player")
+		if (DEBUG) {
+			println("Group '" + group: name() + "' is currently not managing the '" + player: friendlyName() + "' player. No need to handle idle event.")
+		}
 		return false
 	} else if (not impl: players(): get(player: id()): get(KEY_STATE): isPlaying()) {
-		# println("Player is not playing")
+		if (DEBUG) {
+			println("Player '" + player: friendlyName() + "' is not playing. No need to handle idle event")
+		}
 		return false
 	}
 	
+	println("Player '" + player: friendlyName() + "' is not playing anymore")
 	impl: players(): get(player: id()): put(KEY_STATE , PlayerStatus.Idle())
 	
 	impl: afterIdleEvent(group, event)

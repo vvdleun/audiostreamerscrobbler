@@ -5,6 +5,8 @@ import audiostreamerscrobbler.maintypes.Player
 
 import java.util.Collections
 
+let DEBUG = false
+
 function createFixedPlayersGroupStrategy = |expectedPlayers, cbProcessEvents| {
 	let playerTypes = list[getPlayerType(ptid) foreach ptid in expectedPlayers: keySet()]
 	
@@ -25,10 +27,19 @@ local function handleDetectedEvent = |impl, group, event| {
 	let playerTypeId = player: playerTypeId()
 
 	if (not _isPlayerKnown(impl, group, player)) {
+		if (DEBUG) {
+			println("Player '" + player: friendlyName() + "' is not known in this group")
+		}
 		return
-	}
-	
-	if (impl: hasPlayer(player)) {
+	} else if (impl: hasPlayer(player)) {
+		if (DEBUG) {
+			println("Player '" + player: friendlyName() + "' is already managed by this group")
+		}
+		return
+	} else if (impl: playerInGroupPlaying() != null) {
+		if (DEBUG) {
+			println("A player is playing. Group is not interested in a new player at this time")
+		}
 		return
 	}
 	

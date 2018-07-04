@@ -1,7 +1,13 @@
 {
-	"player": {
-		"type": "bluos",
-		"name": "YOUR DEVICE NAME HERE"
+	"players" {
+		"bluos": {
+			"enabled": true,
+			"players": ["PlayerName"]
+		}
+		"musiccast": {
+			"enabled": true,
+			"players": ["PlayerName1", "PlayerName2"]
+		}
 	},
 	"scrobblers": {
 		"lastfm": {

@@ -247,7 +247,9 @@ local function _registerPlayerAlive = |monitorThreads, player| {
 	let playerId = player: id()
 	let monitorPlayerMap = monitorThreads: get(playerId)
 	if (monitorPlayerMap == null) {
-		println("Internal error: player '" + playerId + "' is not being monitored. Cannot update alive timestamp")
+		if (DEBUG) {
+			println("Player '" + playerId + "' is not being monitored at the moment. Not possible to update alive timestamp")
+		}
 		return
 	}
 	monitorPlayerMap: put(MONITOR_ALIVE_KEY, Instant.now())

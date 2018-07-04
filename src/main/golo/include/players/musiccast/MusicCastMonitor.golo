@@ -60,6 +60,7 @@ local function startMonitor = |monitor| {
  }
 
 local function _createAndRunThread = |monitor| {
+	println("Starting MusicCast player '" + monitor: player(): friendlyName() + "' monitor thread")
 	return runInNewThread("MusicCastMonitorThread", {
 		let isRunning = -> monitor: _isRunning(): get()
 		let socketUpdates = monitor: _socketUpdates()
@@ -116,7 +117,7 @@ local function _createAndRunThread = |monitor| {
 				}
 			}
 		}
-		println("STOPPED Monitor")
+		println("Stopped MusicCast player '" + monitor: player(): friendlyName() + "' monitor thread")
 		socketUpdates: close()
 	})
 }

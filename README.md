@@ -2,11 +2,13 @@
 
 ## Warning: ALPHA version
 
-This program is not ready for prime time yet, it's under heavy development. At this time it can only monitor 1 chosen BluOS or Yamaha MusicCast device. In a future version, a single instance should be able to monitor all players of all supported audiostreamer standards at the same time.
+This program is not ready for prime time yet, it's under heavy development.
 
-The program has almost been completely rewritten in a course of a month. Among the changes are:
-* The program is now fully async events-based, instead of being based on synchronious function calls
-* There's a new PlayerControl thread that keeps track of player monitor and detector threads. This will make it much easier to add support for multiple players.
+As of early July 2018, this program can monitor all players of all supported hardware audiostreamers in a household at the same time. This feature is very new, so troubles are not unexpected at this stage.
+
+The program has almost been completely rewritten some time ago. Among the changes were:
+* The network I/O parts of the program are now fully async events-based, instead of being based on synchronious function calls
+* There's a new PlayerControl thread that keeps track of player monitor and detector threads.
 * MusicCast support has been completely rewritten and is now based on MusicCast's Event update system via UDP
 * The used network interface (and IP addresses that program binds to) can now be configured
 * Improved, cleaned up and simplified lots of internal APIs, especially the "public" ones
@@ -15,14 +17,21 @@ Note that the program uses the undocumented LSDP protocol to detect BluOs player
 
 ## Description  
 
-AudioStreamerScrobbler is an application that monitors hardware audiostreamers - currently supporting BluOS by BlueSound or Yamaha MusicCast devices - and scrobbles played tracks to one or more of the following scrobbler services:
+AudioStreamerScrobbler is an application that monitors hardware audiostreamers and scrobbles played tracks to one or more of the personal audio tracking ("scrobbler") services.
+
+Supported hardware audiostreamers are:
+
+* BluOS-based players (for example, by BlueSound)
+* Yamaha MusicCast players
+
+The following scrobbler services are supported:
 
 * Last FM (https://last.fm)
 * ListenBrainz (https://listenbrainz.org/)
 * Libre FM (https://libre.fm)
 * A GNU FM instance (https://www.gnu.org/software/gnufm/)
 
-The program is intended to be used 24/7 on Raspberry pi-alike devices, although the program has not been tested on those small computers yet. Hopefully BluOS and Yamaha will one day implement native Last FM support in their streaming platforms, but until that time you'll be able to use this workaround. As it is unlikely that those  companies will offer compatibility with the alternative scrobbler services, this program could still be useful, even when official Last FM support will be available.
+The program is intended to be used 24/7 on Raspberry pi-alike devices, although the program has not been tested on those small computers yet.
 
 AudioStreamerScrobbler was written in [Eclipse Golo, a lesser known dynamic language that runs on the Java Virtual Machine (JVM)](http://golo-lang.org). It was a design goal to write as much code in Golo as possible and not to use additional Java dependencies, unless very unpractical. We'll see how that wil turn out on the longer run. I had to write some code in Java to work around omissions in the Golo run-time library, but luckily Gradle takes care of those complexities when building the project. Although I'm personally not the biggest fan of dynamic languages, I really started to like Golo while I was developing this program. In my opinion it's a nice, small and clean language, with a surprisingly powerful run-time library.
 
@@ -41,9 +50,15 @@ In the build/libs subdirectory, you'll find a audiostreamerscrobbler-0.1.0-SNAPS
 After compiling the project, copy the builds/libs/audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar file to a directory that is convenient for you. In the same directory, create a config.json file that looks like this:
 
     {
-        "player": {
-            "type": "bluos",
-            "name": "Living Room C368"
+        "players" {
+            "bluos": {
+                "enabled": true,
+                "players": ["Woonkamer C368"]
+            }
+            "musiccast": {
+                "enabled": true,
+                "players": ["Bedroom ISX-18D", "Living Room WX-010"]
+            }
         },
         "scrobblers": {
             "lastfm": {
@@ -84,20 +99,23 @@ After compiling the project, copy the builds/libs/audiostreamerscrobbler-0.1.0-S
         }
     }
 
-This format will change once multiple players and more type of players are supported. I'll make sure this README.md file will always contain an up-to-date example.
+This format may change once support for other type players, new group functionality and/or other features are added to the program. I'll make sure this README.md file will always contain an up-to-date example.
 	
 ### Setting up the player
 
-At this time, the program can monitor exactly one BluOS (BlueSound) or Yamaha MusicCast player. 
+The program can monitor all BluOS (BlueSound) and Yamaha MusicCast players that are available in your network.
 
-#### Monitor a BluOS (BlueSound) player
+#### Monitor BluOS (BlueSound) players
 
-First, ensure that the type of the player is "bluos", as displayed below. Enter the name of your device in the config.json's "name" field in the "player" section. 
+First, make sure that the "bluos" entry is enabled, as displayed below. Also, enter all the name of your players in the "names" field. 
+For example if you have two players that are called "Living Room C368" and "Kitchen Pulse Flex", your BluOS players configuration will look like this:
 
         ...
-        "player": {
-            "type": "bluos",
-            "name": "Living Room C368"
+        "players": {
+			"bluos": {
+				"enabled": "true",
+				"players": ["Living Room C368", "Kitchen Pulse Flex"]
+			}
         },
         ...
 
@@ -109,10 +127,15 @@ The program should be compatible with the new third party BluOS powered devices 
 
 At this stage, the program can only monitor the Net/USB input of MusicCast players. Also, despite some players having support for multiple zones, only the Main zone is supported for now. I hope to improve this one day.
 
+First, make sure that the "musiccast" entry is enabled, as displayed below. Also, enter all the name of your players in the "names" field. 
+For example if you have two players that are called "Living Room WX-010" and "Bedroom ISX-18D", your MusicCast players configuration will look like this:
+
         ...
-        "player": {
-            "type": "musiccast",
-            "name": "Bedroom ISX-18D"
+        "players": {
+			"musiccast": {
+				"enabled": "true",
+				"players": ["Living Room WX-010", "Bedroom ISX-18D"]
+			}
         },
         ...
 
@@ -224,7 +247,7 @@ Normally that would be enough, the program will then try to bind to the first IP
 	
 ## Plans
 
-At the top of my list is adding support for multiple players (of multiple types) at once. After that, I'd like to add an optional GUI mode to make it possible to configure the program in a much more user-friendly way.
+At the top of my list is improving the support of multiple players. After that, I'd like to add an optional GUI mode to make it possible to configure the program in a much more user-friendly way.
 
 Then, I'd like to add HEOS by Denon support. Please let me know if there's any demand for support of other types/brands of audio streamers.
 

@@ -5,6 +5,9 @@ import audiostreamerscrobbler.groups.{FixedPlayersGroupStrategy, Group}
 import audiostreamerscrobbler.maintypes.Player
 import audiostreamerscrobbler.maintypes.Player.types.PlayerTypes
 
+let CONFIG_PLAYER_TYPE_BLUOS = "bluos"
+let CONFIG_PLAYER_TYPE_MUSICCAST = "musiccast"
+
 function createGroupFactory = {
 	let factory = DynamicObject("PlayerControlThreadFactory"):
 		define("createGroup", |this, cbProcessEvents| -> createConfiguredGroup(cbProcessEvents))
@@ -14,7 +17,9 @@ function createGroupFactory = {
 
 local function createConfiguredGroup = |cbProcessEvents| {
 	let config = getConfig()
-	let createGroupTypes = [^_createConfiguredLegacyPlayerGroup]
+	let createGroupTypes = [
+			^_createConfiguredFixedPlayerGroup,
+			^_createConfiguredLegacySinglePlayerGroup]
 	foreach createGroupFunction in createGroupTypes {
 		let group = createGroupFunction(cbProcessEvents, config)
 		if (group != null) {
@@ -24,7 +29,29 @@ local function createConfiguredGroup = |cbProcessEvents| {
 	raise("Error in configuration: could not create a player group")
 }
 
-local function _createConfiguredLegacyPlayerGroup = |cbProcessEvents, config| {
+local function _createConfiguredFixedPlayerGroup = |cbProcessEvents, config| {
+	let playersConfig = config: get("players")
+	if playersConfig is null {
+		return null
+	}
+	
+	let expectedPlayers = map[]
+	
+	foreach playerTypeConfig in playersConfig: entrySet() {
+		let playerTypeId = _getConfiguredPlayerTypeId(playerTypeConfig: getKey())
+		let playerTypeValues = playerTypeConfig: getValue()
+		if (playerTypeValues: get("enabled") isnt null and playerTypeValues: get("enabled")) {
+			let playerNames = [p foreach p in playerTypeValues: get("players")]
+			let playerIds = list[createPlayerId(playerTypeId, p) foreach p in playerNames]
+			expectedPlayers: put(playerTypeId,  playerIds)
+		}
+	}
+	
+	return _createFixedPlayerGroup(expectedPlayers, cbProcessEvents)
+}
+
+
+local function _createConfiguredLegacySinglePlayerGroup = |cbProcessEvents, config| {
 	let playerConfig = config: get("player")
 	if playerConfig is null {
 		return null
@@ -32,18 +59,20 @@ local function _createConfiguredLegacyPlayerGroup = |cbProcessEvents, config| {
 	
 	let playerTypeInConfig = playerConfig: get("type")
 	
-	let playerTypeId = match {
-		when playerTypeInConfig == "bluos" then getPlayerTypeID(PlayerTypes.BluOs())
-		when playerTypeInConfig == "musiccast" then getPlayerTypeID(PlayerTypes.MusicCast())
-		otherwise raise("Unknown player type specified in configuration: '" + playerTypeInConfig + "'")
-	}
+	let playerTypeId = _getConfiguredPlayerTypeId(playerTypeInConfig)
 	let playerName = playerConfig: get("name")
 	let playerId = createPlayerId(playerTypeId, playerName)
 	
 	let expectedPlayers = map[[playerTypeId, list[playerId]]]
-	let group = _createFixedPlayerGroup(expectedPlayers, cbProcessEvents)
-	
-	return group
+	return _createFixedPlayerGroup(expectedPlayers, cbProcessEvents)
+}
+
+local function _getConfiguredPlayerTypeId = |playerTypeInConfig| {
+	return match {
+		when playerTypeInConfig == CONFIG_PLAYER_TYPE_BLUOS then getPlayerTypeID(PlayerTypes.BluOs())
+		when playerTypeInConfig == CONFIG_PLAYER_TYPE_MUSICCAST then getPlayerTypeID(PlayerTypes.MusicCast())
+		otherwise raise("Unknown player type specified in configuration: '" + playerTypeInConfig + "'")
+	}
 }
 
 local function _createFixedPlayerGroup = |expectedPlayers, cbProcessEvents| {
