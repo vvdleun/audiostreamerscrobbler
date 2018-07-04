@@ -34,7 +34,7 @@ function createBaseGroupStragegyImpl = |playerTypes, cbProcessEvents| {
 		define("hasPlayer", |this, player| -> hasPlayer(this, player)):
 		define("players", players):
 		define("activePlayers", |this| -> activePlayers(this)):
-		define("isPlayerInGroupPlaying", |this| -> isPlayerInGroupPlaying(this)):
+		define("playerInGroupPlaying", |this| -> playerInGroupPlaying(this)):
 		define("startAllDetectors", |this| -> this: startDetectors(|t| -> true)):
 		define("startDetectors", |this, f| -> startDetectors(this, f)):
 		define("stopAllDetectors", |this| -> this: stopDetectors(|t| -> true)):
@@ -75,13 +75,13 @@ local function activePlayers = |impl| {
 	return set[m: get(KEY_PLAYER) foreach m in impl: players(): values()]
 }
 
-local function isPlayerInGroupPlaying = |impl| {
+local function playerInGroupPlaying = |impl| {
 	foreach e in impl: players(): entrySet() {
 		if (e: getValue(): get(KEY_STATE): isPlaying()) {
-			return true
+			return e: getValue(): get(KEY_PLAYER)
 		}
 	}
-	return false
+	return null
 }
 
 local function startDetectors = |impl, f| {
@@ -97,8 +97,10 @@ local function stopDetectors = |impl, f| {
 }
 
 local function _startOrStopDetectors = |impl, playerTypes, groupProcessEvent| {
-	let cbProcessEvents = impl: cbProcessEvents()
-	cbProcessEvents(groupProcessEvent(playerTypes))
+	if (not playerTypes: isEmpty()) {
+		let cbProcessEvents = impl: cbProcessEvents()
+		cbProcessEvents(groupProcessEvent([t foreach t in playerTypes]))
+	}
 }
 
 local function startMonitors = |impl, f| {
@@ -112,7 +114,9 @@ local function stopMonitors = |impl, f| {
 local function _startOrStopMonitors = |impl, f, groupProcessEvent| {
 	let cbProcessEvents = impl: cbProcessEvents()
 	let players = [p foreach p in activePlayers(impl) when f(p)]
-	cbProcessEvents(groupProcessEvent(players))
+	if (not players: isEmpty()) {
+		cbProcessEvents(groupProcessEvent(players))
+	}
 }
 
 local function handleInitializationEvent = |impl, group, event| {
@@ -124,8 +128,14 @@ local function handlePlayingEvent = |impl, group, event| {
 	if not hasPlayer(impl, player) {
 		println("Group '" + group: name() + "' does not manage the '" + player: friendlyName() + "' player")
 		return false
-	} else if (isPlayerInGroupPlaying(impl)) {
-		println("A different player in this group is already playing")
+	}
+
+	let playingPlayer = playerInGroupPlaying(impl)
+	
+	if (playingPlayer isnt null) {
+		if (player: id() != playingPlayer: id()) {
+			println("A different player in this group is already playing")
+		}
 		return false
 	}
 	
@@ -149,7 +159,7 @@ local function handleIdleEvent = |impl, group, event| {
 		println("Group '" + group: name() + "' does not manage the '" + player: friendlyName() + "' player")
 		return false
 	} else if (not impl: players(): get(player: id()): get(KEY_STATE): isPlaying()) {
-		println("Player is not playing anymore")
+		# println("Player is not playing")
 		return false
 	}
 	

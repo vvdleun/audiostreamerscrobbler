@@ -102,18 +102,19 @@ local function handleMonitorState = |monitorThread, monitorState| {
 				if (isSongChanged(monitorThread: _song(), song)) {
 					# TODO Try to determine whether previous song should be scrobbled
 					# when it was not?!
-					println("New song: " + song: friendlyName())
+					println("New song detected: '" + song: friendlyName() + "'")
+
 					resetSong(monitorThread, song)
 
 					action = MonitorStateActions.NewSong(song)
-
+					
 				} else if (isSongPositionChangedByUser(monitorThread, song)) {
-					println("Song position changed by user. Reset positions.")
+					println("Song position of '" + song: friendlyName() + "' was probably changed by user.")
 					resetSongPositions(monitorThread, song)
 
 				} else if (isCandidateForNewScrobble(monitorThread, song)) {
 					if (isNewScrobble(monitorThread, song)) {
-						println("NEW SCROBBLE!")
+						println("Scrobbling '" + song: friendlyName() + "'...")
 						action = MonitorStateActions.NewScrobble(song)
 						monitorThread: _isScrobbled(true)
 					}

@@ -33,6 +33,14 @@ public class GroupStrategyImplFacade {
 		}
 	}
 
+	public Set<PlayerTypes> activePlayerTypes() {
+		try {
+			return (Set<PlayerTypes>)groupStrategyImpl.invoker("activePlayerTypes", genericMethodType(1)).invoke(groupStrategyImpl);
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
+	}
+	
 	// Setter for afterIdleEvent() function reference
 	public void afterIdleEvent(FunctionReference functionReference) {
 		try {
@@ -82,9 +90,9 @@ public class GroupStrategyImplFacade {
 		}
 	}
 
-	public boolean isPlayerInGroupPlaying() {
+	public Player playerInGroupPlaying() {
 		try {
-			return (Boolean)groupStrategyImpl.invoker("isPlayerInGroupPlaying", genericMethodType(1)).invoke(groupStrategyImpl);
+			return (Player)groupStrategyImpl.invoker("playerInGroupPlaying", genericMethodType(1)).invoke(groupStrategyImpl);
 		} catch (Throwable t) {
 			throw new RuntimeException(t);
 		}

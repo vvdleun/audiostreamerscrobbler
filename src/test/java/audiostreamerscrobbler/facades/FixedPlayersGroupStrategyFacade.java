@@ -5,6 +5,7 @@ import static java.lang.invoke.MethodType.genericMethodType;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import audiostreamerscrobbler.groups.FixedPlayersGroupStrategy;
 import audiostreamerscrobbler.mocks.Group;
@@ -23,6 +24,14 @@ public class FixedPlayersGroupStrategyFacade {
 		FixedPlayersGroupStrategyFacade facade = new FixedPlayersGroupStrategyFacade();
 		facade.fixedPlayersGroupStrategy = (DynamicObject)FixedPlayersGroupStrategy.createFixedPlayersGroupStrategy(expectedPlayers, processEventsCallback);
 		return facade;
+	}
+
+	public Set<PlayerTypes> activePlayerTypes() {
+		try {
+			return (Set<PlayerTypes>)fixedPlayersGroupStrategy.invoker("activePlayerTypes", genericMethodType(1)).invoke(fixedPlayersGroupStrategy);
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
 	}
 
 	public List<PlayerTypes> playerTypes() {

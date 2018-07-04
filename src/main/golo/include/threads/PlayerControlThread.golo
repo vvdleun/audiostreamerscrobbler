@@ -9,6 +9,7 @@ import java.lang.{InterruptedException, Thread}
 import java.time.{Duration, Instant}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
+let DEBUG = false
 let DEAD_PLAYER_CHECK_INTERVAL = 80
 let MONITOR_ALIVE_KEY = "lastActive"
 let MONITOR_PLAYER_KEY = "player"
@@ -60,7 +61,9 @@ local function initAndStartPlayerControlThread = |controlThread| {
 
 	let group = controlThread: _groupFactory(): createGroup(|e| {
 		# Incoming group process event handler
-		println("GROUP INCOMING: " + e)
+		if (DEBUG) {
+			println("GROUP INCOMING: " + e)
+		}
 		controlThread: _port(): send(PlayerControlThreadMsgs.IncominggGroupProcessEvent(e))
 	})
 	controlThread: _group(group)
@@ -105,26 +108,35 @@ local function stopPlayerControlThread = |controlThread| {
 # Port message handler
 
 local function _portIncomingMsgHandler = |controlThread, msg| {
-	println("INCOMING MESSAGE")
 	case {
 		when msg: isStartMsg() {
-			println("START " + msg)
+			if (DEBUG) {
+				println("START " + msg)
+			}
 			_sendGroupEvent(controlThread, GroupEvents.InitializationEvent())
 		}
 		when msg: isOutgoingGroupEvent() {
-			println("OUTGOING GROUP EVENT " + msg)
+			if (DEBUG) {
+				println("OUTGOING GROUP EVENT " + msg)
+			}
 			_handleOutgoingGroupEvent(controlThread, msg: event())
 		}
 		when msg: isIncominggGroupProcessEvent() {
-			println("INCOMING EVENT " + msg)
+			if (DEBUG) {
+				println("INCOMING EVENT " + msg)
+			}
 			_handleIncomingGroupProcessEvent(controlThread, msg: event())
 		}
 		when msg: isCheckForDeadPlayers() {
-			println("CHECK DEAD PLAYER  " + msg)
+			if (DEBUG) {
+				println("CHECK DEAD PLAYER  " + msg)
+			}
 			_checkAndScheduleDeadPlayersRemoval(controlThread)
 		}
 		when msg: isStopMsg() {
-			println("STOP MSG  " + msg)
+			if (DEBUG) {
+				println("STOP MSG  " + msg)
+			}
 			_stopThreads(controlThread)
 		}
 		otherwise {
@@ -136,7 +148,6 @@ local function _portIncomingMsgHandler = |controlThread, msg| {
 # Functions that should be called via _portIncomingMsgHandler (direct or indirectly) only
 
 local function _sendGroupEvent = |controlThread, event| {
-	println("SENDING TO GROUP: " + event)
 	controlThread: _group(): event(event)
 }
 
@@ -176,6 +187,9 @@ local function _startDetectors = |controlThread, playerTypes| {
 
 local function _addAndStartDetector = |controlThread, playerType| {
 	let playerTypeId = playerType: playerTypeId()
+
+	println("Starting '" + playerTypeId + "' detector...")
+	
 	let detectorThreadFactory = controlThread: _detectorThreadFactory()
 	let detectorThread = detectorThreadFactory: createDetectorThread(playerTypeId, |p| {
 		# Detector player detected callback handler
@@ -195,7 +209,7 @@ local function _stopAndRemoveDetector = |controlThread, playerType| {
 	let playerTypeId = playerType: playerTypeId()
 
 	let detector = detectorThreads: remove(playerTypeId)
-	println("Stopping detector...")
+	println("Stopping '" + playerTypeId + "' detector...")
 	detector: stop()
 }
 
@@ -204,6 +218,8 @@ local function _startMonitors = |controlThread, players| {
 }
 
 local function _addAndStartMonitorThread = |controlThread, player| {
+	println("Starting '" + player: friendlyName() + "' monitor...")
+
 	let monitorTreadFactory = controlThread: _monitorThreadFactory()
 	let scrobblerHandler = controlThread: _scrobblerHandler()
 	let monitorThread = monitorTreadFactory: createMonitorThread(player, scrobblerHandler, |p, s| {
@@ -224,7 +240,6 @@ local function _addAndStartMonitorThread = |controlThread, player| {
 			[MONITOR_PLAYER_KEY, player]])
 	_registerPlayerAlive(monitorThreads, player)
 
-	println("Starting monitor...")
 	monitorThread: start()
 }
 
@@ -243,6 +258,8 @@ local function _stopMonitors = |controlThread, players| {
 }
 
 local function _removeAndStopMonitor = |controlThread, player| {
+	println("Stopping '" + player: friendlyName() + "' monitor...")
+
 	let monitorThreads = controlThread: _monitorThreads()
 
 	let monitorThreadData = monitorThreads: remove(player: id())
@@ -252,7 +269,9 @@ local function _removeAndStopMonitor = |controlThread, player| {
 }
 
 local function _checkAndScheduleDeadPlayersRemoval = |controlThread| {
-	println("Looking for inactive players...")
+	if (DEBUG) {
+		println("Looking for inactive players...")
+	}
 	let monitorThreads = controlThread: _monitorThreads()
 
 	monitorThreads: entrySet(): each(|e| {
@@ -267,7 +286,9 @@ local function _checkAndScheduleDeadPlayersRemoval = |controlThread| {
 		}
 	})
 	
-	println("Done looking for inactive players")
+	if (DEBUG) {
+		println("Done looking for inactive players")
+	}
 }
 
 local function _stopThreads = |controlThread| {
@@ -294,4 +315,3 @@ local function _stopThreads = |controlThread| {
 	controlThread: _env(null)
 	controlThread: _port(null)
 }
-

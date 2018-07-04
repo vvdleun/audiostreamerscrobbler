@@ -51,7 +51,7 @@ local function initAndStartHandler = |handler| {
 		let cb = handler: _cb()
 		let broadcastAddresses = socketFactory: getBroadcastAddresses()
 		
-		println("LSDP thread started...")
+		println("Starting LSDP discovery thread...")
 		isRunning(): set(true)
 		while (isRunning(): get()) {
 			try {
@@ -77,8 +77,8 @@ local function initAndStartHandler = |handler| {
 				Thread.sleep(IDLE_SLEEP_TIME_SECONDS * 1000_L)
 			}
 		}
+		println("Stopping LSDP discovery thread...")
 		datagramSocket: close()
-		println("LSDP thread stopped")
 	})
 	handler: _thread(thread)
 }

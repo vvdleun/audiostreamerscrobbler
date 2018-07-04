@@ -21,7 +21,6 @@ function createFixedPlayersGroupStrategy = |expectedPlayers, cbProcessEvents| {
 }
 
 local function handleDetectedEvent = |impl, group, event| {
-	println("handleDetectedEvent called")
 	let player = event: player()
 	let playerTypeId = player: playerTypeId()
 
@@ -29,7 +28,11 @@ local function handleDetectedEvent = |impl, group, event| {
 		return
 	}
 	
-	println("Player '" + player: id() + "' is managed by the '" + group: name() + "' group. Adding player.")
+	if (impl: hasPlayer(player)) {
+		return
+	}
+	
+	println("Player '" + player: id() + "' is managed by the '" + group: name() + "' group.")
 	impl: addPlayer(player)
 
 	impl: startMonitors(|p| -> p: id() == player: id())
@@ -88,8 +91,6 @@ local function _startAllDetectorsExceptForPlayer = |impl, player| {
 local function _isPlayerKnown = |impl, group, player| {
 	let playerId = player: id()
 	let expectedPlayerIds = _getExpectedPlayerIds(impl)
-	println(impl: _expectedPlayers())
-	println(expectedPlayerIds)
 	
 	if (not expectedPlayerIds: contains(playerId)) {
 		println("Player '" + playerId + "' is not managed by the '" + group: name() + "' group")

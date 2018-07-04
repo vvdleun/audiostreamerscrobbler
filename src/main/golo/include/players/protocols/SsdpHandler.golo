@@ -152,6 +152,7 @@ local function _startSdpSearchHandler = |handler| {
 }
 
 local function _createAndRunSendThread = |handler| {
+	println("Starting SSDP discovery thread...")
 	return runInNewThread("SsdpSenderThread", {
 		let isRunning = -> handler: _isRunning(): get()
 
@@ -159,7 +160,7 @@ local function _createAndRunSendThread = |handler| {
 			handler: _port(): send(SsdpHandlerMsgs.ExecuteMSearchQueriesMsg())
 			Thread.sleep(10000_L)
 		}
-		println("Stopped SSDP search sender thread")
+		println("Stopping SSDP discovery thread...")
 	})
 }
 
@@ -167,7 +168,7 @@ local function _createAndRunReceiveThread = |handler| {
 	return runInNewThread("SsdpReceiverThread", {
 		let isRunning = -> handler: _isRunning(): get()
 
-		println("MSEARCH thread starts")
+		println("Starting SSDP traffic handler thread...")
 		while(isRunning(): get()) {
 			let buffer = newTypedArray(byte.class, BUFFER_SIZE)
 			let recv = DatagramPacket(buffer, buffer: length())
@@ -194,7 +195,7 @@ local function _createAndRunReceiveThread = |handler| {
 				handler: _port(): send(SsdpHandlerMsgs.ExecuteCallbacksMsg(headers))
 			}
 		}
-		println("Stopped SSDP search receiver thread")
+		println("Stopping SSDP traffic handler thread...")
 	})
 }
 

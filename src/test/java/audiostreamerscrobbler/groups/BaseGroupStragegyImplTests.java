@@ -15,6 +15,7 @@ import audiostreamerscrobbler.mocks.PlayerTypes;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.hamcrest.Matchers.*;
@@ -32,10 +33,13 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		List<PlayerTypes> playerTypes = new ArrayList<>();
 		playerTypes.add(bluOsPlayerType);
 		playerTypes.add(musicCastPlayerType);
-		
+				
 		groupStrategyImpl = GroupStrategyImplFacade.createStrategyImplFacade(playerTypes, cbProcessEventFunctionReference);
 		processedEvents.clear();
 		afterIdleEventCalled = false;
+		
+		groupStrategyImpl.activePlayerTypes().add(bluOsPlayerType);
+		groupStrategyImpl.activePlayerTypes().add(musicCastPlayerType);
 	}
 	
 	@Test
@@ -105,7 +109,7 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		Player idlePlayer = Player.createMockedPlayer("idlePlayer");
 		groupStrategyImpl.addPlayer(idlePlayer);
 
-		assertTrue(groupStrategyImpl.isPlayerInGroupPlaying());
+		assertEquals(playingPlayer, groupStrategyImpl.playerInGroupPlaying());
 	}
 
 	@Test
@@ -116,7 +120,7 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		Player idlePlayer2 = Player.createMockedPlayer("idlePlayer2");
 		groupStrategyImpl.addPlayer(idlePlayer2);
 		
-		assertFalse(groupStrategyImpl.isPlayerInGroupPlaying());
+		assertNull(groupStrategyImpl.playerInGroupPlaying());
 	}
 
 	@Test
@@ -130,7 +134,7 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		groupStrategyImpl.startAllDetectors();
 		
 		Union startDetectors = (Union)processedEvents.get(0);
-		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$startDetectors", startDetectors.getClass().getName());
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$StartDetectors", startDetectors.getClass().getName());
 		Tuple startDetectorsMembers = startDetectors.destruct();
 		assertEquals(1, startDetectorsMembers.size());
 
@@ -148,15 +152,7 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		FunctionReference doNotAcceptAnyPlayerTypeReference = GoloUtils.createFunctionReference(this.getClass(), "doNotAcceptAnyPlayerType", 1);
 		groupStrategyImpl.startDetectors(doNotAcceptAnyPlayerTypeReference);
 		
-		Union startDetectors = (Union)processedEvents.get(0);
-		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$startDetectors", startDetectors.getClass().getName());
-		Tuple startDetectorsMembers = startDetectors.destruct();
-		assertEquals(1, startDetectorsMembers.size());
-
-		Tuple startDetectorsPlayerTypes = (Tuple)startDetectorsMembers.get(0);
-		assertTrue(startDetectorsPlayerTypes.isEmpty());
-
-		assertEquals(1, processedEvents.size());
+		assertTrue(processedEvents.isEmpty());
 	}
 
 	public static Object doNotAcceptAnyPlayerType(Object playerType) {
@@ -174,7 +170,7 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		groupStrategyImpl.stopAllDetectors();
 		
 		Union stopDetectors = (Union)processedEvents.get(0);
-		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$stopDetectors", stopDetectors.getClass().getName());
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$StopDetectors", stopDetectors.getClass().getName());
 		Tuple stopDetectorsMembers = stopDetectors.destruct();
 		assertEquals(1, stopDetectorsMembers.size());
 
@@ -196,7 +192,7 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		groupStrategyImpl.stopDetectors(doNotAcceptAnyPlayerTypeReference);
 		
 		Union stopDetectors = (Union)processedEvents.get(0);
-		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$stopDetectors", stopDetectors.getClass().getName());
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$StopDetectors", stopDetectors.getClass().getName());
 		Tuple stopDetectorsMembers = stopDetectors.destruct();
 		assertEquals(1, stopDetectorsMembers.size());
 
@@ -222,7 +218,7 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		groupStrategyImpl.stopMonitors(acceptOnlyBluOsPlayerReference);
 		
 		Union stopMonitors = (Union)processedEvents.get(0);
-		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$stopMonitors", stopMonitors.getClass().getName());
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$StopMonitors", stopMonitors.getClass().getName());
 		Tuple stopMonitorsMembers = stopMonitors.destruct();
 		assertEquals(1, stopMonitorsMembers.size());
 
@@ -254,7 +250,7 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		assertEquals(1, processedEvents.size());
 
 		Union startDetectors = (Union)processedEvents.get(0);
-		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$startDetectors", startDetectors.getClass().getName());
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$StartDetectors", startDetectors.getClass().getName());
 		Tuple startDetectorsMembers = startDetectors.destruct();
 		assertEquals(1, startDetectorsMembers.size());
 
@@ -278,7 +274,7 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		assertEquals(2, processedEvents.size());
 		
 		Union stopDetectors = (Union)processedEvents.get(0);
-		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$stopDetectors", stopDetectors.getClass().getName());
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$StopDetectors", stopDetectors.getClass().getName());
 		Tuple stopDetectorsMembers = stopDetectors.destruct();
 		assertEquals(1, stopDetectorsMembers.size());
 
@@ -286,7 +282,7 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 		assertThat(stopDetectorsPlayerTypes, containsInAnyOrder(bluOsPlayerType, musicCastPlayerType));
 
 		Union stopMonitors = (Union)processedEvents.get(1);
-		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$stopMonitors", stopMonitors.getClass().getName());
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$StopMonitors", stopMonitors.getClass().getName());
 		Tuple stopMonitorsMembers = stopMonitors.destruct();
 		assertEquals(1, stopMonitorsMembers.size());
 
@@ -313,7 +309,7 @@ public class BaseGroupStragegyImplTests extends GroupTests {
 
 		assertEquals(0, processedEvents.size());
 		
-		assertFalse(groupStrategyImpl.isPlayerInGroupPlaying());
+		assertNull(groupStrategyImpl.playerInGroupPlaying());
 		assertTrue(afterIdleEventCalled);
 	}
 
