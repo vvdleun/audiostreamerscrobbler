@@ -28,7 +28,7 @@ union PlayerControlThreadMsgs = {
 
 union IdleStatus = {
 	NonIdle
-	Idle = { timestamp, sendEvent }
+	Idle = { timestamp, exceededInterval }
 	IdleHandled
 }
 
@@ -199,15 +199,16 @@ local function _handleOutgoingGroupIdleEvent = |controlThread, event| {
 		let currentIdleStatus = playerData: get(MONITOR_IDLE_KEY)
 		case {
 			when currentIdleStatus: isNonIdle() {
-				println("Player could potentially be idle: " + player: id())
+				println("Player might be idle: " + player: friendlyName())
 				_registerPlayerIdle(monitorThreads, player, false)
 				# Exit and do not send a group event now. The PlayerAliveCheck timer
 				# should take care of it the Idle event.
 				return false
 			}
-			when currentIdleStatus: isIdle() and currentIdleStatus: sendEvent() {
-				println("Player '" + player: id() + "' will now be reported as idle")
+			when currentIdleStatus: isIdle() and currentIdleStatus: exceededInterval() {
+				# println("Player '" + player: id() + "' will now be reported as idle")
 				_registerPlayerIdleHandled(monitorThreads, player)
+				return true
 			} 
 			when currentIdleStatus: isIdle() or currentIdleStatus: isIdleHandled() {
 				# Idle event is handled by PlayerAliveCheck timer
@@ -322,8 +323,8 @@ local function _registerPlayerAlive = |monitorThreads, player| {
 	_registerPlayerKeyValue(monitorThreads, player, MONITOR_ALIVE_KEY, Instant.now())
 }
 
-local function _registerPlayerIdle = |monitorThreads, player, sendEvent| {
-	_registerPlayerKeyValue(monitorThreads, player, MONITOR_IDLE_KEY, IdleStatus.Idle(Instant.now(), sendEvent))
+local function _registerPlayerIdle = |monitorThreads, player, exceededInterval| {
+	_registerPlayerKeyValue(monitorThreads, player, MONITOR_IDLE_KEY, IdleStatus.Idle(Instant.now(), exceededInterval))
 }
 
 local function _registerPlayerNonIdle = |monitorThreads, player| {
@@ -387,10 +388,11 @@ local function _findDeadOrIdlePlayers = |controlThread| {
 		if (idleStatus: isIdle() and _hasPlayerTimeElapsed(idleStatus: timestamp(), IDLE_PLAYER_SECONDS)) {
 			let player = e: getValue(): get(MONITOR_PLAYER_KEY)
 			let idlePlayerEvent = GroupEvents.IdleEvent(player)
-			println("Idle player: '" + player: friendlyName() + "'.")
+			if (DEBUG) {
+				println("Idle player: '" + player: friendlyName() + "'.")
+			}
 			_registerPlayerIdle(monitorThreads, player, true)
 			controlThread: _port(): send(PlayerControlThreadMsgs.OutgoingGroupEventMsg(idlePlayerEvent))
-			return
 		}
 	})
 	

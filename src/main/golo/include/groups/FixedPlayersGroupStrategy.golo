@@ -43,7 +43,7 @@ local function handleDetectedEvent = |impl, group, event| {
 		return
 	}
 	
-	println("Player '" + player: id() + "' is managed by the '" + group: name() + "' group.")
+	println("Detected player '" + player: id() + "' is managed by the '" + group: name() + "' group.")
 	impl: addPlayer(player)
 
 	impl: startMonitors(|p| -> p: id() == player: id())

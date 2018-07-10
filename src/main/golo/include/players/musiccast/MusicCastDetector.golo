@@ -25,15 +25,19 @@ function createMusicCastDetector = |cb| {
 
 local function createSsdpCallback = |ssdpHandler, cb| {
 	let ssdpCb = |headers| {
-		let inputStream = URL(headers: get("location")): openStream()
-		let deviceDescriptor = parseMusicCastDeviceDescriptorXML(inputStream)
+		try {
+			let inputStream = URL(headers: get("location")): openStream()
+			let deviceDescriptor = parseMusicCastDeviceDescriptorXML(inputStream)
 
-		if (_isMusicCastDevice(deviceDescriptor)) {
-			let musicCastImpl = _createMusicCastImpl(deviceDescriptor)
-			let musicCastPlayer = createMusicCastPlayer(musicCastImpl)
-			cb(musicCastPlayer)
-		} else {
-			println("Unsupported or unknown device: " + deviceDescriptor)
+			if (_isMusicCastDevice(deviceDescriptor)) {
+				let musicCastImpl = _createMusicCastImpl(deviceDescriptor)
+				let musicCastPlayer = createMusicCastPlayer(musicCastImpl)
+				cb(musicCastPlayer)
+			} else {
+				println("Unsupported or unknown device: " + deviceDescriptor)
+			}
+		} catch(ex) {
+			println("Error while processing SSDP incoming data: " + ex)
 		}
 	}
 	return ssdpCb

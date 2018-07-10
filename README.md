@@ -8,7 +8,7 @@ As of early July 2018, this program can monitor all players of all supported har
 
 The program has almost been completely rewritten some time ago. Among the changes were:
 * The network I/O parts of the program are now fully async events-based, instead of being based on synchronious function calls
-* There's a new PlayerControl thread that keeps track of player monitor and detector threads.
+* There's a new PlayerControl thread that keeps track of player monitor, detector and player alive/idle check threads.
 * MusicCast support has been completely rewritten and is now based on MusicCast's Event update system via UDP
 * The used network interface (and IP addresses that program binds to) can now be configured
 * Improved, cleaned up and simplified lots of internal APIs, especially the "public" ones
@@ -21,7 +21,7 @@ AudioStreamerScrobbler is an application that monitors hardware audiostreamers a
 
 Supported hardware audiostreamers are:
 
-* BluOS-based players (for example, by BlueSound)
+* BlueSound/BluOS-based players
 * Yamaha MusicCast players
 
 The following scrobbler services are supported:
