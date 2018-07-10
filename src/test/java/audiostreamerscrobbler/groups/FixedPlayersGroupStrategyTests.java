@@ -125,7 +125,7 @@ public class FixedPlayersGroupStrategyTests extends GroupTests {
 	}
 
 	@Test
-	public void whenAPlayerIsLostItMustHaveBeenRemovedAndIsDetectorMustBeStarted() {
+	public void whenAPlayerIsLostItMustHaveBeenRemovedAndItsDetectorMustBeStartedAndItsMonitorStopped() {
 		List<String> bluOsPlayers = new ArrayList<>();
 		bluOsPlayers.add("player");
 		expectedPlayers.put(bluOsPlayerType.playerTypeId(), bluOsPlayers);
@@ -143,6 +143,8 @@ public class FixedPlayersGroupStrategyTests extends GroupTests {
 
 		assertTrue(fixedPlayersGroupStrategy.players().isEmpty());
 		
+		assertEquals(2, processedEvents.size());
+		
 		Union startDetectors = (Union)processedEvents.get(0);
 		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$StartDetectors", startDetectors.getClass().getName());
 		Tuple startDetectorsMembers = startDetectors.destruct();
@@ -150,6 +152,14 @@ public class FixedPlayersGroupStrategyTests extends GroupTests {
 
 		Tuple startDetectorsPlayerTypes = (Tuple)startDetectorsMembers.get(0);
 		assertThat(startDetectorsPlayerTypes, contains(bluOsPlayerType));
+
+		Union stopMonitors= (Union)processedEvents.get(1);
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$StopMonitors", stopMonitors.getClass().getName());
+		Tuple stopMonitorsMembers = stopMonitors.destruct();
+		assertEquals(1, stopMonitorsMembers.size());
+		Tuple stopMonitorPlayers = (Tuple)stopMonitorsMembers.get(0);
+		assertThat(stopMonitorPlayers, contains(player));
+
 	}
 	
 	@Test

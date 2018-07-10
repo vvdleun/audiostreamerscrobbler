@@ -60,7 +60,6 @@ local function requestPlayerState = |poller| {
 
 local function validateStatus = |status| {
 	if (not status: success()) {
-		# TODO create MonitorPlayer exception...
 		raise("Received invalid or unknown XML")
 	}
 }

@@ -72,6 +72,7 @@ local function handleLostEvent = |impl, group, event| {
 	}
 
 	impl: startDetectors(|t| -> t: playerTypeId() == player: playerTypeId())
+	impl: stopMonitors(|p| -> p: id() == player: id())
 
 	impl: removePlayer(player)
 }
