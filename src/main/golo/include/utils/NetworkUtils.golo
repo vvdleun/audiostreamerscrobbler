@@ -1,6 +1,6 @@
 module audiostreamerscrobbler.utils.NetworkUtils
 
-import java.net.{DatagramSocket, DatagramPacket, InetSocketAddress, MulticastSocket, NetworkInterface}
+import java.net.{DatagramSocket, DatagramPacket, InetAddress, InetSocketAddress, MulticastSocket, NetworkInterface}
 
 # Network Interfaces
 
@@ -62,9 +62,27 @@ function createMulticastSocket = |interfaceName, interfaceAddress| {
 		return multicastSocket
 	}
 
+	bindMulticastSocketToInterface(multicastSocket, interfaceName, interfaceAddress)
+
+	return multicastSocket
+}
+
+function createMulticastSocket = |port, interfaceName, interfaceAddress| {
+	let multicastSocket = MulticastSocket(port)
+
+	if (isNullOrEmpty(interfaceName) and isNullOrEmpty(interfaceAddress)) {
+		return multicastSocket
+	}
+
+	bindMulticastSocketToInterface(multicastSocket, interfaceName, interfaceAddress)
+
+	return multicastSocket
+}
+
+function bindMulticastSocketToInterface = |multicastSocket, interfaceName, interfaceAddress| {
 	let inetAddress = getNetworkInterfaceInetAddress(interfaceName, interfaceAddress)
 	multicastSocket: setInterface(inetAddress)
-
+	
 	return multicastSocket
 }
 

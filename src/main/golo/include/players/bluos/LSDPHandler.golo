@@ -44,7 +44,7 @@ local function initAndStartHandler = |handler| {
 	}
 
 	let thread = runInNewThread("LSDPThread", {
-		var datagramSocket = null
+		var multicastSocket = null
 		let isRunning = -> handler: _isRunning(): get()
 		let socketFactory = handler: _socketFactory()
 		let timeout = handler: _timeout()
@@ -55,16 +55,18 @@ local function initAndStartHandler = |handler| {
 		isRunning(): set(true)
 		while (isRunning(): get()) {
 			try {
-				if (datagramSocket == null) {
+				if (multicastSocket == null) {
 					# println("Opening LSDP socket...")
-					datagramSocket = socketFactory: createDatagramSocket(LSDP_PORT)
+					# datagramSocket = socketFactory: createDatagramSocket(LSDP_PORT)
 					# println("Opened LSDP socket...")
+					# multicastSocket = MulticastSocket(LSDP_PORT)
+					multicastSocket = socketFactory: createMulticastSocketAndBindToPort(LSDP_PORT)
 				}
 
 				# println("Querying...")
-				sendLSDPQueryPlayers(broadcastAddresses, datagramSocket)
+				sendLSDPQueryPlayers(broadcastAddresses, multicastSocket)
 
-				waitForLSDPPlayers(handler, datagramSocket, timeout, cb)
+				waitForLSDPPlayers(handler, multicastSocket, timeout, cb)
 			} catch (ex) {
 				case {
 					when ex oftype BindException.class {
@@ -78,7 +80,7 @@ local function initAndStartHandler = |handler| {
 			}
 		}
 		println("Stopping LSDP discovery thread...")
-		datagramSocket: close()
+		multicastSocket: close()
 	})
 	handler: _thread(thread)
 }
@@ -89,31 +91,32 @@ local function stopHandler = |lsdpHandler| {
 
 # Lower level functions
 
-local function sendLSDPQueryPlayers = |broadcastAddresses, datagramSocket| {
-	broadcastAddresses: each(|a| -> sendLSDPQuery(datagramSocket, a, LSDP_DATA_QUERY_PLAYERS))
+local function sendLSDPQueryPlayers = |broadcastAddresses, multicastSocket| {
+	broadcastAddresses: each(|a| -> sendLSDPQuery(multicastSocket, a, LSDP_DATA_QUERY_PLAYERS))
 }
 
-local function sendLSDPQuery = |datagramSocket, broadcastAddress, dataQuery| {
-	let port = datagramSocket: getLocalPort()
+local function sendLSDPQuery = |multicastSocket, broadcastAddress, dataQuery| {
+	let port = multicastSocket: getLocalPort()
 	let datagramPacket = DatagramPacket(dataQuery, dataQuery: length(), broadcastAddress, port)
-	datagramSocket: send(datagramPacket)
+	multicastSocket: send(datagramPacket)
 }
 
 # Receiving LSDP answers
 
-local function waitForLSDPPlayers = |handler, datagramSocket, timeoutSeconds, cb| {
+local function waitForLSDPPlayers = |handler, multicastSocket, timeoutSeconds, cb| {
 	let isRunning = -> handler: _isRunning(): get()
 
 	let answerBuffer = newTypedArray(byte.class, LSDP_ANSWER_BUFFER_SIZE)
 	let answerPacket = DatagramPacket(answerBuffer, answerBuffer: length())
-	datagramSocket: setSoTimeout(timeoutSeconds * 1000 )
+
+	multicastSocket: setSoTimeout(timeoutSeconds * 1000 )
 
 	var timeouts = 0
 	var waitForMorePlayers = true
 	while (waitForMorePlayers and isRunning(): get()) {
 		try {
 			# println("Waiting for LSDP data...")
-			datagramSocket: receive(answerPacket)
+			multicastSocket: receive(answerPacket)
 			timeouts = 0
 			let lsdpPlayer = extractLSDPPlayer(answerPacket)
 			cb(lsdpPlayer, answerPacket)
