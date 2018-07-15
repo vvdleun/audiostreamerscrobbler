@@ -25,6 +25,10 @@ function parseXmlElements = |inputStream, cb| {
 		}):		
 		implements("characters", |this, ch, start, length| {
 			let s = String(ch, start, length)
+			if (mutableState: characters() is null and s: trim(): length() == 0) {
+				# Ignore whitespace
+				return
+			}
 			mutableState: characters(): append(s)			
 		}):
 		implements("endElement", |this, uri, localName, qName| {

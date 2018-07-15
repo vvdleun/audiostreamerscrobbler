@@ -7,6 +7,7 @@ import audiostreamerscrobbler.players.protocols.SSDPHandler
 import java.net.URL
 
 let SEARCH_TEXT_MUSICCAST = "urn:schemas-upnp-org:device:MediaRenderer:1"
+let DEBUG = false
 
 function createMusicCastDetector = |cb| {
 	let ssdpHandler = getSsdpHandlerInstance()
@@ -26,18 +27,28 @@ function createMusicCastDetector = |cb| {
 local function createSsdpCallback = |ssdpHandler, cb| {
 	let ssdpCb = |headers| {
 		try {
-			let inputStream = URL(headers: get("location")): openStream()
-			let deviceDescriptor = parseMusicCastDeviceDescriptorXML(inputStream)
+			let deviceDescriptorUrl = headers: get("location")
+			if (deviceDescriptorUrl isnt null) {
+				let inputStream = URL(deviceDescriptorUrl): openStream()
+				let deviceDescriptor = parseMusicCastDeviceDescriptorXML(inputStream)
 
-			if (_isMusicCastDevice(deviceDescriptor)) {
-				let musicCastImpl = _createMusicCastImpl(deviceDescriptor)
-				let musicCastPlayer = createMusicCastPlayer(musicCastImpl)
-				cb(musicCastPlayer)
+				if (_isMusicCastDevice(deviceDescriptor)) {
+					let musicCastImpl = _createMusicCastImpl(deviceDescriptor)
+					let musicCastPlayer = createMusicCastPlayer(musicCastImpl)
+					cb(musicCastPlayer)
+				} else {
+					if (DEBUG) {
+						println("Device could not be validated as valid MusicCast device")
+					}
+				}
 			} else {
-				println("Unsupported or unknown device: " + deviceDescriptor)
+				if (DEBUG) {
+					println("No Device Descriptor URL found in HTML header. This is not a supported MusicCast device.")
+				}
 			}
 		} catch(ex) {
 			println("Error while processing SSDP incoming data: " + ex)
+			throw(ex)
 		}
 	}
 	return ssdpCb
