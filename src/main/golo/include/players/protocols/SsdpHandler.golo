@@ -4,6 +4,7 @@ import audiostreamerscrobbler.factories.SocketFactory
 import audiostreamerscrobbler.utils.{NetworkUtils, ThreadUtils}
 
 import gololang.concurrent.workers.WorkerEnvironment
+import java.io.IOException
 import java.lang.Thread
 import java.net.{DatagramPacket, InetAddress, SocketTimeoutException}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
@@ -13,6 +14,7 @@ let MULTICAST_ADDRESS_IP6 = "FF05::C"
 let MULTICAST_UDP_PORT = 1900
 let BUFFER_SIZE = 4 * 1024
 let SSDP_SECS = 1
+let IO_ERROR_SLEEP_TIME = 10
 
 let ssdpHandler = createSsdpHandler()
 
@@ -182,7 +184,13 @@ local function _createAndRunReceiveThread = |handler| {
 						# println(ex)
 						# println("SSDP timeout")
 						continue
-					} otherwise {
+					}
+					when ex oftype IOException.class {
+						println("I/O Error occurred while sending SSDP search query: " + ex + ". Staying idle for " + IO_ERROR_SLEEP_TIME + " seconds...")
+						Thread.sleep(IO_ERROR_SLEEP_TIME * 1000_L)
+						continue
+					}
+					otherwise {
 						println("SSDP error: " + ex)
 						throw ex
 					}

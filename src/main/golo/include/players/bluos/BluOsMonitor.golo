@@ -35,6 +35,7 @@ local function createPoller = |player, statusUrl, httpRequest| {
 
 local function pollBluOsStatus = |poller| {
 	# println("Polling BluOs player...")
+	
 	let status = requestPlayerState(poller)
 	
 	validateStatus(status) 

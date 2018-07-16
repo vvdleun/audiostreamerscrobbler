@@ -1,54 +1,77 @@
 module audiostreamerscrobbler.utils.NetworkUtils
 
+import java.io.IOException
 import java.net.{DatagramSocket, DatagramPacket, InetAddress, InetSocketAddress, MulticastSocket, NetworkInterface}
 
 # Network Interfaces
 
 function getBroadcastAddresses = {
-	let result = list[]
-	foreach networkInterface in getNetworkInterfaces() {
-		let broadcastAddresses = getBroadcastAddresses(networkInterface)
-		if (broadcastAddresses != null) {
-			result: addAll(broadcastAddresses)
+	try {
+		let result = list[]
+		foreach networkInterface in getNetworkInterfaces() {
+			let broadcastAddresses = getBroadcastAddresses(networkInterface)
+			if (broadcastAddresses != null) {
+				result: addAll(broadcastAddresses)
+			}
 		}
+		return result
+	} catch(ex) {
+		throw IOException(ex)
 	}
-	return result
 }
 
 function getBroadcastAddresses = |networkInterface| {
-	let result = list[]
-	let addresses = networkInterface: getInterfaceAddresses()
-	foreach address in addresses {
-		let broadcastAddress = address: getBroadcast()
-		if (broadcastAddress != null) {
-			result: add(broadcastAddress)
+	try {
+		let result = list[]
+		if (networkInterface is null) {
+			return result
 		}
+		let addresses = networkInterface: getInterfaceAddresses()
+		if (addresses is null) {
+			return result
+		}
+		foreach address in addresses {
+			let broadcastAddress = address: getBroadcast()
+			if (broadcastAddress != null) {
+				result: add(broadcastAddress)
+			}
+		}
+		return result
+	} catch(ex) {
+		throw IOException(ex)
 	}
-	return result
 }
 
 function getNetworkInterfaces = {
-	let result = list[]
-	let interfaces = NetworkInterface.getNetworkInterfaces()
-	while (interfaces: hasMoreElements()) {
-		let networkInterface = interfaces: nextElement()
-		if (not networkInterface: isLoopback() and networkInterface: isUp()) {
-			result: add(networkInterface)
+	try {
+		let result = list[]
+		let interfaces = NetworkInterface.getNetworkInterfaces()
+		while (interfaces: hasMoreElements()) {
+			let networkInterface = interfaces: nextElement()
+			if (not networkInterface: isLoopback() and networkInterface: isUp()) {
+				result: add(networkInterface)
+			}
 		}
+		return result
+	} catch(ex) {
+		throw IOException(ex)
 	}
-	return result
 }
 
 function getInetAddresses = |networkInterface| {
-	let result = list[]
-	let addresses = networkInterface: getInetAddresses()
-	while (addresses: hasMoreElements()) {
-		let inetAddress = addresses: nextElement()
-		if (inetAddress != null) {
-			result: add(inetAddress)
+	try {
+		let result = list[]
+		let addresses = networkInterface: getInetAddresses()
+		while (addresses: hasMoreElements()) {
+			let inetAddress = addresses: nextElement()
+			if (inetAddress != null) {
+				result: add(inetAddress)
+			}
 		}
+		return result
+	} catch(ex) {
+		throw IOException(ex)
 	}
-	return result
 }
 
 # Sockets
@@ -105,19 +128,18 @@ function getNetworkInterfaceBroadcastAddresses = |interfaceName| {
 	} else {
 		return getBroadcastAddresses()
 	}
-
 }
 
 local function getNetworkInterfaceInetAddress = |interfaceName, interfaceAddress| {
 	let networkInterfaces = getNetworkInterfaces()
 	let networkInterface = getNetworkInterface(networkInterfaces, interfaceName)
 	if (networkInterface is null) {
-		raise("Network interface '" + interfaceName + "' could not be found")
+		throw IOException("Network interface '" + interfaceName + "' could not be found")
 	}
 	let inetAddresses = getInetAddresses(networkInterface)
 	let inetAddress = getInetAddress(inetAddresses, interfaceAddress)
 	if (inetAddress is null) {
-		raise("Network address '" + interfaceAddress + "' could not be found on network interface '" + networkInterface + "'")
+		throw IOException("Network address '" + interfaceAddress + "' could not be found on network interface '" + networkInterface + "'")
 	}
 	
 	return inetAddress

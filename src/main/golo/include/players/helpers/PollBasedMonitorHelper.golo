@@ -2,6 +2,7 @@ module audiostreamerscrobbler.players.helpers.PollBasedMonitorHelper
 
 import audiostreamerscrobbler.utils.ThreadUtils
 
+import java.io.IOException
 import java.lang.Thread
 import java.time.{Duration, Instant}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
@@ -40,6 +41,10 @@ local function initAndStartPolling = |pollHelper| {
 			} catch(ex) {
 				let player = pollHelper: player()
 				case {
+					when ex oftype IOException.class {
+						println("I/O error occurred while polling: " + ex)
+						continue
+					}
 					when ex oftype InterruptedException.class {				
 						break
 					}

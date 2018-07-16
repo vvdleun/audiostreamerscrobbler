@@ -3,6 +3,7 @@ module audiostreamerscrobbler.players.bluos.LSDPHandler
 import audiostreamerscrobbler.utils.{ByteUtils, ThreadUtils}
 import nl.vincentvanderleun.lsdp.exceptions.{LSDPException, LSDPNoAnswerException}
 
+import java.io.IOException
 import java.lang.Thread
 import java.net.{DatagramPacket, SocketTimeoutException, BindException}
 import java.util.Arrays
@@ -16,8 +17,8 @@ let LSDP_DATA_QUERY_PLAYERS = newByteArrayFromUnsignedByteHexStringArray(array["
 let LSDP_DATA_HEADER_ID = newByteArrayFromUnsignedByteHexStringArray(array["4C", "53", "44", "50"])
 # UDP port reserved for LSDP protocol
 let LSDP_PORT = 11430
-# Amount of seconds that program will sleep after LSDP requests and no answers within timeout specified by the caller 
-let IDLE_SLEEP_TIME_SECONDS = 10
+# Amount of seconds that program will sleep after I/O error 
+let ERROR_SLEEP_TIME_SECONDS = 10
 # After this amount of timeouts while waiting for a LSDP answer, the LSDP query will be re-sent
 let MAX_TIMEOUTS = 10
 
@@ -72,11 +73,14 @@ local function initAndStartHandler = |handler| {
 					when ex oftype BindException.class {
 						println("ERROR: Could not bind to LSDP port. Make sure no other BluOS and/or BlueSound applications are active on this system.")
 					}
+					when ex oftype IOException.class {
+						println("I/O error while sending LSDP player queries: " + ex)
+					}
 					otherwise {
 						throw ex
 					}
 				}
-				Thread.sleep(IDLE_SLEEP_TIME_SECONDS * 1000_L)
+				Thread.sleep(ERROR_SLEEP_TIME_SECONDS * 1000_L)
 			}
 		}
 		println("Stopping LSDP discovery thread...")
@@ -126,6 +130,10 @@ local function waitForLSDPPlayers = |handler, multicastSocket, timeoutSeconds, c
 					case {
 						when ex oftype LSDPNoAnswerException.class {
 							# println("* Incoming data was not LSDP answer: " + ex: getMessage())
+						}
+						when ex oftype IOException.class {
+							println("I/O error while handling LSDP traffic: " + ex + ". Stay idle for " + ERROR_SLEEP_TIME_SECONDS + " seconds...")
+							Thread.sleep(ERROR_SLEEP_TIME_SECONDS * 1000_L)
 						}
 						otherwise {
 							println("* Unknown LSDP related error: " + ex: getMessage())
