@@ -39,7 +39,6 @@ local function initAndStartScrobblerHandler = |handler| {
 		raise("Internal error: scrobble missing task thread was already running")
 	}
 	initScrobblerHandler(handler)
-	handler: _thread(): start()
 }
 
 local function initScrobblerHandler = |handler| {
