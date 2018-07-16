@@ -9,7 +9,7 @@ function createScrobblersHandler = |scrobblers, missedScrobblesHandler| {
 	let scrobblersInstance = DynamicObject("Scrobblers"):
 		define("_scrobblers", scrobblers):
 		define("updatePlayingNow", |this, song| {
-			runInNewThread({
+			runInNewThread("UpdatePlayingNowThread", {
 				this: _scrobblers(): each(|scrobbler| {
 					try {
 						scrobbler: updateNowPlaying(song)
@@ -20,7 +20,7 @@ function createScrobblersHandler = |scrobblers, missedScrobblesHandler| {
 			})
 		}):
 		define("scrobble", |this, song| {
-			runInNewThread({
+			runInNewThread("ScrobbleSongThread", {
 				this: _scrobblers(): each(|scrobbler| {
 					let utcTimestamp = _createTimestamp(song: position())
 					let scrobble = Scrobble(utcTimestamp, song)

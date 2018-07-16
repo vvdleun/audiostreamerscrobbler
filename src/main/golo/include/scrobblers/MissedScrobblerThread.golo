@@ -1,5 +1,7 @@
 module audiostreamerscrobbler.scrobbler.MissedScrobblerHandler
 
+import audiostreamerscrobbler.utils.ThreadUtils
+
 import gololang.concurrent.workers.WorkerEnvironment
 import java.lang.Thread
 import java.util.{Calendar, TimeZone}
@@ -59,7 +61,7 @@ local function _createMissedScrobbleRunThread = |handler| {
 	let isRunning = handler: _isRunning()
 	isRunning: set(true)
 
-	let runThread = {
+	return runInNewThread("MissedScrobblesHandlerThread", {
 		while (isRunning: get()) {
 			handler: _scheduleScrobbleAction()
 			try {
@@ -78,9 +80,7 @@ local function _createMissedScrobbleRunThread = |handler| {
 		handler: _env(): shutdown()
 		handler: _port(null)
 		handler: _thread(null)
-	}
-	let runnable = asInterfaceInstance(Runnable.class, runThread)
-	return Thread(runnable)
+	})
 }
 
 local function scheduleAddScrobble = |handler, scrobblerId, scrobble| {
