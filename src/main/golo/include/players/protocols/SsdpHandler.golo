@@ -195,7 +195,7 @@ local function _createAndRunSendThread = |handler| {
 			handler: _port(): send(SsdpHandlerMsgs.ExecuteMSearchQueriesMsg())
 			Thread.sleep(10000_L)
 		}
-		println("Stopping SSDP discovery thread...")
+		println("Stopping SSDP network output handler thread...")
 	})
 }
 
@@ -237,7 +237,7 @@ local function _createAndRunReceiveThread = |handler| {
 				handler: _port(): send(SsdpHandlerMsgs.ExecuteCallbacksMsg(headers))
 			}
 		}
-		println("Stopping SSDP traffic handler thread...")
+		println("Stopping SSDP network input handler thread...")
 	})
 }
 
