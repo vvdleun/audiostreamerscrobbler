@@ -133,28 +133,60 @@ local function _addCallbackAndStartWhenAddedFirstCallback = |handler, msg| {
 }
 
 local function _startSdpSearchHandler = |handler| {
-	let multicastAddress = InetAddress.getByName(MULTICAST_ADDRESS_IP4)
-
-	# TODO Usually objects do not import factories, but what to do with this singleton?!
-	let socketFactory = createSocketFactory()
-	
-	let socketMSearch = socketFactory: createMulticastSocket()
-	socketMSearch: setSoTimeout(10 * 1000)
-
-	handler: _multicastAddress(multicastAddress)
-	handler: _socketMSearch(socketMSearch)
-
 	let isRunning = -> handler: _isRunning(): get()
 	isRunning(): set(true)
 
-	let threadSender = _createAndRunSendThread(handler)
-	let threadReceiver = _createAndRunReceiveThread(handler)
-	handler: _threadSender(threadSender)
-	handler: _threadReceiver(threadReceiver)
+	_createSsdpInitThread(handler)
+}
+
+local function _createSsdpInitThread = |handler| {
+	println("Initializing SSDP handler...")
+
+	return runInNewThread("SsdpInitThread", {
+		let isRunning = -> handler: _isRunning(): get()
+		var isInitialized = false
+
+		while (isRunning(): get() and not isInitialized) {
+			try {
+				let multicastAddress = InetAddress.getByName(MULTICAST_ADDRESS_IP4)
+
+				# TODO Usually objects do not import factories, but what to do with this singleton?!
+				let socketFactory = createSocketFactory()
+				
+				let socketMSearch = socketFactory: createMulticastSocket()
+				socketMSearch: setSoTimeout(10 * 1000)
+
+				handler: _multicastAddress(multicastAddress)
+				handler: _socketMSearch(socketMSearch)
+
+				isInitialized = true
+			} catch(ex) {
+				case {
+					when ex oftype IOException.class {
+						println("I/O error occurred, cannot initialize SSDP handler: '" + ex + "'. Will try again in " + IO_ERROR_SLEEP_TIME + " seconds.")
+					}
+					otherwise {
+						raise("Unknown occurred, cannot initialize SSDP handler")
+					}
+				}
+				Thread.sleep(IO_ERROR_SLEEP_TIME * 1000_L)
+				continue
+			}
+		}
+
+		# Let's make sure threads cannot be created endlessly in a loop
+		let threadSender = _createAndRunSendThread(handler)
+		let threadReceiver = _createAndRunReceiveThread(handler)
+		handler: _threadSender(threadSender)
+		handler: _threadReceiver(threadReceiver)
+		println("SSDP I/O handler threads are running. Initialization of SSDP handler is done.")
+	})
+	
 }
 
 local function _createAndRunSendThread = |handler| {
 	println("Starting SSDP discovery thread...")
+	
 	return runInNewThread("SsdpSenderThread", {
 		let isRunning = -> handler: _isRunning(): get()
 
@@ -167,10 +199,11 @@ local function _createAndRunSendThread = |handler| {
 }
 
 local function _createAndRunReceiveThread = |handler| {
+	println("Starting SSDP traffic handler thread...")
+
 	return runInNewThread("SsdpReceiverThread", {
 		let isRunning = -> handler: _isRunning(): get()
 
-		println("Starting SSDP traffic handler thread...")
 		while(isRunning(): get()) {
 			let buffer = newTypedArray(byte.class, BUFFER_SIZE)
 			let recv = DatagramPacket(buffer, buffer: length())

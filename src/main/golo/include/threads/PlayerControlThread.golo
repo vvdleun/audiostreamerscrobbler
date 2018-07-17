@@ -371,19 +371,11 @@ local function _findDeadOrIdlePlayers = |controlThread| {
 	monitorThreads: entrySet(): each(|e| {
 		if (DEBUG) {
 			println("- " + e: getKey())
-			println("-- Alive: " + e: getValue(): get(MONITOR_ALIVE_KEY))
 			println("-- Idle : " + e: getValue(): get(MONITOR_IDLE_KEY))
+			println("-- Alive: " + e: getValue(): get(MONITOR_ALIVE_KEY))
 			println("")
 		}
 
-		if (_hasPlayerTimeElapsed(e: getValue(): get(MONITOR_ALIVE_KEY), DEAD_PLAYER_SECONDS)) {
-			let player = e: getValue(): get(MONITOR_PLAYER_KEY)
-			let lostPlayerEvent = GroupEvents.LostEvent(player)
-			println("Lost player '" + player: friendlyName() + "'.")
-			controlThread: _port(): send(PlayerControlThreadMsgs.OutgoingGroupEventMsg(lostPlayerEvent))
-			return
-		} 
-		
 		let idleStatus = e: getValue(): get(MONITOR_IDLE_KEY)
 		if (idleStatus: isIdle() and _hasPlayerTimeElapsed(idleStatus: timestamp(), IDLE_PLAYER_SECONDS)) {
 			let player = e: getValue(): get(MONITOR_PLAYER_KEY)
@@ -394,6 +386,13 @@ local function _findDeadOrIdlePlayers = |controlThread| {
 			_registerPlayerIdle(monitorThreads, player, true)
 			controlThread: _port(): send(PlayerControlThreadMsgs.OutgoingGroupEventMsg(idlePlayerEvent))
 		}
+
+		if (_hasPlayerTimeElapsed(e: getValue(): get(MONITOR_ALIVE_KEY), DEAD_PLAYER_SECONDS)) {
+			let player = e: getValue(): get(MONITOR_PLAYER_KEY)
+			let lostPlayerEvent = GroupEvents.LostEvent(player)
+			println("Lost player '" + player: friendlyName() + "'.")
+			controlThread: _port(): send(PlayerControlThreadMsgs.OutgoingGroupEventMsg(lostPlayerEvent))
+		} 
 	})
 	
 	if (DEBUG) {
