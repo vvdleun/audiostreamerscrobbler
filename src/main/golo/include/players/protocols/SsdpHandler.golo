@@ -174,20 +174,21 @@ local function _createSsdpInitThread = |handler| {
 			}
 		}
 
-		# Let's make sure threads cannot be created endlessly in a loop
-		let threadSender = _createAndRunSendThread(handler)
-		let threadReceiver = _createAndRunReceiveThread(handler)
-		handler: _threadSender(threadSender)
-		handler: _threadReceiver(threadReceiver)
-		println("SSDP I/O handler threads are running. Initialization of SSDP handler is done.")
+		# Let's make sure new threads are not created inside a loop
+		if (isInitialized) {
+			let threadSender = _createAndRunSendThread(handler)
+			let threadReceiver = _createAndRunReceiveThread(handler)
+			handler: _threadSender(threadSender)
+			handler: _threadReceiver(threadReceiver)
+			println("SSDP I/O handler threads are running. Initialization of SSDP handler is done.")
+		}
 	})
-	
 }
 
 local function _createAndRunSendThread = |handler| {
-	println("Starting SSDP discovery thread...")
+	println("Starting SSDP network output handler thread...")
 	
-	return runInNewThread("SsdpSenderThread", {
+	return runInNewThread("SsdpOutputThread", {
 		let isRunning = -> handler: _isRunning(): get()
 
 		while (isRunning(): get()) {
@@ -199,9 +200,9 @@ local function _createAndRunSendThread = |handler| {
 }
 
 local function _createAndRunReceiveThread = |handler| {
-	println("Starting SSDP traffic handler thread...")
+	println("Starting SSDP network input handler thread...")
 
-	return runInNewThread("SsdpReceiverThread", {
+	return runInNewThread("SsdpInputThread", {
 		let isRunning = -> handler: _isRunning(): get()
 
 		while(isRunning(): get()) {
