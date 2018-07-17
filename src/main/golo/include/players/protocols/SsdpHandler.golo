@@ -163,7 +163,7 @@ local function _createSsdpInitThread = |handler| {
 			} catch(ex) {
 				case {
 					when ex oftype IOException.class {
-						println("I/O error occurred, cannot initialize SSDP handler: '" + ex + "'. Will try again in " + IO_ERROR_SLEEP_TIME + " seconds.")
+						println("I/O error while initializing SSDP network sockets: '" + ex + "'. Will try again in " + IO_ERROR_SLEEP_TIME + " seconds.")
 					}
 					otherwise {
 						raise("Unknown occurred, cannot initialize SSDP handler")
@@ -219,7 +219,7 @@ local function _createAndRunReceiveThread = |handler| {
 						continue
 					}
 					when ex oftype IOException.class {
-						println("I/O Error occurred while sending SSDP search query: " + ex + ". Staying idle for " + IO_ERROR_SLEEP_TIME + " seconds...")
+						println("I/O error while sending SSDP search query: '" + ex + "'. Will try again in " + IO_ERROR_SLEEP_TIME + " seconds.")
 						Thread.sleep(IO_ERROR_SLEEP_TIME * 1000_L)
 						continue
 					}
