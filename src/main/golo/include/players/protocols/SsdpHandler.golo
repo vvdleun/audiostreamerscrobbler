@@ -15,6 +15,8 @@ let MULTICAST_UDP_PORT = 1900
 let BUFFER_SIZE = 4 * 1024
 let SSDP_SECS = 1
 let IO_ERROR_SLEEP_TIME = 10
+let THREAD_SENDER_NAME = "SsdpOutputThread"
+let THREAD_RECEIVER_NAME = "SsdpInputThread"
 
 let ssdpHandler = createSsdpHandler()
 
@@ -25,6 +27,7 @@ union SsdpHandlerMsgs = {
 	RemoveCallbackMsg = { searchText, cb }
 	ExecuteMSearchQueriesMsg
 	ExecuteCallbacksMsg = { values }
+	ThreadFinishedMsg = { name }
 	ShutdownMsg
 }
 
@@ -38,16 +41,17 @@ local function createSsdpHandler = {
 		define("_socketMSearch", null):
 		define("_isRunning", null):
 		define("_callbacks", null):
+		define("_finishedThreads", null):
 		define("shutdown", |this| -> shutdownSsdpHandler(this)):
 		define("addCallback", |this, searchText, cb| -> scheduleAddCallback(this, searchText, cb)):
 		define("removeCallback", |this, searchText, cb| -> scheduleRemoveCallback(this, searchText, cb))
  	
-	initAndStartSsdpHandler(ssdpHandler)
+	_initAndStartSsdpHandler(ssdpHandler)
 	
 	return ssdpHandler
 }
 
-local function initAndStartSsdpHandler = |handler| {
+local function _initAndStartSsdpHandler = |handler| {
 	if (handler: _env() isnt null) {
 		raise("Internal error: player control thread was already running")
 	}
@@ -78,7 +82,6 @@ local function scheduleAddCallback = |handler, searchText, cb| {
 }
 
 local function scheduleRemoveCallback = |handler, searchText, cb| {
-	# println("*** Scheduling removal of callback...")
 	if (handler: _port() is null) {
 		raise("Internal error: SSDP handler thread is not started")
 	}
@@ -101,6 +104,9 @@ local function _portIncomingMsgHandler = |handler, msg| {
 		}
 		when msg: isExecuteCallbacksMsg() {
 			_executeCallbacks(handler, msg)
+		}
+		when msg: isThreadFinishedMsg() {
+			_closeSocketIfAllThreadsFinished(handler, msg)
 		}
 		when msg: isShutdownMsg() {
 			_shutdown(handler)
@@ -146,14 +152,17 @@ local function _createSsdpInitThread = |handler| {
 		let isRunning = -> handler: _isRunning(): get()
 		var isInitialized = false
 
+		handler: _finishedThreads(map[])
+
 		while (isRunning(): get() and not isInitialized) {
+			var socketMSearch = null
 			try {
 				let multicastAddress = InetAddress.getByName(MULTICAST_ADDRESS_IP4)
 
 				# TODO Usually objects do not import factories, but what to do with this singleton?!
 				let socketFactory = createSocketFactory()
 				
-				let socketMSearch = socketFactory: createMulticastSocket()
+				socketMSearch = socketFactory: createMulticastSocket()
 				socketMSearch: setSoTimeout(10 * 1000)
 
 				handler: _multicastAddress(multicastAddress)
@@ -170,6 +179,9 @@ local function _createSsdpInitThread = |handler| {
 					}
 				}
 				Thread.sleep(IO_ERROR_SLEEP_TIME * 1000_L)
+				if (socketMSearch isnt null) {
+					socketMSearch: close()
+				}
 				continue
 			}
 		}
@@ -188,7 +200,7 @@ local function _createSsdpInitThread = |handler| {
 local function _createAndRunSendThread = |handler| {
 	println("Starting SSDP network output handler thread...")
 	
-	return runInNewThread("SsdpOutputThread", {
+	return runInNewThread(THREAD_SENDER_NAME, {
 		let isRunning = -> handler: _isRunning(): get()
 
 		while (isRunning(): get()) {
@@ -196,13 +208,15 @@ local function _createAndRunSendThread = |handler| {
 			Thread.sleep(10000_L)
 		}
 		println("Stopping SSDP network output handler thread...")
+		handler: _port(): send(SsdpHandlerMsgs.ThreadFinishedMsg(THREAD_SENDER_NAME))
+
 	})
 }
 
 local function _createAndRunReceiveThread = |handler| {
 	println("Starting SSDP network input handler thread...")
 
-	return runInNewThread("SsdpInputThread", {
+	return runInNewThread(THREAD_RECEIVER_NAME, {
 		let isRunning = -> handler: _isRunning(): get()
 
 		while(isRunning(): get()) {
@@ -238,6 +252,7 @@ local function _createAndRunReceiveThread = |handler| {
 			}
 		}
 		println("Stopping SSDP network input handler thread...")
+		handler: _port(): send(SsdpHandlerMsgs.ThreadFinishedMsg(THREAD_RECEIVER_NAME))
 	})
 }
 
@@ -270,7 +285,7 @@ local function _removeCallbackAndStopWhenLastItemRemoved = |handler, msg| {
 	let stCallbacks = callbacks: get(st)
 
 	stCallbacks: remove(cb)
-
+	
 	if (stCallbacks: size() == 0) {
 		callbacks: remove(st)
 	}
@@ -340,6 +355,18 @@ local function _executeCallbacks = |handler, msg| {
 			stCallbacks: each(|cb| -> cb(v))
 		}
 	})
+}
+
+local function _closeSocketIfAllThreadsFinished = |handler, msg| {
+	let threadName = msg: name()
+	let finishedThreads = handler: _finishedThreads()
+	finishedThreads: put(threadName, true)
+	let reveiverThreadFinished = finishedThreads: getOrElse(THREAD_RECEIVER_NAME, false)
+	let senderThreadFinished = finishedThreads: getOrElse(THREAD_SENDER_NAME, false)
+	if (reveiverThreadFinished and senderThreadFinished) {
+		println("Closing SSDP socket ")
+		handler: _socketMSearch(): close()
+	}
 }
 
 local function _shutdown = |handler| {
