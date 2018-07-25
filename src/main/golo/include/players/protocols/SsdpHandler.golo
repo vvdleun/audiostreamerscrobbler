@@ -352,7 +352,21 @@ local function _executeCallbacks = |handler, msg| {
 		let stCallbacks = e: getValue()
 		let v = msg: values()
 		if (st == null) or (v: containsKey("st") and v: getOrElse("st", "") == st) {
-			stCallbacks: each(|cb| -> cb(v))
+			stCallbacks: each(|cb| {
+				try {
+					cb(v)
+				} catch(ex) {
+					case {
+						when ex oftype IOException.class {
+							println("I/O error while handling incoming SSDP data: " + ex)
+						}
+						otherwise {
+							println("Unknown error while handling incoming SSDP data: " + ex)
+							throw ex
+						}
+					}
+				}
+			})
 		}
 	})
 }

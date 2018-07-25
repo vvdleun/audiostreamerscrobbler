@@ -26,29 +26,28 @@ function createMusicCastDetector = |cb| {
 
 local function createSsdpCallback = |ssdpHandler, cb| {
 	let ssdpCb = |headers| {
+		let deviceDescriptorUrl = headers: get("location")
+		if (deviceDescriptorUrl is null) {
+			if (DEBUG) {
+				println("No Device Descriptor URL found in HTML header. This is not a supported MusicCast device.")
+			}
+		}
+		let inputStream = URL(deviceDescriptorUrl): openStream()
 		try {
-			let deviceDescriptorUrl = headers: get("location")
-			if (deviceDescriptorUrl isnt null) {
-				let inputStream = URL(deviceDescriptorUrl): openStream()
-				let deviceDescriptor = parseMusicCastDeviceDescriptorXML(inputStream)
+			let deviceDescriptor = parseMusicCastDeviceDescriptorXML(inputStream)
 
-				if (_isMusicCastDevice(deviceDescriptor)) {
-					let musicCastImpl = _createMusicCastImpl(deviceDescriptor)
-					let musicCastPlayer = createMusicCastPlayer(musicCastImpl)
-					cb(musicCastPlayer)
-				} else {
-					if (DEBUG) {
-						println("Device could not be validated as valid MusicCast device")
-					}
-				}
-			} else {
+			if (not _isMusicCastDevice(deviceDescriptor)) {
 				if (DEBUG) {
-					println("No Device Descriptor URL found in HTML header. This is not a supported MusicCast device.")
+					println("Device could not be validated as valid MusicCast device")
+					return
 				}
 			}
-		} catch(ex) {
-			println("Error while processing SSDP incoming data: " + ex)
-			throw(ex)
+
+			let musicCastImpl = _createMusicCastImpl(deviceDescriptor)
+			let musicCastPlayer = createMusicCastPlayer(musicCastImpl)
+			cb(musicCastPlayer)
+		} finally {
+			inputStream: close()
 		}
 	}
 	return ssdpCb
