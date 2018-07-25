@@ -39,8 +39,8 @@ local function createSsdpCallback = |ssdpHandler, cb| {
 			if (not _isMusicCastDevice(deviceDescriptor)) {
 				if (DEBUG) {
 					println("Device could not be validated as valid MusicCast device")
-					return
 				}
+				return
 			}
 
 			let musicCastImpl = _createMusicCastImpl(deviceDescriptor)
