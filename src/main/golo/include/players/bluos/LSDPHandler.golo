@@ -304,7 +304,7 @@ local function skipBytes = |context, length| {
 	context: index(context: index() + length)
 }
 
-# Random helper functions that probably never should have been pur here in the first place...
+# Random helper functions that probably never should have been put here in the first place...
 
 local function compareSubsetArray = |array1, array2, start, length| {
 	let subset1 = Arrays.copyOfRange(array1, start, length)

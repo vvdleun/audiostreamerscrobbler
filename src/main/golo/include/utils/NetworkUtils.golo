@@ -1,7 +1,7 @@
 module audiostreamerscrobbler.utils.NetworkUtils
 
 import java.io.IOException
-import java.net.{DatagramSocket, DatagramPacket, InetAddress, InetSocketAddress, MulticastSocket, NetworkInterface}
+import java.net.{DatagramSocket, DatagramPacket, InetAddress, InetSocketAddress, MulticastSocket, NetworkInterface, Socket}
 
 # Network Interfaces
 
@@ -78,6 +78,14 @@ function getInetAddresses = |networkInterface| {
 # TODO: Refactor this rather ugly API. It relies way too much on the SocketFactory
 #       implementation. 
 
+function createSocket = |host, port, interfaceName, interfaceAddress| {
+	if (isNullOrEmpty(interfaceAddress)) {
+		return Socket(host, port)
+	}
+	let inetAddress = getNetworkInterfaceInetAddress(interfaceName, interfaceAddress)
+	return Socket(host, port, inetAddress, 0)
+}
+
 function createMulticastSocket = |interfaceName, interfaceAddress| {
 	let multicastSocket = MulticastSocket()
 
@@ -110,11 +118,6 @@ function bindMulticastSocketToInterface = |multicastSocket, interfaceName, inter
 }
 
 function createDatagramSocket = |port, interfaceName, interfaceAddress| {
-	# println("port: " + port)
-	# println("interfaceName: " + interfaceName)
-	# println("interfaceAddress: " + interfaceAddress)
-	
-	# println("Creating datagram socket bound to address and port")
 	let inetAddress = getNetworkInterfaceInetAddress(interfaceName, interfaceAddress)
 	let inetSocketAddress = InetSocketAddress(inetAddress, port)
 	return DatagramSocket(inetSocketAddress)

@@ -11,11 +11,16 @@ union events = {
 function parseXmlElements = |inputStream, cb| {
 	let factory = SAXParserFactory.newInstance()
 	let parser = factory: newSAXParser()
-	
+
 	let mutableState = DynamicObject():
 		define("path", list[]):
 		define("characters", StringBuilder())
 
+	let statusXMLHandler = createXmlHandlerAdapter(cb, mutableState)
+	parser: parse(inputStream, statusXMLHandler)
+}
+
+local function createXmlHandlerAdapter = |cb, mutableState| {
 	let xmlHandlerAdapter = Adapter():
 		extends("org.xml.sax.helpers.DefaultHandler"):
 		implements("startElement", |this, uri, localName, qName, attributes| {
@@ -42,6 +47,5 @@ function parseXmlElements = |inputStream, cb| {
 			mutableState: characters(null)
 		})
 
-	let statusXMLHandler = xmlHandlerAdapter: newInstance()
-	parser: parse(inputStream, statusXMLHandler)
+	return xmlHandlerAdapter: newInstance()		
 }

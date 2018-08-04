@@ -29,7 +29,12 @@ struct MusicCastDeviceDescriptor = {
 function parseMusicCastDeviceDescriptorXML = |inputStream| {
 	let musicCastXml = map[]
 	let service = map[["isService", false]]
+	parseMusicCastDeviceDescriptorXML(inputStream, musicCastXml, service)
 
+	return convertToDeviceDescriptor(musicCastXml)
+}
+
+local function parseMusicCastDeviceDescriptorXML = |inputStream, musicCastXml, service| {
 	parseXmlElements(inputStream, |event| {
 		let path = event: path()
 
@@ -63,8 +68,6 @@ function parseMusicCastDeviceDescriptorXML = |inputStream| {
 			}
 		}
 	})
-	
-	return convertToDeviceDescriptor(musicCastXml)
 }
 
 local function convertToDeviceDescriptor = |musicCastXml| {

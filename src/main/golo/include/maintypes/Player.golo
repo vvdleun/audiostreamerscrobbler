@@ -1,15 +1,21 @@
 module audiostreamerscrobbler.maintypes.Player
 
 let PLAYERTYPE_ID_BLUOS = "BluOS"
+let PLAYERTYPE_ID_HEOS = "HEOS"
 let PLAYERTYPE_ID_MUSICCAST = "MusicCast"
 
 union PlayerTypes = {
 	BluOs
+	Heos
 	MusicCast
 }
 
 augment PlayerTypes {
  	function playerTypeId = |this| -> getPlayerTypeID(this)
+}
+
+function getAllPlayerTypes = {
+	return [PlayerTypes.BluOs(), PlayerTypes.Heos(), PlayerTypes.MusicCast()]
 }
 
 function createPlayer = |playerImpl| {
@@ -33,6 +39,9 @@ function getPlayerType = |playerTypeId| {
 		when playerTypeId == PLAYERTYPE_ID_BLUOS {
 			return PlayerTypes.BluOs()
 		}
+		when playerTypeId == PLAYERTYPE_ID_HEOS {
+			return PlayerTypes.Heos()
+		}
 		when playerTypeId == PLAYERTYPE_ID_MUSICCAST {
 			return PlayerTypes.MusicCast()
 		}
@@ -46,6 +55,9 @@ function getPlayerTypeID = |playerType| {
 	case {
 		when playerType: isBluOs() {
 			return PLAYERTYPE_ID_BLUOS
+		}
+		when playerType: isHeos() {
+			return PLAYERTYPE_ID_HEOS
 		}
 		when playerType: isMusicCast() {
 			return PLAYERTYPE_ID_MUSICCAST

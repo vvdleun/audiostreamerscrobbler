@@ -15,7 +15,6 @@ function createMusicCastDetector = |cb| {
 
 	let detector = DynamicObject("MusicCastDetector"):
 		define("_ssdpHandler", |this| -> ssdpHandler):
-		define("_cb", |this| -> cb):
 		define("_ssdpCb", |this| -> ssdpCb):
 		define("playerType", PlayerTypes.MusicCast()):
 		define("start", |this| -> startMusicCastDetector(this)):
@@ -31,6 +30,7 @@ local function createSsdpCallback = |ssdpHandler, cb| {
 			if (DEBUG) {
 				println("No Device Descriptor URL found in HTML header. This is not a supported MusicCast device.")
 			}
+			return
 		}
 		let inputStream = URL(deviceDescriptorUrl): openStream()
 		try {

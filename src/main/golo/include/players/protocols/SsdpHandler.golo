@@ -170,6 +170,9 @@ local function _createSsdpInitThread = |handler| {
 
 				isInitialized = true
 			} catch(ex) {
+				if (socketMSearch isnt null) {
+					socketMSearch: close()
+				}
 				case {
 					when ex oftype IOException.class {
 						println("I/O error while initializing SSDP network sockets: '" + ex + "'. Will try again in " + IO_ERROR_SLEEP_TIME + " seconds.")
@@ -179,9 +182,6 @@ local function _createSsdpInitThread = |handler| {
 					}
 				}
 				Thread.sleep(IO_ERROR_SLEEP_TIME * 1000_L)
-				if (socketMSearch isnt null) {
-					socketMSearch: close()
-				}
 				continue
 			}
 		}
@@ -205,7 +205,7 @@ local function _createAndRunSendThread = |handler| {
 
 		while (isRunning(): get()) {
 			handler: _port(): send(SsdpHandlerMsgs.ExecuteMSearchQueriesMsg())
-			Thread.sleep(10000_L)
+			Thread.sleep(30000_L)
 		}
 		println("Stopping SSDP network output handler thread...")
 		handler: _port(): send(SsdpHandlerMsgs.ThreadFinishedMsg(THREAD_SENDER_NAME))
@@ -219,13 +219,14 @@ local function _createAndRunReceiveThread = |handler| {
 	return runInNewThread(THREAD_RECEIVER_NAME, {
 		let isRunning = -> handler: _isRunning(): get()
 
+		let buffer = newTypedArray(byte.class, BUFFER_SIZE)
+		let datagramPacket = DatagramPacket(buffer, buffer: length())
+		let socketMSearch = handler: _socketMSearch()
+
 		while(isRunning(): get()) {
-			let buffer = newTypedArray(byte.class, BUFFER_SIZE)
-			let recv = DatagramPacket(buffer, buffer: length())
 			try {
 				# println("MSEARCH THREAD: Waiting for data...")
-				let socketMSearch = handler: _socketMSearch()
-				socketMSearch: receive(recv)
+				socketMSearch: receive(datagramPacket)
 			} catch (ex) {
 				case {
 					when ex oftype SocketTimeoutException.class {
@@ -244,10 +245,13 @@ local function _createAndRunReceiveThread = |handler| {
 					}
 				}
 			}
-			let incomingMsg = String(buffer, "UTF-8")
+			let incomingMsg = String(datagramPacket: getData(), 0, datagramPacket: getLength() , "UTF-8")
 			let status, headers = _getValues(incomingMsg)
 
 			if (status: size() > 1 and status: get(1) == "200") {
+				# println(incomingMsg)
+				# println(headers)
+				# println("")
 				handler: _port(): send(SsdpHandlerMsgs.ExecuteCallbacksMsg(headers))
 			}
 		}
@@ -307,7 +311,11 @@ local function _executeMSearchQueries = |handler| {
 			if (not isRunning(): get()) {
 				break
 			}
-			sendMSearchQuery(handler, st, SSDP_SECS)
+			try {
+				sendMSearchQuery(handler, st, SSDP_SECS)
+			} catch(ex) {
+				println("Error while sending outgoing SSDP data: " + ex)
+			}
 			Thread.sleep(1000_L)
 		}
 	})

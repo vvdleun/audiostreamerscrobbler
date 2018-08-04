@@ -5,8 +5,7 @@ import audiostreamerscrobbler.groups.{FixedPlayersGroupStrategy, Group}
 import audiostreamerscrobbler.maintypes.Player
 import audiostreamerscrobbler.maintypes.Player.types.PlayerTypes
 
-let CONFIG_PLAYER_TYPE_BLUOS = "bluos"
-let CONFIG_PLAYER_TYPE_MUSICCAST = "musiccast"
+let CONFIG_PLAYER_TYPES = map[[t: playerTypeId(): toLowerCase(), t: playerTypeId()] foreach t in getAllPlayerTypes()]
 
 function createGroupFactory = {
 	let factory = DynamicObject("PlayerControlThreadFactory"):
@@ -68,11 +67,11 @@ local function _createConfiguredLegacySinglePlayerGroup = |cbProcessEvents, conf
 }
 
 local function _getConfiguredPlayerTypeId = |playerTypeInConfig| {
-	return match {
-		when playerTypeInConfig == CONFIG_PLAYER_TYPE_BLUOS then getPlayerTypeID(PlayerTypes.BluOs())
-		when playerTypeInConfig == CONFIG_PLAYER_TYPE_MUSICCAST then getPlayerTypeID(PlayerTypes.MusicCast())
-		otherwise raise("Unknown player type specified in configuration: '" + playerTypeInConfig + "'")
+	let playerTypeId = CONFIG_PLAYER_TYPES: get(playerTypeInConfig)
+	if (playerTypeId is null) {
+		raise("Unknown player type specified in configuration: '" + playerTypeInConfig + "'")
 	}
+	return playerTypeId
 }
 
 local function _createFixedPlayerGroup = |expectedPlayers, cbProcessEvents| {

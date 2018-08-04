@@ -3,6 +3,7 @@ module audiostreamerscrobbler.factories.PlayerDetectorFactory
 import audiostreamerscrobbler.factories.SocketFactory
 import audiostreamerscrobbler.maintypes.Player
 import audiostreamerscrobbler.players.bluos.BluOsDetector
+import audiostreamerscrobbler.players.heos.HeosDetector
 import audiostreamerscrobbler.players.musiccast.MusicCastDetector
 
 function createPlayerDetectorFactory = {
@@ -18,6 +19,7 @@ local function createPlayerDetector = |playerTypeId, cb| {
 
 	let detector = match {
 		when playerType: isBluOs() then createBluOsDetector(socketFactory, cb)
+		when playerType: isHeos() then createHeosDetector(cb)
 		when playerType: isMusicCast() then createMusicCastDetector(cb)
 		otherwise raise("Internal error: Unknown player type in config.json: '" + playerType + "'")
 	}
