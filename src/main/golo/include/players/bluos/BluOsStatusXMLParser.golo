@@ -28,7 +28,7 @@ function createBluOsStatusXMLParser = {
 
 local function parseBluOsStatusXML = |inputStream| {
 	let factory = SAXParserFactory.newInstance()
-	let parser = factory: newSAXParser()
+	let xmlParser = factory: newSAXParser()
 
 	let mutableState = DynamicObject():
 		define("depth", 0):
@@ -67,7 +67,7 @@ local function parseBluOsStatusXML = |inputStream| {
 		})
 
 	let statusXMLHandler = xmlHandlerAdapter: newInstance()
-	parser: parse(inputStream, statusXMLHandler)
+	xmlParser: parse(inputStream, statusXMLHandler)
 
 	return createBluOsSong(mutableState: isStatus(), mutableState: etag(), mutableState: playerState())
 }

@@ -177,13 +177,15 @@ local function _startSdpDetector = |connection| {
 }
  
 local function _createSsdpCallback = |connection| {
+	let parser = createHeosDeviceDescriptorXMLParser()
+
 	let ssdpCb = |headers| {
 		try {
 			let deviceDescriptorUrl = headers: get("location")
 			if (deviceDescriptorUrl isnt null) {
 				let inputStream = URL(deviceDescriptorUrl): openStream()
 				try {
-					let deviceDescriptor = parseHeosDeviceDescriptorXML(inputStream)
+					let deviceDescriptor = parser: parse(inputStream)
 					if (_isHeosDevice(deviceDescriptor)) {
 						let host = _getHost(deviceDescriptorUrl)
 						let name = deviceDescriptor: name()

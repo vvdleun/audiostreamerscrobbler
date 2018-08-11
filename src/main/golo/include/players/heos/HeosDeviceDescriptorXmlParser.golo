@@ -14,12 +14,22 @@ struct HeosDeviceDescriptor = {
 	manufacturer
 }
 
-function parseHeosDeviceDescriptorXML = |inputStream| {
+function createHeosDeviceDescriptorXMLParser = {
+	let xmlParser = createSimpleXMLParser()
+
+	let parser = DynamicObject("HeosDeviceDescriptorXMLParser"):
+		define("_xmlParser", xmlParser):
+		define("parse", |this, inputStream| -> parseHeosDeviceDescriptorXML(this, inputStream))
+
+	return parser
+}
+
+function parseHeosDeviceDescriptorXML = |parser, inputStream| {
 	let heosXml = map[]
 
-	let parser = createSimpleXMLParser()
+	let xmlParser = parser: _xmlParser()
 
-	parser: parse(inputStream, |event| {
+	xmlParser: parse(inputStream, |event| {
 		let path = event: path()
 
 		if event: isEndElement() {
@@ -29,7 +39,11 @@ function parseHeosDeviceDescriptorXML = |inputStream| {
 			}
 		}
 	})
-	
+
+	if (heosXml: isEmpty()) {
+		return null
+	}
+
 	return convertToDeviceDescriptor(heosXml)
 }
 
