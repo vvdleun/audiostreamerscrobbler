@@ -39,14 +39,14 @@ local function createPoller = |player, statusUrl, httpRequest| {
 local function pollBluOsStatus = |poller| {
 	# println("Polling BluOs player...")
 	
-	let status = requestPlayerState(poller)
+	let playerStatus = requestPlayerState(poller)
 	
-	validateStatus(status) 
+	validateStatus(playerStatus)
 
-	poller: _etag(status: etag())
+	poller: _etag(playerStatus: etag())
 
-	if (isPlayerPlaying(status)) {
-		let song = convertPlayerStatusToSong(status)
+	if (isPlayerPlaying(playerStatus)) {
+		let song = convertPlayerStatusToSong(playerStatus)
 		return MonitorThreadTypes.PlayingSong(song)
 	} else {
 		return MonitorThreadTypes.Monitoring()
@@ -82,12 +82,5 @@ local function createUrl = |poller| {
 }
 
 local function convertPlayerStatusToSong = |status| {
-	return Song(status: name(), status: artist(), status: album(), str2int(status: secs()), str2int(status:totlen()))
-}
-
-local function str2int = |s| {
-	if (s is null) {
-		return null
-	}
-	return Integer.parseInt(s)
+	return Song(status: name(), status: artist(), status: album(), status: secs(), status: totlen())
 }
