@@ -26,11 +26,19 @@ struct MusicCastDeviceDescriptor = {
 	yxcControlUrl
 }
 
-function parseMusicCastDeviceDescriptorXML = |inputStream| {
+function createMusicCastDeviceDescriptorParser = {
+	let xmlParser = createSimpleXMLParser()
+
+	let parser = DynamicObject("MusicCastDeviceDescriptorParser"):
+		define("_xmlParser", xmlParser):
+		define("parse", |this, inputStream| -> parseMusicCastDeviceDescriptorXML(this, inputStream))
+	
+	return parser
+}
+
+local function parseMusicCastDeviceDescriptorXML = |parser, inputStream| {
 	let musicCastXml = map[]
 	let service = map[["isService", false]]
-
-	let parser = createSimpleXMLParser()
 
 	parseMusicCastDeviceDescriptorXML(parser, inputStream, musicCastXml, service)
 
@@ -38,7 +46,9 @@ function parseMusicCastDeviceDescriptorXML = |inputStream| {
 }
 
 local function parseMusicCastDeviceDescriptorXML = |parser, inputStream, musicCastXml, service| {
-	parser: parse(inputStream, |event| {
+	let xmlParser = parser: _xmlParser()
+
+	xmlParser: parse(inputStream, |event| {
 		let path = event: path()
 
 		if event: isStartElement() {

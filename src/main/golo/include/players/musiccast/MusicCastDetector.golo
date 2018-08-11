@@ -24,6 +24,8 @@ function createMusicCastDetector = |cb| {
 }
 
 local function createSsdpCallback = |ssdpHandler, cb| {
+	let parser = createMusicCastDeviceDescriptorParser()
+
 	let ssdpCb = |headers| {
 		let deviceDescriptorUrl = headers: get("location")
 		if (deviceDescriptorUrl is null) {
@@ -34,7 +36,7 @@ local function createSsdpCallback = |ssdpHandler, cb| {
 		}
 		let inputStream = URL(deviceDescriptorUrl): openStream()
 		try {
-			let deviceDescriptor = parseMusicCastDeviceDescriptorXML(inputStream)
+			let deviceDescriptor = parser: parse(inputStream)
 
 			if (not _isMusicCastDevice(deviceDescriptor)) {
 				if (DEBUG) {
