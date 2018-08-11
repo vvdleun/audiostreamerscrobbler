@@ -32,7 +32,7 @@ function createMusicCastDeviceDescriptorParser = {
 	let parser = DynamicObject("MusicCastDeviceDescriptorParser"):
 		define("_xmlParser", xmlParser):
 		define("parse", |this, inputStream| -> parseMusicCastDeviceDescriptorXML(this, inputStream))
-	
+
 	return parser
 }
 

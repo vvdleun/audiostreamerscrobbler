@@ -18,6 +18,9 @@ import org.xml.sax.helpers.DefaultHandler;
 public class BluOsStatusXMLParser {
 	private static final List<String> STATUS_XML_ELEMENTS = new ArrayList<>();
 
+	private final SAXParser saxParser;
+	private final BluOsStatusXmlHandler xmlHandler = new BluOsStatusXmlHandler();
+
 	static {
 		STATUS_XML_ELEMENTS.add("album");
 		STATUS_XML_ELEMENTS.add("artist");
@@ -27,8 +30,6 @@ public class BluOsStatusXMLParser {
 		STATUS_XML_ELEMENTS.add("service");
 		STATUS_XML_ELEMENTS.add("totlen");
 	}
-	
-	private final SAXParser saxParser;
 	
 	public BluOsStatusXMLParser() {
 		try {
@@ -41,7 +42,6 @@ public class BluOsStatusXMLParser {
 	
 	public BluOsParsedStatus parse(InputStream inputStream) throws IOException {
 		try {
-			BluOsStatusXmlHandler xmlHandler = new BluOsStatusXmlHandler();
 			saxParser.parse(inputStream, xmlHandler);
 			
 			BluOsParsedStatus bluOsStatus = new BluOsParsedStatus();
@@ -84,8 +84,13 @@ public class BluOsStatusXMLParser {
 			parsedData.elementName = qName;
 			parsedData.characters = new StringBuilder();
 			
-			if (parsedData.depth == 1 && "status".equals(qName)) {
-				parsedData.etag = attributes.getValue("etag");
+			if (parsedData.depth == 1) {
+				if ("status".equals(qName)) {
+					parsedData.etag = attributes.getValue("etag");
+					parsedData.isStatus = true;
+				} else {
+					parsedData.isStatus = false;
+				}
 			}
 		}
 
@@ -98,9 +103,7 @@ public class BluOsStatusXMLParser {
 
 		@Override
 		public void endElement(String uri, String localName, String qName) throws SAXException {
-			if (parsedData.depth == 1 && "status".equals(qName)) {
-				parsedData.isStatus = true;
-			} else if (parsedData.depth == 2 && STATUS_XML_ELEMENTS.contains(qName)) {
+			if (parsedData.isStatus && parsedData.depth == 2 && STATUS_XML_ELEMENTS.contains(qName)) {
 				parsedData.playerState.put(qName, parsedData.characters.toString());
 			}
 			

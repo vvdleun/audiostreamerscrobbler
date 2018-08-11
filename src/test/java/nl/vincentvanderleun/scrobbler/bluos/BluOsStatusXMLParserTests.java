@@ -20,7 +20,7 @@ public class BluOsStatusXMLParserTests {
 			"<canSeek>1</canSeek>\r\n" + 
 			"<cursor>1439</cursor>\r\n" + 
 			"<fn>Tidal:3469120</fn>\r\n" + 
-			"<image>/Artwork?service=Tidal&amp;songid=Tidal%3A3469120</image>\r\n" + 
+			"<image>/Artwork?service=Tidal&amp;songid=Tidal%3ACENSORED</image>\r\n" +
 			"<indexing>0</indexing>\r\n" + 
 			"<mid>1</mid>\r\n" + 
 			"<mode>1</mode>\r\n" + 
@@ -54,6 +54,7 @@ public class BluOsStatusXMLParserTests {
 	@Test
 	public void mustParseBluOsStatusXML() throws IOException {
 		ByteArrayInputStream inputStream = new ByteArrayInputStream(BLUOS_STATUS_XML_DATA.getBytes());
+
 		BluOsParsedStatus status = bluOsStatusXMLParser.parse(inputStream);
 
 		assertEquals("The Voice Of Love", status.getAlbum());
