@@ -5,6 +5,8 @@ import audiostreamerscrobbler.groups.{FixedPlayersGroupStrategy, Group}
 import audiostreamerscrobbler.maintypes.Player
 import audiostreamerscrobbler.maintypes.Player.types.PlayerTypes
 
+import java.util.TreeMap
+
 let CONFIG_PLAYER_TYPES = map[[t: playerTypeId(): toLowerCase(), t: playerTypeId()] foreach t in getAllPlayerTypes()]
 
 function createGroupFactory = {
@@ -34,7 +36,7 @@ local function _createConfiguredFixedPlayerGroup = |cbProcessEvents, config| {
 		return null
 	}
 	
-	let expectedPlayers = map[]
+	let expectedPlayers = TreeMap()
 	
 	foreach playerTypeConfig in playersConfig: entrySet() {
 		let playerTypeId = _getConfiguredPlayerTypeId(playerTypeConfig: getKey())

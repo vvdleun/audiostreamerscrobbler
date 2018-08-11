@@ -20,7 +20,7 @@ function createBaseGroupStragegyImpl = |playerTypes, cbProcessEvents| {
 	#    event handlers and the afterIdleEvent() function.
 	# 3) Users of this implementation that do not re-implement the handleIdleEvent()
 	#    function are required to provide the implementation for the afterIdleEvent
-	#    function, which is called in thie class' handleIdleEvent() implementation.
+	#    function, which is called in this class' handleIdleEvent() implementation.
 	# 4) Strategies based on this implementation are definitely not threadsafe
 	
 	let players = map[]
