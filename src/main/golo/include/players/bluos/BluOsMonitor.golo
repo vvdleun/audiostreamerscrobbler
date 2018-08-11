@@ -23,10 +23,13 @@ function createBluOsMonitor = |player, httpRequestFactory, cb| {
 }
 
 local function createPoller = |player, statusUrl, httpRequest| {
+	let parser = createBluOsStatusXMLParser()
+
 	let poller = DynamicObject("BluOsPlayerMonitorPoller"):
 		define("_statusUrl", statusUrl):
 		define("_etag", null):
 		define("_httpRequest", httpRequest):
+		define("_parser", parser):
 		define("player", player):
 		define("poll", |this| -> pollBluOsStatus(this))
 
@@ -54,9 +57,10 @@ local function requestPlayerState = |poller| {
 	let url = createUrl(poller)
 
 	let httpRequest = poller: _httpRequest()
-	let res = httpRequest: doHttpGetRequest(url, "application/xml", |i| -> parseBluOsStatusXML(i))
+	let parser = poller: _parser()
+	let playerState = httpRequest: doHttpGetRequest(url, "application/xml", |i| -> parser: parse(i))
 	
-	return res
+	return playerState
 }
 
 local function validateStatus = |status| {

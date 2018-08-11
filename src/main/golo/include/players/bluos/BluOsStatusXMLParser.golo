@@ -19,7 +19,14 @@ struct BluOsStatus = {
 	totlen
 }
 
-function parseBluOsStatusXML = |inputStream| {
+function createBluOsStatusXMLParser = {
+	let parser = DynamicObject("BluOsStatusXMLParser"):
+		define("parse", |this, inputStream| -> parseBluOsStatusXML(inputStream))
+	
+	return parser
+}
+
+local function parseBluOsStatusXML = |inputStream| {
 	let factory = SAXParserFactory.newInstance()
 	let parser = factory: newSAXParser()
 
