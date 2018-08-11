@@ -17,7 +17,9 @@ struct HeosDeviceDescriptor = {
 function parseHeosDeviceDescriptorXML = |inputStream| {
 	let heosXml = map[]
 
-	parseXmlElements(inputStream, |event| {
+	let parser = createSimpleXMLParser()
+
+	parser: parse(inputStream, |event| {
 		let path = event: path()
 
 		if event: isEndElement() {

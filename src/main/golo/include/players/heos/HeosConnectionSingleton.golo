@@ -209,7 +209,7 @@ local function _handleConnectToPlayerMsg = |connection, host, port, name| {
 	if (not connection: _mode(): isFindPlayerMode()) {
 		return
 	} else if _hasDeviceFailedToConnectRecently(connection, name) {
-		println("No connection could be established with HEOS player '" + name + "' recently. This device is ignored for a short time.")
+		println("HEOS player '" + name + "' refused to connect recently. This device is ignored for a short time.")
 		return
 	}
 
@@ -248,8 +248,7 @@ local function _handleConnectToPlayerMsg = |connection, host, port, name| {
 
 		connection: _mode(HeosModes.ConnectedMode())
 
-		# The response of the command(s) used to initialize the command are
-		# ignored at this time
+		# The response of the command(s) used to initialize the command is ignored
 		_initConnection(connection)
 
 		_createAndRunReceiveThread(connection, connectionId)
@@ -294,11 +293,7 @@ local function _createAndRunReceiveThread = |connection, connectionId| {
 						if (timeouts >= MAX_TIMEOUTS) {
 							println("HEOS network input handler thread: too many timeouts.")
 							if (connectionId == connection: _connectionId(): get()) {
-								# This is not really thread safe. In worst case a perfectly
-								# fine connection is aborted, if new connection was made
-								# before connection ID was updated.
-								# Let's see if this will cause problems in real life.
-								println("HEOS connection handler is looking for player to connect to")
+								println("HEOS connection handler is looking for player to connect to...")
 								_handleFindPlayerMsg(connection)
 							}
 							break

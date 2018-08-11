@@ -8,7 +8,14 @@ union events = {
 	EndElement = { path, characters }
 }
 
-function parseXmlElements = |inputStream, cb| {
+function createSimpleXMLParser = {
+	let parser = DynamicObject("SimpleXMLParser"):
+		define("parse", |this, inputStream, cb| -> parseXmlElements(inputStream, cb))
+
+	return parser
+}
+
+local function parseXmlElements = |inputStream, cb| {
 	let factory = SAXParserFactory.newInstance()
 	let parser = factory: newSAXParser()
 
