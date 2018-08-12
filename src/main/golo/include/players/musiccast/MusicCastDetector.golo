@@ -34,8 +34,10 @@ local function createSsdpCallback = |ssdpHandler, cb| {
 			}
 			return
 		}
-		let inputStream = URL(deviceDescriptorUrl): openStream()
+		var inputStream = null
 		try {
+			inputStream = URL(deviceDescriptorUrl): openStream()
+
 			let deviceDescriptor = parser: parse(inputStream)
 
 			if (not _isMusicCastDevice(deviceDescriptor)) {
@@ -49,7 +51,9 @@ local function createSsdpCallback = |ssdpHandler, cb| {
 			let musicCastPlayer = createMusicCastPlayer(musicCastImpl)
 			cb(musicCastPlayer)
 		} finally {
-			inputStream: close()
+			if (inputStream != null) {
+				inputStream: close()
+			}
 		}
 	}
 	return ssdpCb

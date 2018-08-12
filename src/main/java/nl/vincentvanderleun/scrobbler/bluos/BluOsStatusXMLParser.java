@@ -2,10 +2,10 @@ package nl.vincentvanderleun.scrobbler.bluos;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -16,7 +16,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 public class BluOsStatusXMLParser {
-	private static final List<String> STATUS_XML_ELEMENTS = new ArrayList<>();
+	private static final Set<String> STATUS_XML_ELEMENTS = new HashSet<>();
 
 	private final SAXParser saxParser;
 	private final BluOsStatusXmlHandler xmlHandler = new BluOsStatusXmlHandler();

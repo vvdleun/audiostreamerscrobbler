@@ -1,5 +1,8 @@
 module audiostreamerscrobbler.utils.SimpleXMLParser
 
+import nl.vincentvanderleun.utils.SimpleXMLParser
+import nl.vincentvanderleun.utils.SimpleXMLParserCallback
+
 import gololang.Adapters
 import javax.xml.parsers.SAXParserFactory
 
@@ -9,50 +12,32 @@ union events = {
 }
 
 function createSimpleXMLParser = {
+	let xmlParser = SimpleXMLParser()
+
 	let parser = DynamicObject("SimpleXMLParser"):
-		define("parse", |this, inputStream, cb| -> parseXmlElements(inputStream, cb))
+		define("_xmlParser", xmlParser):
+		define("parse", |this, inputStream, cb| -> parseXmlElements(this, inputStream, cb))
 
 	return parser
 }
 
-local function parseXmlElements = |inputStream, cb| {
-	let factory = SAXParserFactory.newInstance()
-	let parser = factory: newSAXParser()
-
-	let mutableState = DynamicObject():
-		define("path", list[]):
-		define("characters", StringBuilder())
-
-	let statusXMLHandler = createXmlHandlerAdapter(cb, mutableState)
-	parser: parse(inputStream, statusXMLHandler)
-}
-
-local function createXmlHandlerAdapter = |cb, mutableState| {
-	let xmlHandlerAdapter = Adapter():
-		extends("org.xml.sax.helpers.DefaultHandler"):
-		implements("startElement", |this, uri, localName, qName, attributes| {
-			mutableState: path(): add(qName)
-			mutableState: characters(StringBuilder())
-			cb(events.StartElement(mutableState: path(): join("/"), attributes))
-		}):		
-		implements("characters", |this, ch, start, length| {
-			let s = String(ch, start, length)
-			if (mutableState: characters() is null and s: trim(): length() == 0) {
-				# Ignore whitespace
-				return
+local function parseXmlElements = |parser, inputStream, cb| {
+	let xmlParser = parser: _xmlParser()
+	
+	let simpleXmlCb = asFunctionalInterface(nl.vincentvanderleun.utils.SimpleXMLParserCallback.class, |event, path, attributes, characters| {
+		# Convert event to events union defined above and call specified callback
+		case {
+			when event: name() == "START_ELEMENT" {
+				cb(events.StartElement(path, attributes))
 			}
-			mutableState: characters(): append(s)			
-		}):
-		implements("endElement", |this, uri, localName, qName| {
-			let charactersString = match {
-				when mutableState: characters() isnt null then mutableState: characters(): toString()
-				otherwise null
+			when event: name() == "END_ELEMENT" {
+				cb(events.EndElement(path, characters))
 			}
-			cb(events.EndElement(mutableState: path(): join("/"), charactersString))
-			
-			mutableState: path(): removeAt(mutableState: path(): size() - 1)
-			mutableState: characters(null)
-		})
-
-	return xmlHandlerAdapter: newInstance()		
+			otherwise {
+				raise("Internal error: unknown event returned by SimpleXMLParser implementation: '" + event + "'")
+			}
+		}
+	})
+	
+	xmlParser: parse(inputStream, simpleXmlCb)
 }
