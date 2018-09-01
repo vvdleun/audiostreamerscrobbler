@@ -1,6 +1,7 @@
 module audiostreamerscrobbler.players.protocols.SSDPHandler
 
 import audiostreamerscrobbler.factories.SocketFactory
+import audiostreamerscrobbler.players.protocols.SSDPHandlerCallbackResultTypes.types.SSDPHandlerCallbackResult
 import audiostreamerscrobbler.utils.{NetworkUtils, ThreadUtils}
 
 import gololang.concurrent.workers.WorkerEnvironment
@@ -67,6 +68,7 @@ local function _initAndStartSsdpHandler = |handler| {
 	# Sender / Receiver threads will be created once callbacks are added
 	handler: _threadSender(null)
 	handler: _threadReceiver(null)
+	
 }
 
 local function shutdownSsdpHandler = |handler| {
@@ -176,7 +178,7 @@ local function _createSsdpInitThread = |handler| {
 						println("I/O error while initializing SSDP network sockets: '" + ex + "'. Will try again in " + IO_ERROR_SLEEP_TIME + " seconds.")
 					}
 					otherwise {
-						raise("Unknown occurred, cannot initialize SSDP handler")
+						raise("Unknown exception was thrown, cannot initialize SSDP handler")
 					}
 				}
 				Thread.sleep(IO_ERROR_SLEEP_TIME * 1000_L)
@@ -243,9 +245,6 @@ local function _createAndRunReceiveThread = |handler| {
 			let status, headers = _getValues(incomingMsg)
 
 			if (status: size() > 1 and status: get(1) == "200") {
-				# println(incomingMsg)
-				# println(headers)
-				# println("")
 				handler: _port(): send(SsdpHandlerMsgs.ExecuteCallbacksMsg(headers))
 			}
 		}
@@ -299,16 +298,13 @@ local function _stopSdpSearchHandler = |handler| {
 
 local function _executeMSearchQueries = |handler| {
 	handler: _callbacks(): keySet(): each(|st| {
-		foreach (i in range(3)) {
-			if (not handler: _isRunning(): get()) {
-				break
-			}
-			try {
-				sendMSearchQuery(handler, st, SSDP_SECS)
-			} catch(ex) {
-				println("Error while sending outgoing SSDP data: " + ex)
-			}
-			Thread.sleep(1000_L)
+		if (not handler: _isRunning(): get()) {
+			return
+		}
+		try {
+			sendMSearchQuery(handler, st, SSDP_SECS)
+		} catch(ex) {
+			println("Error while sending outgoing SSDP data: " + ex)
 		}
 	})
 }
@@ -350,11 +346,13 @@ local function _executeCallbacks = |handler, msg| {
 	handler: _callbacks(): entrySet(): each(|e| {
 		let st = e: getKey()
 		let stCallbacks = e: getValue()
-		let v = msg: values()
-		if (st == null) or (v: containsKey("st") and v: getOrElse("st", "") == st) {
+		let headerValues = msg: values()
+		let host = headerValues: getOrElse("host", headerValues: get("location"))
+		let matchesSearchText = headerValues: containsKey("st") and headerValues: getOrElse("st", "") == st
+		if (st == null or matchesSearchText) {
 			stCallbacks: each(|cb| {
 				try {
-					cb(v)
+					cb(host, headerValues)
 				} catch(ex) {
 					case {
 						when ex oftype IOException.class {

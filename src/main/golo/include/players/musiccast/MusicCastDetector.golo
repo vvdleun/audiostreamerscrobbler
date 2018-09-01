@@ -11,11 +11,13 @@ let DEBUG = false
 
 function createMusicCastDetector = |cb| {
 	let ssdpHandler = getSsdpHandlerInstance()
-	let ssdpCb = createSsdpCallback(ssdpHandler, cb)
+	let hosts = set[]
+	let ssdpCb = createSsdpCallback(ssdpHandler, hosts, cb)
 
 	let detector = DynamicObject("MusicCastDetector"):
 		define("_ssdpHandler", |this| -> ssdpHandler):
 		define("_ssdpCb", |this| -> ssdpCb):
+		define("_hosts", hosts):
 		define("playerType", PlayerTypes.MusicCast()):
 		define("start", |this| -> startMusicCastDetector(this)):
 		define("stop", |this| -> stopMusicCastDetector(this))
@@ -23,10 +25,18 @@ function createMusicCastDetector = |cb| {
 	return detector
 }
 
-local function createSsdpCallback = |ssdpHandler, cb| {
+local function createSsdpCallback = |ssdpHandler, hosts, cb| {
 	let parser = createMusicCastDeviceDescriptorParser()
+	
+	let ssdpCb = |host, headers| {
+		if (host isnt null and hosts: contains(host)) {
+			if (DEBUG) {
+				println("\nHost '" + host + "' is already known\n\n")
+			}
+			return
+		}
+		hosts: add(host)
 
-	let ssdpCb = |headers| {
 		let deviceDescriptorUrl = headers: get("location")
 		if (deviceDescriptorUrl is null) {
 			if (DEBUG) {
@@ -60,6 +70,8 @@ local function createSsdpCallback = |ssdpHandler, cb| {
 }
 
 local function startMusicCastDetector = |detector| {
+	detector: _hosts(): clear()
+	
 	let ssdpHandler = detector: _ssdpHandler()
 	ssdpHandler: addCallback(SEARCH_TEXT_MUSICCAST, detector: _ssdpCb())
 }
