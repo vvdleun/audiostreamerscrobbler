@@ -5,7 +5,7 @@ import audiostreamerscrobbler.threads.PlayerMonitorThreadTypes.types.MonitorThre
 import audiostreamerscrobbler.utils.{NetworkUtils, UrlUtils, ThreadUtils}
 
 import java.net.{DatagramPacket, SocketTimeoutException}
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
+import java.util.concurrent.atomic.AtomicBoolean
 
 let API_PLAY_INFO_PATH = "netusb/getPlayInfo"
 let MAX_TIMEOUTS = 6
@@ -24,7 +24,7 @@ function createMusicCastMonitor = |player, socketFactory, httpRequestFactory, cb
 	let socketUpdates = socketFactory: createDatagramSocketAnyPort()
 	socketUpdates: setSoTimeout(10 * 1000)
 	
-	let isRunning = AtomicReference(AtomicBoolean(false))
+	let isRunning = AtomicBoolean(false)
 
 	httpRequestFactory: customProperties(map[
 		["X-AppName", "MusicCast/" + appMetadata: platform() + "(" + appMetadata: appVersion() + ")"],
@@ -50,7 +50,7 @@ function createMusicCastMonitor = |player, socketFactory, httpRequestFactory, cb
 }
 
 local function startMonitor = |monitor| {
-	monitor: _isRunning(): get(): set(true)
+	monitor: _isRunning(): set(true)
 
 	# Do request, so that device starts sending its event updates via UDP
 	getAndRegisterCurrentStatus(monitor)
@@ -62,10 +62,9 @@ local function startMonitor = |monitor| {
 local function _createAndRunThread = |monitor| {
 	println("Starting MusicCast player '" + monitor: player(): friendlyName() + "' monitor thread")
 	return runInNewThread("MusicCastMonitorThread", {
-		let isRunning = -> monitor: _isRunning(): get()
 		let socketUpdates = monitor: _socketUpdates()
 
-		while (isRunning(): get()) {
+		while (monitor: _isRunning(): get()) {
 			try {
 				# println("Waiting for data...")
 				let answerBuffer = newTypedArray(byte.class, 1024 * 64)
@@ -134,7 +133,7 @@ local function handleTimeouts = |monitor| {
 }
 
 local function stopMonitor = |monitor| {
-	monitor: _isRunning(): get(): set(false)
+	monitor: _isRunning(): set(false)
 }
 
 local function getAndRegisterCurrentStatus = |monitor| {

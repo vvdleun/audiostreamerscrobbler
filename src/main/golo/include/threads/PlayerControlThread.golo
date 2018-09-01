@@ -7,7 +7,7 @@ import audiostreamerscrobbler.utils.ThreadUtils
 import gololang.concurrent.workers.WorkerEnvironment
 import java.lang.{InterruptedException, Thread}
 import java.time.{Duration, Instant}
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
+import java.util.concurrent.atomic.AtomicBoolean
 
 let DEBUG = false
 let DEAD_IDLE_TIMER_INTERVAL = 20
@@ -33,8 +33,8 @@ union IdleStatus = {
 }
 
 function createPlayerControlThread = |groupFactory, detectorThreadFactory, monitorThreadFactory, scrobblerHandler, config| {
-	let isRunning = AtomicReference(AtomicBoolean(false))
-	
+	let isRunning = AtomicBoolean(false)
+
 	let controlThread = DynamicObject("PlayerControlThread"):
 		define("_groupFactory", groupFactory):
 		define("_detectorThreadFactory", detectorThreadFactory):
@@ -85,10 +85,8 @@ local function initAndStartPlayerControlThread = |controlThread| {
 
 local function _createAndRunPlayerAliveCheckThread = |controlThread| {
 	return runInNewThread("PlayersAliveCheckThread", {
-		let isRunning = -> controlThread: _isRunning(): get()
-		
-		isRunning(): set(true)
-		while (isRunning(): get()) {
+		controlThread: _isRunning(): set(true)
+		while (controlThread: _isRunning(): get()) {
 			try {
 				Thread.sleep(DEAD_IDLE_TIMER_INTERVAL * 1000_L)
 				controlThread: _port(): send(PlayerControlThreadMsgs.CheckForDeadOrIdlePlayersMsg())
@@ -109,7 +107,7 @@ local function _createAndRunPlayerAliveCheckThread = |controlThread| {
 }
 
 local function stopPlayerControlThread = |controlThread| {
-	controlThread: _isRunning(): get(): set(false)
+	controlThread: _isRunning(): set(false)
 
 	controlThread: _port(): send(PlayerControlThreadMsgs.StopMsg())
 }

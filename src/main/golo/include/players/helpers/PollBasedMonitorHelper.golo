@@ -5,13 +5,15 @@ import audiostreamerscrobbler.utils.ThreadUtils
 import java.io.IOException
 import java.lang.Thread
 import java.time.{Duration, Instant}
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
+import java.util.concurrent.atomic.AtomicBoolean
 
 function createPollBasedPlayerMonitorHelper = |poller, minInterval, cb| {
+	let isRunning = AtomicBoolean(false)
+
 	let pollingMonitor = DynamicObject("PollMonitorAdapter"):
 		define("_poller", poller):
 		define("_minInterval", minInterval * 1000_L):
-		define("_isRunning", AtomicReference(AtomicBoolean(false))):
+		define("_isRunning", isRunning):
 		define("_thread", null):
 		define("_lastCall", null):
 		define("_cb", |this| -> cb):
@@ -27,14 +29,13 @@ local function initAndStartPolling = |pollHelper| {
 		raise("Internal error: thread already exists")
 	}
 	
-	pollHelper: _isRunning(): get(): set(false)
+	pollHelper: _isRunning(): set(false)
 	let thread = runInNewThread("PollBasedMonitorHelper", {
-		let isRunning = pollHelper: _isRunning()
 		let cb = pollHelper: _cb()
 
-		isRunning: get(): set(true)
+		pollHelper: _isRunning(): set(true)
 		println("Starting player polling thread for player '" + pollHelper: player(): friendlyName() + "...")
-		while (isRunning: get(): get()) {
+		while (pollHelper: _isRunning(): get()) {
 			try {
 				waitIfLastCallWasTooSoon(pollHelper)
 				pollPlayerAnCallCallback(pollHelper, cb)
@@ -61,9 +62,8 @@ local function initAndStartPolling = |pollHelper| {
 }
 
 local function stop = |pollHelper| {
-	let isRunning = pollHelper: _isRunning()
 	let thread = pollHelper: _thread()
-	isRunning: get(): set(false)
+	pollHelper: _isRunning(): set(false)
 	if (thread isnt null) {
 		thread: interrupt()
 	}

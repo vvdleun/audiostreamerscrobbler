@@ -7,7 +7,7 @@ import gololang.concurrent.workers.WorkerEnvironment
 import java.io.IOException
 import java.lang.Thread
 import java.net.{DatagramPacket, InetAddress, SocketTimeoutException}
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
+import java.util.concurrent.atomic.AtomicBoolean
 
 let MULTICAST_ADDRESS_IP4 = "239.255.255.250"
 let MULTICAST_ADDRESS_IP6 = "FF05::C"
@@ -62,7 +62,7 @@ local function _initAndStartSsdpHandler = |handler| {
 	handler: _env(env)
 	handler: _port(port)
 	handler: _callbacks(map[])
-	handler: _isRunning(AtomicReference(AtomicBoolean(false)))
+	handler: _isRunning(AtomicBoolean(false))
 
 	# Sender / Receiver threads will be created once callbacks are added
 	handler: _threadSender(null)
@@ -70,7 +70,7 @@ local function _initAndStartSsdpHandler = |handler| {
 }
 
 local function shutdownSsdpHandler = |handler| {
-	handler: _isRunning(): get(): set(false)
+	handler: _isRunning(): set(false)
 	handler: _port(): send(SsdpHandlerMsgs.ShutdownMsg())
 }
 
@@ -139,8 +139,7 @@ local function _addCallbackAndStartWhenAddedFirstCallback = |handler, msg| {
 }
 
 local function _startSdpSearchHandler = |handler| {
-	let isRunning = -> handler: _isRunning(): get()
-	isRunning(): set(true)
+	handler: _isRunning(): set(true)
 
 	_createSsdpInitThread(handler)
 }
@@ -149,12 +148,11 @@ local function _createSsdpInitThread = |handler| {
 	println("Initializing SSDP handler...")
 
 	return runInNewThread("SsdpInitThread", {
-		let isRunning = -> handler: _isRunning(): get()
 		var isInitialized = false
 
 		handler: _finishedThreads(map[])
 
-		while (isRunning(): get() and not isInitialized) {
+		while (handler: _isRunning(): get() and not isInitialized) {
 			var socketMSearch = null
 			try {
 				let multicastAddress = InetAddress.getByName(MULTICAST_ADDRESS_IP4)
@@ -201,9 +199,7 @@ local function _createAndRunSendThread = |handler| {
 	println("Starting SSDP network output handler thread...")
 	
 	return runInNewThread(THREAD_SENDER_NAME, {
-		let isRunning = -> handler: _isRunning(): get()
-
-		while (isRunning(): get()) {
+		while (handler: _isRunning(): get()) {
 			handler: _port(): send(SsdpHandlerMsgs.ExecuteMSearchQueriesMsg())
 			Thread.sleep(30000_L)
 		}
@@ -217,13 +213,11 @@ local function _createAndRunReceiveThread = |handler| {
 	println("Starting SSDP network input handler thread...")
 
 	return runInNewThread(THREAD_RECEIVER_NAME, {
-		let isRunning = -> handler: _isRunning(): get()
-
 		let buffer = newTypedArray(byte.class, BUFFER_SIZE)
 		let datagramPacket = DatagramPacket(buffer, buffer: length())
 		let socketMSearch = handler: _socketMSearch()
 
-		while(isRunning(): get()) {
+		while(handler: _isRunning(): get()) {
 			try {
 				# println("MSEARCH THREAD: Waiting for data...")
 				socketMSearch: receive(datagramPacket)
@@ -300,15 +294,13 @@ local function _removeCallbackAndStopWhenLastItemRemoved = |handler, msg| {
 }
 
 local function _stopSdpSearchHandler = |handler| {
-	handler: _isRunning(): get(): set(false)
+	handler: _isRunning(): set(false)
 }
 
 local function _executeMSearchQueries = |handler| {
 	handler: _callbacks(): keySet(): each(|st| {
-		let isRunning = -> handler: _isRunning(): get()
-
 		foreach (i in range(3)) {
-			if (not isRunning(): get()) {
+			if (not handler: _isRunning(): get()) {
 				break
 			}
 			try {
