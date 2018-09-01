@@ -298,13 +298,16 @@ local function _stopSdpSearchHandler = |handler| {
 
 local function _executeMSearchQueries = |handler| {
 	handler: _callbacks(): keySet(): each(|st| {
-		if (not handler: _isRunning(): get()) {
-			return
-		}
-		try {
-			sendMSearchQuery(handler, st, SSDP_SECS)
-		} catch(ex) {
-			println("Error while sending outgoing SSDP data: " + ex)
+		foreach (i in range(3)) {
+			if (not handler: _isRunning(): get()) {
+				return
+			}
+			try {
+				sendMSearchQuery(handler, st, SSDP_SECS)
+			} catch(ex) {
+				println("Error while sending outgoing SSDP data: " + ex)
+			}
+			Thread.sleep(1000_L)
 		}
 	})
 }

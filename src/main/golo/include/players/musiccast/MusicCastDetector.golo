@@ -31,7 +31,7 @@ local function createSsdpCallback = |ssdpHandler, hosts, cb| {
 	let ssdpCb = |host, headers| {
 		if (host isnt null and hosts: contains(host)) {
 			if (DEBUG) {
-				println("\nHost '" + host + "' is already known\n\n")
+				println("Device at '" + host + "' is already known")
 			}
 			return
 		}
@@ -60,6 +60,14 @@ local function createSsdpCallback = |ssdpHandler, hosts, cb| {
 			let musicCastImpl = _createMusicCastImpl(deviceDescriptor)
 			let musicCastPlayer = createMusicCastPlayer(musicCastImpl)
 			cb(musicCastPlayer)
+		} catch(ex) {
+			# Devices that fail should never be ignored. It can be caused temporary I/O
+			# errors, or bugs in the program.
+			println(ex)
+			if (host isnt null) {
+				hosts: remove(host)
+			}
+			throw(ex)
 		} finally {
 			if (inputStream != null) {
 				inputStream: close()
