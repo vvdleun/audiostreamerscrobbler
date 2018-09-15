@@ -280,7 +280,10 @@ local function _removeCallbackAndStopWhenLastItemRemoved = |handler, msg| {
 	let cb = msg: cb()
 
 	let stCallbacks = callbacks: get(st)
-
+	if (stCallbacks is null) {
+		return
+	}
+	
 	stCallbacks: remove(cb)
 	
 	if (stCallbacks: size() == 0) {

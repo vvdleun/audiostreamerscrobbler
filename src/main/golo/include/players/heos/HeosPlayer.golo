@@ -3,17 +3,18 @@ module audiostreamerscrobbler.players.heos.HeosPlayer
 import audiostreamerscrobbler.maintypes.Player.types.PlayerTypes
 
 struct HeosImpl = {
-	deviceType,
+	pid,
 	name,
-	manufacturer
+	model,
+	ip
 }
 
-function createMusicCastPlayer = |musicCastImpl| {
-	let playerImpl = DynamicObject("MusicCastPlayerImpl"):
-		define("musicCastImpl", musicCastImpl):
-		define("name", musicCastImpl: name()):
-		define("playerType", PlayerTypes.MusicCast()):
-		define("friendlyName", |this| -> this: name() + " (Standard: MusicCast, model: " + musicCastImpl: model() + ", manufacturer: " + musicCastImpl: manufacturer() + ", host: " + musicCastImpl: host() + ")")
+function createHeosPlayer = |heosImpl| {
+	let playerImpl = DynamicObject("HeosPlayerImpl"):
+		define("heosImpl", heosImpl):
+		define("name", heosImpl: name()):
+		define("playerType", PlayerTypes.Heos()):
+		define("friendlyName", |this| -> this: name() + " (Standard: HEOS, model: " + heosImpl: model() + ", IP: " + heosImpl: ip() + ", id: " + heosImpl: pid() + ")")
 
 	return playerImpl		
 }

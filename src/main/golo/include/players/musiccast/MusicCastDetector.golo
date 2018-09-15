@@ -63,7 +63,6 @@ local function createSsdpCallback = |ssdpHandler, hosts, cb| {
 		} catch(ex) {
 			# Devices that fail should never be ignored. It can be caused temporary I/O
 			# errors, or bugs in the program.
-			println(ex)
 			if (host isnt null) {
 				hosts: remove(host)
 			}

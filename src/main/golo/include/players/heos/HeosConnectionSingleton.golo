@@ -1,37 +1,21 @@
 module audiostreamerscrobbler.players.heos.HeosConnectionSingleton
 
 import audiostreamerscrobbler.factories.SocketFactory
-import audiostreamerscrobbler.players.heos.{HeosDeviceDescriptorXmlParser, HeosPlayer}
-import audiostreamerscrobbler.players.protocols.SSDPHandler
 import audiostreamerscrobbler.utils.ThreadUtils
 
 import gololang.concurrent.workers.WorkerEnvironment
 import java.io.{BufferedReader, IOException, InputStreamReader, OutputStreamWriter, PrintWriter}
 import java.net.{Socket, URL}
-import java.time.{Duration, Instant}
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.CopyOnWriteArrayList
 
 let DEBUG = false
-let SEARCH_TEXT_HEOS = "urn:schemas-denon-com:device:ACT-Denon:1"
-let PORT_HEOS = 1255
-let MAX_CALLBACKS = 100
-let MAX_TIMEOUTS = 3
-let IGNORE_FAILED_DEVICE_SECONDS = 20
-let TIMEOUT_SECONDS = 120
-
-union HeosModes = {
-	IdleMode
-	FindPlayerMode
-	ConnectedMode
-}
+let MAX_IO_ERRORS = 3
+let TIMEOUT_SEC = 80
+let SEND_COMMAND_MS = 250
 
 union HeosConnectionMsgs = {
-	StartMsg
-	FindPlayerMsg
-	ConnectToPlayerMsg = { host, port, name }
-	SendCommandMsg = { cmd, cb, autoRemoveCb }
-	RemoveCallbackMsg = { cmd, cb }
-	StopMsg
+	SendCommandMsg = { cmd }
 }
 
 let heosConnection = createHeosConnection()
@@ -39,108 +23,169 @@ let heosConnection = createHeosConnection()
 function getHeosConnectionInstance = -> heosConnection
 
 local function createHeosConnection = {
+	let isRunning = AtomicBoolean(false)
+	let callbacks = CopyOnWriteArrayList()
+	let socketFactory = createSocketFactory()
+	
 	let heosConnection = DynamicObject("HEOSConnection"):
-		define("_env", null):
-		define("_port", null):
-		define("_ssdpCb", null):
-		define("_ssdpHandler", |this| -> getSsdpHandlerInstance()):
-		define("_mode", HeosModes.IdleMode()): 
-		define("_failingPlayers", null):
-		define("_callbacks", null):
+		define("_callbacks", callbacks):
+		define("_isRunning", isRunning):
+		define("_socketFactory", |this| -> socketFactory):
 		define("_socket", null):
 		define("_printWriter", null):
 		define("_inputStreamReader", null):
-		define("_socketFactory", |this| -> createSocketFactory()):
-		define("_isOpened", AtomicBoolean(false)):
-		define("_connectionId", AtomicInteger(0)):
-		define("isOpened", |this| -> this: _isOpened(): get()):
-		define("sendCommand", |this, cmd, cb| -> sendCommand(this, cmd, cb)):
-		define("removeCallback", |this, cmd, cb| -> removeCallback(this, cb)):
-		define("open", |this| -> startHeosConnectionHandler(this)):
-		define("close", |this| -> stopHeosConnectionHandler(this))
+		define("_env", null):
+		define("_port", null):
+		define("connect", |this, host, port| -> connect(this, host, port)):
+		define("disconnect", |this| -> disconnect(this)):
+		define("isConnected", |this| -> isConnected(this)):
+		define("addCallback", |this, cb| -> addCallback(this, cb)):
+		define("removeCallback", |this, cb| -> removeCallback(this, cb)):
+		define("sendCommand", |this, cmd| -> sendCommand(this, cmd))
 
-	_initHeosConnectionHandler(heosConnection)
-		
 	return heosConnection
 }
 
-local function _initHeosConnectionHandler = |connection| {
-	println("Initializing HEOS connection thread...")
+local function connect = |connection, host, port| {
+	if (DEBUG) {
+		println("Connecting to " + host + ":" + port + "...")
+	}
+
+	# Close current socket, if any
+	if (connection: _socket() != null) {
+		throw IOException("HEOSConnection is already connected")
+	}
+
+	let socketFactory = connection: _socketFactory()
+
+	let socket = socketFactory: createSocket(host, port)
+	socket: setSoTimeout(TIMEOUT_SEC * 1000)
+
+	let outputStream = socket: getOutputStream()
+	let printWriter = PrintWriter(OutputStreamWriter(outputStream, "utf-8"), false)
+
+	let inputStream = socket: getInputStream()
+	let inputStreamReader = BufferedReader(InputStreamReader(inputStream))
 
 	let env = WorkerEnvironment.builder(): withSingleThreadExecutor() 
-	let port = env: spawn(^_portIncomingMsgHandler: bindTo(connection))
-	let ssdpCb = _createSsdpCallback(connection)
-	let failingPlayers = map[]
-	let callbacks = map[]
-	
+	let envPort = env: spawn(^_portIncomingMsgHandler: bindTo(connection))
+
+	connection: _socket(socket)
+	connection: _printWriter(printWriter)
+	connection: _inputStreamReader(inputStreamReader)
 	connection: _env(env)
-	connection: _port(port)
-	connection: _ssdpCb(|this| -> ssdpCb)
-	connection: _failingPlayers(failingPlayers)
-	connection: _callbacks(callbacks)
-}
+	connection: _port(envPort)
 
-local function _isHeosDevice = |deviceDescriptor| {
-	# Denon does not document how to verify that device is a true HEOS compatible
-	# product. So this validation should be considered an uneducated guess.
-	return (deviceDescriptor: deviceType() == "urn:schemas-denon-com:device:AiosDevice:1")
-}
+	_initConnection(connection)
 
-local function _getHost = |url| {
-	var result = url
+	_createAndRunReceiveThread(connection)
 
-	let protocolIndex = result: indexOf("://")
-	if (protocolIndex >= 0) {
-		result = result: substring(protocolIndex + 3)
+	if (DEBUG) {
+		println("Connected to HEOS player.")
 	}
-
-	let portIndex = result: indexOf(":")
-	if (portIndex >= 0) {
-		result = result: substring(0, portIndex)
-	}
-
-	let pathIndex = result: indexOf("/")
-	if (pathIndex >= 0) {
-		result = result: substring(0, pathIndex)
-	}
-
-	return result
 }
 
-local function startHeosConnectionHandler = |connection| {
-	connection: _port(): send(HeosConnectionMsgs.StartMsg())
+local function _initConnection = |connection| {
+	let printWriter = connection: _printWriter()
+	_sendCommand(printWriter, "heos://system/prettify_json_response?enable=off")
+	_sendCommand(printWriter, "heos://system/register_for_change_events?enable=off")
 }
 
-local function stopHeosConnectionHandler = |connection| {
-	connection: _port(): send(HeosConnectionMsgs.StopMsg())
+local function _createAndRunReceiveThread = |connection| {
+	let isRunning = connection: _isRunning()
+	isRunning: set(true)
+
+	return runInNewThread("HeosConnectionInputThread", {
+		let reader = connection: _inputStreamReader()
+		var ioErrors = 0
+
+		try {
+			while (isRunning: get()) {
+				if (DEBUG) {
+					println("HEOS waiting for data...")
+				}
+				try {
+					let textResponse = reader: readLine()
+					if (DEBUG) {
+						println("Incoming data: '" + textResponse + "'")
+					}
+
+					let jsonResponse = JSON.parse(textResponse)
+					
+					foreach (cb in connection: _callbacks()) {
+						try {
+							cb(jsonResponse)
+						} catch(ex) {
+							println("ERROR: " + ex)
+							if (DEBUG) {
+								throw(ex)
+							}
+						}
+					}
+				} catch(ex) {
+					case {
+						when ex oftype IOException.class {
+							println("HEOS network input handler thread: I/O error occurred: " + ex)
+							ioErrors = ioErrors + 1
+							if (ioErrors >= MAX_IO_ERRORS) {
+								println("HEOS network input handler thread: too many I/O errors.")
+								isRunning: set(false)
+							}
+						}
+						otherwise {
+							println("Internal error while processing HEOS input: " + ex)
+							if (DEBUG) {
+								throw(ex)
+							}
+						}
+					}
+				}
+			}
+		} finally {
+			if (DEBUG) {
+				println("Stopping HEOS network connection")
+			}
+			isRunning: set(false)
+			connection: _socket(): close()
+			connection: _inputStreamReader(): close()
+			connection: _printWriter(): close()
+
+			connection: _socket(null)
+			connection: _inputStreamReader(null)
+			connection: _printWriter(null)
+
+			connection: _env(): shutdown()
+			connection: _env(null)
+		}
+	})
 }
 
-local function sendCommand = |connection, cmd, cb| {
-	connection: _port(): send(HeosConnectionMsgs.SendCommandMsg(cmd, cb, true))
+local function disconnect = |connection| {
+ 	connection: _isRunning(): set(false)
 }
 
-local function removeCallback = |connection, cmd, cb| {
-	connection: _port(): send(HeosConnectionMsgs.RemoveCallbackMsg(cmd, cb))
+local function isConnected = |connection| {
+	return connection: _isRunning(): get() 
+}
+
+local function addCallback = |connection, cb| {
+	connection: _callbacks(): add(cb)
+}
+
+local function removeCallback = |connection, cb| {
+	connection: _callbacks(): remove(cb)
+}
+
+local function sendCommand = |connection, cmd| {
+	connection: _port(): send(HeosConnectionMsgs.SendCommandMsg(cmd))
 }
 
 # Port message handler
 
 local function _portIncomingMsgHandler = |connection, msg| {
 	case {
-		when msg: isStartMsg() {
-			_handleStartMsg(connection)
-		}
-		when msg: isFindPlayerMsg() {
-			_handleFindPlayerMsg(connection)
-		}
-		when msg: isConnectToPlayerMsg() {
-			_handleConnectToPlayerMsg(connection, msg: host(), msg: port(), msg: name())
-		}
 		when msg: isSendCommandMsg() {
-			_handleSendCommandMsg(connection, msg: cmd(), msg: cb())
-		}
-		when msg: isStopMsg() {
-			_handleStopMsg(connection)
+			_handleSendCommandMsg(connection, msg: cmd())
 		}
 		otherwise {
 			raise("Internal error, received unknown message: " + msg)
@@ -150,196 +195,7 @@ local function _portIncomingMsgHandler = |connection, msg| {
 
 # Functions that should be called via _portIncomingMsgHandler (direct or indirectly) only
 
-local function _handleStartMsg = |connection| {
-	if (not connection: _mode(): isIdleMode()) {
-		println("Internal error: HEOS connection handler is not idle")
-	}
-	connection: _isOpened(): set(true)
-	_handleFindPlayerMsg(connection)
-}
-
-local function _handleFindPlayerMsg = |connection| {
-	if (connection: _mode(): isFindPlayerMode()) {
-		if (DEBUG) {
-			println("HeosConnectionHandler is already in Find Player Mode")
-		}
-		return
-	}
-	connection: _mode(HeosModes.FindPlayerMode())
-	_startSdpDetector(connection)
-
-}
-
-local function _startSdpDetector = |connection| {
-	let ssdpHandler = connection: _ssdpHandler()
-	let ssdpCb = connection: _ssdpCb()
-	ssdpHandler: addCallback(SEARCH_TEXT_HEOS, ssdpCb)
-}
- 
-local function _createSsdpCallback = |connection| {
-	let parser = createHeosDeviceDescriptorXMLParser()
-
-	let ssdpCb = |host, headers| {
-		try { 
-			let deviceDescriptorUrl = headers: get("location")
-			if (deviceDescriptorUrl isnt null) {
-				let inputStream = URL(deviceDescriptorUrl): openStream()
-				try {
-					let deviceDescriptor = parser: parse(inputStream)
-					if (_isHeosDevice(deviceDescriptor)) {
-						let deviceDescriptorHost = _getHost(deviceDescriptorUrl)
-						let name = deviceDescriptor: name()
-						connection: _port(): send(HeosConnectionMsgs.ConnectToPlayerMsg(deviceDescriptorHost, PORT_HEOS, name))
-					}
-				} finally {
-					inputStream: close()
-				}
-			}
-		} catch(ex) {
-			println("Error while processing incoming possible HEOS SSDP data: " + ex)
-		}
-	}
-	return ssdpCb
-}
-
-local function _stopSdpDetector = |connection| {
-	let ssdpHandler = connection: _ssdpHandler()
-	ssdpHandler: removeCallback(SEARCH_TEXT_HEOS, connection: _ssdpCb())
-}
-
-local function _handleConnectToPlayerMsg = |connection, host, port, name| {
-	if (not connection: _mode(): isFindPlayerMode()) {
-		return
-	} else if _hasDeviceFailedToConnectRecently(connection, name) {
-		println("HEOS player '" + name + "' refused to connect recently. This device is ignored for a short time.")
-		return
-	}
-
-	# Close current socket, if any
-	let currentSocket = connection: _socket()
-	if (currentSocket != null) {
-		currentSocket: close()
-	}
-	
-	# Determine connection ID. The receiver thread uses this to make sure that
-	# socket was not changed since last exception. If it is, then it exits, knowing that
-	# there should be a different thread handling the received input.
-	let connectionId = connection: _connectionId(): getAndIncrement()
-	connection: _connectionId(AtomicInteger(connectionId))
-
-	println("Connecting to HEOS player '" + name + "' on '" + host + "', port '" + port + "' (connection ID #" + connectionId + ")")
-	
-	try {
-		let socketFactory = connection: _socketFactory()
-
-		let socket = socketFactory: createSocket(host, port)
-		socket: setSoTimeout(TIMEOUT_SECONDS * 1000)
-
-		let printWriter = PrintWriter(OutputStreamWriter(socket: getOutputStream(), "utf-8"), false)
-		let inputStreamReader = BufferedReader(InputStreamReader(socket: getInputStream()))
-		
-		connection: _socket(socket)
-		connection: _printWriter(printWriter)
-		connection: _inputStreamReader(inputStreamReader)
-
-		_stopSdpDetector(connection)
-		
-		if (name isnt null) {
-			connection: _failingPlayers(): remove(name)
-		}
-
-		connection: _mode(HeosModes.ConnectedMode())
-
-		# The response of the command(s) used to initialize the command is ignored
-		_initConnection(connection)
-
-		_createAndRunReceiveThread(connection, connectionId)
-	} catch(ex) {
-		# Mark player as failing and give it some time to breath.
-		markPlayerAsFailing(connection, name)
-
-		# Only I/O exceptions are acceptable
-		case {
-			when ex oftype IOException.class {
-				println("I/O error while connecting to player: " + ex)
-			}
-			otherwise {
-				throw(ex)
-			}
-		}
-	}
-}
-
-local function markPlayerAsFailing = |connection, name| {
-	if (name isnt null) {
-		connection: _failingPlayers(): put(name, Instant.now())
-	}
-}
-
-local function _createAndRunReceiveThread = |connection, connectionId| {
-	println("Starting HEOS network input handler thread for connection id #" + connectionId + "...")
-	return runInNewThread("HeosInputThread", {
-		let reader = connection: _inputStreamReader()
-		var timeouts = 0
-
-		while (connectionId == connection: _connectionId(): get()) {
-			println("HEOS waiting for data...")
-			try {
-				let line = reader: readLine()
-				println(line)
-			} catch(ex) {
-				case {
-					when ex oftype IOException.class {
-						println("HEOS network input handler thread: I/O error occurred: " + ex)
-						timeouts = timeouts + 1
-						if (timeouts >= MAX_TIMEOUTS) {
-							println("HEOS network input handler thread: too many timeouts.")
-							if (connectionId == connection: _connectionId(): get()) {
-								println("HEOS connection handler is looking for player to connect to...")
-								_handleFindPlayerMsg(connection)
-							}
-							break
-						}
-					}
-					otherwise {
-						throw(ex)
-					}
-				}
-			}
-		}
-		println("Stopping HEOS network input handler for connection id #" + connectionId + "...")
-	})
-}
-
-local function _hasDeviceFailedToConnectRecently = |connection, name| {
-	if (name is null or name == "") {
-		# Devices without name cannot be verified at this time, unfortunately
-		return false
-	}
-	let failedPlayers = connection: _failingPlayers()
-	let timestamp = failedPlayers: get(name)
-	if (timestamp is null) {
-		# Device did not fail us. Yet.
-		return false
-	}
-	let timeDiff = Duration.between(timestamp, Instant.now()): getSeconds()
-	return (timestamp >= 0 and timestamp <= IGNORE_FAILED_DEVICE_SECONDS)
-}
-
-local function _initConnection = |connection| {
-	let printWriter = connection: _printWriter()
-	_sendCommand(printWriter, "heos://system/register_for_change_events?enable=off")
-}
-
-local function _handleSendCommandMsg = |connection, cmd, cb| {
-	if (not connection: _mode(): isConnectedMode()) {
-		# Simply ignore commands when not connected to any player
-		if (DEBUG) {
-			println("HEOSConnection is not connected to any player. Cannot send '" + cmd + "'")
-		}
-		return
-	}
-	
+local function _handleSendCommandMsg = |connection, cmd| {
 	let socket = connection: _socket()
 	let printWriter = connection: _printWriter()
 	
@@ -349,8 +205,7 @@ local function _handleSendCommandMsg = |connection, cmd, cb| {
 		# Only I/O exceptions are acceptable
 		case {
 			when ex oftype IOException.class {
-				println("I/O error while sending command to player: " + ex)
-				_handleFindPlayerMsg(connection)
+				println("I/O error while sending command to HEOS player: " + ex)
 			}
 			otherwise {
 				throw(ex)
@@ -361,7 +216,11 @@ local function _handleSendCommandMsg = |connection, cmd, cb| {
 }
 
 local function _sendCommand = |printWriter, cmd| {
-	println("Sending command: '" + cmd + "'")
+	if (DEBUG) {
+		println("Sending command: '" + cmd + "'")
+	}
 	printWriter: print(cmd + "\r\n")
 	printWriter: flush()
+
+	Thread.sleep(SEND_COMMAND_MS * 1_L)
 }
