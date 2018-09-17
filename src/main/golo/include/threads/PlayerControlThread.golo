@@ -197,7 +197,7 @@ local function _handleOutgoingGroupIdleEvent = |controlThread, event| {
 		let currentIdleStatus = playerData: get(MONITOR_IDLE_KEY)
 		case {
 			when currentIdleStatus: isNonIdle() {
-				println("Player might be idle: " + player: friendlyName())
+				# println("Player might be idle: " + player: friendlyName())
 				_registerPlayerIdle(monitorThreads, player, false)
 				# Exit and do not send a group event now. The PlayerAliveCheck timer
 				# should take care of it the Idle event.
@@ -292,7 +292,7 @@ local function _addAndStartMonitorThread = |controlThread, player| {
 		return
 	}
 
-	println("Starting '" + player: friendlyName() + "' monitor...")
+	println("Starting monitor for player '" + player: friendlyName() + "'...")
 
 	let monitorTreadFactory = controlThread: _monitorThreadFactory()
 	let scrobblerHandler = controlThread: _scrobblerHandler()
