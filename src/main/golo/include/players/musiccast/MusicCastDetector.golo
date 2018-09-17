@@ -11,13 +11,11 @@ let DEBUG = false
 
 function createMusicCastDetector = |cb| {
 	let ssdpHandler = getSsdpHandlerInstance()
-	let hosts = set[]
-	let ssdpCb = createSsdpCallback(ssdpHandler, hosts, cb)
+	let ssdpCb = createSsdpCallback(ssdpHandler, cb)
 
 	let detector = DynamicObject("MusicCastDetector"):
 		define("_ssdpHandler", |this| -> ssdpHandler):
 		define("_ssdpCb", |this| -> ssdpCb):
-		define("_hosts", hosts):
 		define("playerType", PlayerTypes.MusicCast()):
 		define("start", |this| -> startMusicCastDetector(this)):
 		define("stop", |this| -> stopMusicCastDetector(this))
@@ -25,23 +23,24 @@ function createMusicCastDetector = |cb| {
 	return detector
 }
 
-local function createSsdpCallback = |ssdpHandler, hosts, cb| {
+local function createSsdpCallback = |ssdpHandler, cb| {
 	let parser = createMusicCastDeviceDescriptorParser()
+	let ignoredHosts = set[]
 	
 	let ssdpCb = |host, headers| {
-		if (host isnt null and hosts: contains(host)) {
+		if (host isnt null and ignoredHosts: contains(host)) {
 			if (DEBUG) {
-				println("Device at '" + host + "' is already known")
+				println("Device at '" + host + "' is ignored")
 			}
 			return
 		}
-		hosts: add(host)
 
 		let deviceDescriptorUrl = headers: get("location")
 		if (deviceDescriptorUrl is null) {
 			if (DEBUG) {
 				println("No Device Descriptor URL found in HTML header. This is not a supported MusicCast device.")
 			}
+			ignoredHosts: add(host)
 			return
 		}
 		var inputStream = null
@@ -54,19 +53,13 @@ local function createSsdpCallback = |ssdpHandler, hosts, cb| {
 				if (DEBUG) {
 					println("Device could not be validated as valid MusicCast device")
 				}
+				ignoredHosts: add(host)
 				return
 			}
 
 			let musicCastImpl = _createMusicCastImpl(deviceDescriptor)
 			let musicCastPlayer = createMusicCastPlayer(musicCastImpl)
 			cb(musicCastPlayer)
-		} catch(ex) {
-			# Devices that fail should never be ignored. It can be caused temporary I/O
-			# errors, or bugs in the program.
-			if (host isnt null) {
-				hosts: remove(host)
-			}
-			throw(ex)
 		} finally {
 			if (inputStream != null) {
 				inputStream: close()
@@ -77,8 +70,6 @@ local function createSsdpCallback = |ssdpHandler, hosts, cb| {
 }
 
 local function startMusicCastDetector = |detector| {
-	detector: _hosts(): clear()
-	
 	let ssdpHandler = detector: _ssdpHandler()
 	ssdpHandler: addCallback(SEARCH_TEXT_MUSICCAST, detector: _ssdpCb())
 }
