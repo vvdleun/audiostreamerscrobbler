@@ -84,10 +84,10 @@ local function _getMode = |detector| {
 # FindPlayerMode handling (Find a HEOS player to connect to)
 
 local function _startFindingPlayerMode = |detector| {
-	println("SWITCHING TO HEOS FIND PLAYER MODE")
-
 	let ssdpHandler = detector: _ssdpHandler()
 	ssdpHandler: addCallback(SEARCH_TEXT_HEOS, detector: _ssdpCb())
+
+	println("Looking for HEOS player to connect to...")
 }
 
 local function _stopFindingPlayerMode = |detector| {
@@ -106,7 +106,7 @@ local function _createSsdpCallback = |detector, ignoredHosts| {
 			return
 		} else if (detector: _heosConnection(): isConnected()) {
 			if (DEBUG) {
-				println("Already connected to HEOS connection")
+				println("Already connected to HEOS player")
 			}
 			return
 		} else if (not detector: _isRunning(): get()) {
@@ -181,9 +181,11 @@ local function _getHost = |url| {
 # ConnectedMode handling (Send commands to HEOS player to find other players in the network)
 
 local function _startConnectedMode = |detector| {
-	println("SWITCHING TO HEOS CONNECTED MODE")
-
 	let heosConnection = detector: _heosConnection()
+
+	let host = heosConnection: playerHost()
+	println("Found HEOS player at " + host + ". Connecting to player's CLI server...")
+	
 	heosConnection: addCallback(detector: _heosCb())
 	
 	let thread = _createAndRunFindPlayersThread(detector)
@@ -199,6 +201,9 @@ local function _stopConnectedMode = |detector| {
 }
 
 local function _createAndRunFindPlayersThread = |detector| {
+	if (DEBUG) {
+		println("Starting HeosAliveThread...")
+	}
 	return runInNewThread("HeosAliveThread", {
 		let heosConnection = detector: _heosConnection()
 		let isRunning = detector: _isRunning()
@@ -214,6 +219,10 @@ local function _createAndRunFindPlayersThread = |detector| {
 			heosConnection: sendCommand("heos://" + CMD_GET_PLAYERS)
 
 			Thread.sleep(REQUEST_PLAYERS_INTERVAL * 1000_L)
+		}
+		
+		if (DEBUG) {
+			println("Stopping HeosAliveThread...")
 		}
 	})
 }

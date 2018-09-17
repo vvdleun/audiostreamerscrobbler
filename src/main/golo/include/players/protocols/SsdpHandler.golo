@@ -10,6 +10,7 @@ import java.lang.Thread
 import java.net.{DatagramPacket, InetAddress, SocketTimeoutException}
 import java.util.concurrent.atomic.AtomicBoolean
 
+let DEBUG = false
 let MULTICAST_ADDRESS_IP4 = "239.255.255.250"
 let MULTICAST_ADDRESS_IP6 = "FF05::C"
 let MULTICAST_UDP_PORT = 1900
@@ -147,7 +148,9 @@ local function _startSdpSearchHandler = |handler| {
 }
 
 local function _createSsdpInitThread = |handler| {
-	println("Initializing SSDP handler...")
+	if (DEBUG) {
+		println("Starting SSDP protocol handler...")
+	}
 
 	return runInNewThread("SsdpInitThread", {
 		var isInitialized = false
@@ -192,27 +195,33 @@ local function _createSsdpInitThread = |handler| {
 			let threadReceiver = _createAndRunReceiveThread(handler)
 			handler: _threadSender(threadSender)
 			handler: _threadReceiver(threadReceiver)
-			println("SSDP I/O handler threads are running. Initialization of SSDP handler is done.")
+			println("SSDP protocol handler threads are running.")
 		}
 	})
 }
 
 local function _createAndRunSendThread = |handler| {
-	println("Starting SSDP network output handler thread...")
+	if (DEBUG) {
+		println("Starting SSDP network output handler thread...")
+	}
 	
 	return runInNewThread(THREAD_SENDER_NAME, {
 		while (handler: _isRunning(): get()) {
 			handler: _port(): send(SsdpHandlerMsgs.ExecuteMSearchQueriesMsg())
 			Thread.sleep(30000_L)
 		}
-		println("Stopping SSDP network output handler thread...")
+		if (DEBUG) {
+			println("Stopping SSDP network output handler thread...")
+		}
 		handler: _port(): send(SsdpHandlerMsgs.ThreadFinishedMsg(THREAD_SENDER_NAME))
 
 	})
 }
 
 local function _createAndRunReceiveThread = |handler| {
-	println("Starting SSDP network input handler thread...")
+	if (DEBUG) {
+		println("Starting SSDP network input handler thread...")
+	}
 
 	return runInNewThread(THREAD_RECEIVER_NAME, {
 		let buffer = newTypedArray(byte.class, BUFFER_SIZE)
@@ -248,7 +257,9 @@ local function _createAndRunReceiveThread = |handler| {
 				handler: _port(): send(SsdpHandlerMsgs.ExecuteCallbacksMsg(headers))
 			}
 		}
-		println("Stopping SSDP network input handler thread...")
+		if (DEBUG) {
+			println("Stopping SSDP network input handler thread...")
+		}
 		handler: _port(): send(SsdpHandlerMsgs.ThreadFinishedMsg(THREAD_RECEIVER_NAME))
 	})
 }
@@ -382,7 +393,7 @@ local function _closeSocketIfAllThreadsFinished = |handler, msg| {
 	let reveiverThreadFinished = finishedThreads: getOrElse(THREAD_RECEIVER_NAME, false)
 	let senderThreadFinished = finishedThreads: getOrElse(THREAD_SENDER_NAME, false)
 	if (reveiverThreadFinished and senderThreadFinished) {
-		println("Closing SSDP socket ")
+		println("SSDP threads are stopped")
 		handler: _socketMSearch(): close()
 	}
 }

@@ -3,10 +3,12 @@ module audiostreamerscrobbler.players.heos.HeosMonitor
 import audiostreamerscrobbler.maintypes.Song
 import audiostreamerscrobbler.players.heos.HeosConnectionSingleton
 import audiostreamerscrobbler.threads.PlayerMonitorThreadTypes.types.MonitorThreadTypes
+import audiostreamerscrobbler.utils.ThreadUtils
 
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
 let DEBUG = false
+let IDLE_PLAYER_INTERVAL = 60
 
 # HEOS commands
 let CMD_GET_PLAYER_STATE = "player/get_play_state"
@@ -19,6 +21,7 @@ let CMD_EVENT_NOW_PLAYING_PROGRESS = "event/player_now_playing_progress"
 
 function createHeosMonitor = |player, cb| {
 	let heosConnection = getHeosConnectionInstance()
+	let isRunning = AtomicBoolean(false)
 	let isPlaying = AtomicBoolean(false)
 	let song = AtomicReference(null)
 	let duration = AtomicReference(null)
@@ -27,9 +30,11 @@ function createHeosMonitor = |player, cb| {
 		define("_cb", |this| -> cb):
 		define("_heosConnection", |this| -> heosConnection):
 		define("_pid", player: heosImpl(): pid(): toString()):
+		define("_isRunning", isRunning):
 		define("_isPlaying", isPlaying):
 		define("_song", song):
 		define("_duration", duration):
+		define("_aliveThread", null):
 		define("player", |this| -> player):
 		define("start", |this| -> startMonitor(this)):
 		define("stop", |this| -> stopMonitor(this))
@@ -42,16 +47,49 @@ function createHeosMonitor = |player, cb| {
 }
 
 local function startMonitor = |monitor| {
+	let isRunning = monitor: _isRunning()
+	isRunning: set(true)
+
 	let heosConnection = monitor: _heosConnection()
 	heosConnection: addCallback(monitor: _heosCb())
 
 	_sendPlayerCommand(monitor, CMD_GET_PLAYER_STATE)
 	_sendPlayerCommand(monitor, CMD_GET_PLAYING_NOW)
+	
+	let aliveThread = _createAndRunIdlePlayerHandlerThread(monitor)
+	monitor: _aliveThread(aliveThread)
 }
 
 local function stopMonitor = |monitor| {
+	let isRunning = monitor: _isRunning()
+	isRunning: set(false)
+
 	let heosConnection = monitor: _heosConnection()
 	heosConnection: removeCallback(monitor: _heosCb())
+}
+
+local function _createAndRunIdlePlayerHandlerThread = |monitor| {
+	return runInNewThread("HeosIdlePlayerHandlerThread", {
+		if (DEBUG) {
+			println("Starting HeosIdlePlayerHandlerThread...")
+		}
+		let heosConnection = monitor: _heosConnection()
+		let isRunning = monitor: _isRunning()
+		let isPlaying = monitor: _isPlaying()
+
+		while (isRunning: get()) {
+			if(heosConnection: isConnected() and not isPlaying: get()) {
+				# When player is paused, no information is sent to program
+				# To let monitor know that the player is alive, we need to poll manually
+				# when player is (probably) idle.
+				_sendPlayerCommand(monitor, CMD_GET_PLAYER_STATE)
+			}
+			Thread.sleep(IDLE_PLAYER_INTERVAL * 1000_L)
+		}
+		if (DEBUG) {
+			println("Stopping HeosIdlePlayerHandlerThread...")
+		}
+	})
 }
 
 local function _createHeosCallback = |monitor| {
@@ -163,8 +201,6 @@ local function  _handleGetPlayingNow = |monitor, values, payload| {
 
 	_updateMonitorThread(monitor)
 }
-
-
 
 local function _updateMonitorThread = |monitor| {
 	let cb = monitor: _cb()

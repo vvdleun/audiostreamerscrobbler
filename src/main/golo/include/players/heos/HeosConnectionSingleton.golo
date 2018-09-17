@@ -38,6 +38,7 @@ local function createHeosConnection = {
 		define("_inputStreamReader", null):
 		define("_env", null):
 		define("_port", null):
+		define("playerHost", null):
 		define("connect", |this, host, port| -> connect(this, host, port)):
 		define("disconnect", |this| -> disconnect(this)):
 		define("isConnected", |this| -> isConnected(this)):
@@ -77,6 +78,7 @@ local function connect = |connection, host, port| {
 	connection: _inputStreamReader(inputStreamReader)
 	connection: _env(env)
 	connection: _port(envPort)
+	connection: playerHost(host + ":" + port)
 
 	_initConnection(connection)
 
