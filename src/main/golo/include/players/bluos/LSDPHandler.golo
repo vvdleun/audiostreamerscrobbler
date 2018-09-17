@@ -84,7 +84,9 @@ local function initAndStartHandler = |handler| {
 			}
 		}
 		println("Stopping LSDP discovery thread...")
-		multicastSocket: close()
+		if (multicastSocket != null) {
+			multicastSocket: close()
+		}
 	})
 	handler: _thread(thread)
 }
