@@ -1,25 +1,35 @@
 module audiostreamerscrobbler.players.heos.HeosMonitor
 
+import audiostreamerscrobbler.maintypes.Song
 import audiostreamerscrobbler.players.heos.HeosConnectionSingleton
+import audiostreamerscrobbler.threads.PlayerMonitorThreadTypes.types.MonitorThreadTypes
 
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
-let DEBUG = true
+let DEBUG = false
+
+# HEOS commands
+let CMD_GET_PLAYER_STATE = "player/get_play_state"
+let CMD_GET_PLAYING_NOW = "player/get_now_playing_media"
+
+# HEOS incoming events
 let CMD_EVENT_STATE_CHANGED = "event/player_state_changed"
 let CMD_EVENT_NOW_PLAYING_CHANGED = "event/player_now_playing_changed"
 let CMD_EVENT_NOW_PLAYING_PROGRESS = "event/player_now_playing_progress"
-let CMD_GET_PLAYING_NOW = "player/get_now_playing_media"
-let CMD_GET_PLAYER_STATE = "player/get_play_state"
 
 function createHeosMonitor = |player, cb| {
 	let heosConnection = getHeosConnectionInstance()
 	let isPlaying = AtomicBoolean(false)
+	let song = AtomicReference(null)
+	let duration = AtomicReference(null)
 	
 	let monitor = DynamicObject("HeosPlayerMonitor"):
 		define("_cb", |this| -> cb):
 		define("_heosConnection", |this| -> heosConnection):
 		define("_pid", player: heosImpl(): pid(): toString()):
 		define("_isPlaying", isPlaying):
+		define("_song", song):
+		define("_duration", duration):
 		define("player", |this| -> player):
 		define("start", |this| -> startMonitor(this)):
 		define("stop", |this| -> stopMonitor(this))
@@ -35,8 +45,8 @@ local function startMonitor = |monitor| {
 	let heosConnection = monitor: _heosConnection()
 	heosConnection: addCallback(monitor: _heosCb())
 
-	_sendGetPlayerState(monitor)
-	_sendGetPlayingNowCommand(monitor)
+	_sendPlayerCommand(monitor, CMD_GET_PLAYER_STATE)
+	_sendPlayerCommand(monitor, CMD_GET_PLAYING_NOW)
 }
 
 local function stopMonitor = |monitor| {
@@ -51,6 +61,11 @@ local function _createHeosCallback = |monitor| {
 		}
 
 		let heos = response: get("heos")
+		if (heos == null) {
+			println("Monitor received unknown response from HEOS: " +  response)
+			return
+		}
+		
 		let cmd = heos: get("command")
 		
 		var values = null
@@ -66,23 +81,111 @@ local function _createHeosCallback = |monitor| {
 		
 		case {
 			when (cmd == CMD_EVENT_STATE_CHANGED or cmd == CMD_GET_PLAYER_STATE) {
-				println("STATE CHANGED")
-				monitor: _isPlaying(): set(values: get("state") == "play")
+				_handlePlayerStateChange(monitor, values)
 			}
 			when (cmd == CMD_EVENT_NOW_PLAYING_CHANGED) {
-				println("SONG CHANGED")
-				println(values)
-				_sendGetPlayingNowCommand(monitor)
+				_handlePlayerNowPlayingChange(monitor, values)
 			}
 			when (cmd == CMD_EVENT_NOW_PLAYING_PROGRESS) {
-				println("SONG PROGRESSING")
-				println(values)
+				_handlePlayerNowPlayingProgress(monitor, values)
+			}
+			when (cmd == CMD_GET_PLAYING_NOW) {
+				let payload = response: get("payload")
+				_handleGetPlayingNow(monitor, values, payload)
 			}
 			otherwise {
 			}
 		}
 	}
 	return heosCb
+}
+
+local function _handlePlayerStateChange = |monitor, message| {
+	# Player state is changed.
+	# {"heos": {"command": "player/get_play_state", 
+	#           "result": "success",
+	#           "message": "pid=XXX&state=play"}}
+	# or
+	# {"heos": {"command": "event/player_state_changed",
+	#			"message": "pid=XXX&state=play"}}	
+
+	let isPlaying = monitor: _isPlaying()
+	isPlaying: set(message: get("state") == "play")
+
+	# Inform MonitorThread about status
+	_updateMonitorThread(monitor)
+}
+
+local function _handlePlayerNowPlayingChange = |monitor, message| {
+	# Song has changed. Request song info.
+	# {"heos": {"command": "event/player_now_playing_changed", "message": "pid=XXX"}}
+
+	_sendPlayerCommand(monitor, CMD_GET_PLAYING_NOW)
+}
+
+local function _handlePlayerNowPlayingProgress = |monitor, message| {
+	# Progress changed.
+	# 	{"heos":	{"command": "event/player_now_playing_progress",
+	#				 "message": "pid=-1465850739&cur_pos=189000&duration=235000"}}
+
+	let duration = monitor: _duration()
+	if (message: get("cur_pos") != "0") {
+		# Dirty hack, HEOS 2 seems to send duration event before song change event
+		duration: set(message)
+
+		# Inform MonitorThread about status
+		_updateMonitorThread(monitor)
+	}
+}
+
+local function  _handleGetPlayingNow = |monitor, values, payload| {
+	# Retrieving info song currently playing
+	# {"heos":		{"command": "player/get_now_playing_media",
+	#			 	 "result": "success",
+	#			 	 "message": "pid=XXX"},
+	#  "payload":	{"type": "song",
+	#			   	 "song": "SONG TITLE",
+	#			   	 "album": "ALBUM",
+	#			   	 "artist": "ARTIST",
+	#				 "image_url": "xxx",
+	#				 "album_id": "yyy",
+	#				 "mid": "zzz",
+	#				 "qid": aa,
+	#				 "sid": bb},
+	#  "options": []}
+
+	let song = monitor: _song()
+	song: set(payload)
+
+	# Reset duration
+	let duration = monitor: _duration()
+	duration: set(null)
+
+	_updateMonitorThread(monitor)
+}
+
+
+
+local function _updateMonitorThread = |monitor| {
+	let cb = monitor: _cb()
+	let isPlaying = monitor: _isPlaying(): get()
+	let songPayload = monitor: _song(): get()
+	let duration = monitor: _duration(): get()
+	
+	let isSongKnown = (songPayload != null and songPayload: get("type") == "song")
+	let isDurationKnown = (duration != null)
+
+	var song = null
+	if (isPlaying and isSongKnown and isDurationKnown) {
+		# We should be able to construct song
+		song = _convertToSong(songPayload, duration)
+	}
+	
+	if (song != null) {
+		cb(MonitorThreadTypes.PlayingSong(song))
+	} else {
+		cb(MonitorThreadTypes.Monitoring())
+	}
 }
 
 local function _getValues = |msg| {
@@ -95,14 +198,28 @@ local function _getValues = |msg| {
 	return values
 }
 
-local function _sendGetPlayerState = |monitor| {
+local function _sendPlayerCommand = |monitor, cmd| {
 	let heosConnection = monitor: _heosConnection()
 	let pid = monitor: _pid()
-	heosConnection: sendCommand("heos://" + CMD_GET_PLAYER_STATE + "?pid=" + pid)
+	heosConnection: sendCommand("heos://" + cmd + "?pid=" + pid)
 }
 
-local function _sendGetPlayingNowCommand = |monitor| {
-	let heosConnection = monitor: _heosConnection()
-	let pid = monitor: _pid()
-	heosConnection: sendCommand("heos://" + CMD_GET_PLAYING_NOW + "?pid=" + pid)
+local function _convertToSong = |songPayload, durationMessage| {
+	let title = songPayload: get("song")
+	let artist = songPayload: get("artist")
+	let position = durationMessage: get("cur_pos")
+	let duration = durationMessage: get("duration")
+
+	if (title is null or artist is null or position is null or duration is null) {
+		return null
+	}
+	
+	let song = Song(
+		title,
+		artist,
+		songPayload: get("album"),
+		position: toInt() / 1000,
+		duration: toInt() / 1000)
+
+	return song
 }

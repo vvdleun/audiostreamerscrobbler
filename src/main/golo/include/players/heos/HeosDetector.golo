@@ -10,7 +10,7 @@ import java.lang.Thread
 import java.net.URL
 import java.util.concurrent.atomic.AtomicBoolean
 
-let DEBUG = true
+let DEBUG = false
 let SEARCH_TEXT_HEOS = "urn:schemas-denon-com:device:ACT-Denon:1"
 let PORT_HEOS = 1255
 let REQUEST_PLAYERS_INTERVAL = 60
@@ -49,6 +49,9 @@ function createHeosDetector = |cb| {
 }
 
 local function startHeosDetector = |detector| {
+	let isRunning = detector: _isRunning()
+	isRunning: set(true)	
+
 	let mode = _getMode(detector)
 	case {
 		when mode: isFindPlayerMode() {
@@ -63,6 +66,14 @@ local function startHeosDetector = |detector| {
 	}
 }
 
+local function stopHeosDetector = |detector| {
+	let isRunning = detector: _isRunning()
+	isRunning: set(false)
+
+	_stopFindingPlayerMode(detector)
+	_stopConnectedMode(detector)
+}
+
 local function _getMode = |detector| {
 	if (detector: _heosConnection(): isConnected()) {
 		return HeosDetectModes.ConnectedMode()
@@ -75,10 +86,13 @@ local function _getMode = |detector| {
 local function _startFindingPlayerMode = |detector| {
 	println("SWITCHING TO HEOS FIND PLAYER MODE")
 
-	detector: _isRunning(): set(true)
-	
 	let ssdpHandler = detector: _ssdpHandler()
 	ssdpHandler: addCallback(SEARCH_TEXT_HEOS, detector: _ssdpCb())
+}
+
+local function _stopFindingPlayerMode = |detector| {
+	let ssdpHandler = detector: _ssdpHandler()
+	ssdpHandler: removeCallback(SEARCH_TEXT_HEOS, detector: _ssdpCb())
 }
 
 local function _createSsdpCallback = |detector, ignoredHosts| {
@@ -116,7 +130,6 @@ local function _createSsdpCallback = |detector, ignoredHosts| {
 						heosConnection: connect(deviceDescriptorHost, PORT_HEOS)
 
 						_stopFindingPlayerMode(detector)
-						
 						_startConnectedMode(detector)
 					} else {
 						# Always ignore unknown hosts
@@ -165,19 +178,10 @@ local function _getHost = |url| {
 	return result
 }
 
-local function _stopFindingPlayerMode = |detector| {
-	let ssdpHandler = detector: _ssdpHandler()
-	ssdpHandler: removeCallback(SEARCH_TEXT_HEOS, detector: _ssdpCb())
-
-	let isRunning = detector: _isRunning()
-	isRunning: set(false)
-}
-
 # ConnectedMode handling (Send commands to HEOS player to find other players in the network)
 
 local function _startConnectedMode = |detector| {
 	println("SWITCHING TO HEOS CONNECTED MODE")
-	detector: _isRunning(): set(true)
 
 	let heosConnection = detector: _heosConnection()
 	heosConnection: addCallback(detector: _heosCb())
@@ -186,8 +190,12 @@ local function _startConnectedMode = |detector| {
 	
 	# TODO 1: this command should not be given more than once...
 	# TODO 2: Ensure this command was processed correctly
-	# TODO 3: Ideally this command should be given once first monitor is created
 	heosConnection: sendCommand("heos://" + CMD_ENABLE_CHANGE_EVENTS + "?enable=on")
+}
+
+local function _stopConnectedMode = |detector| {
+	let heosConnection = detector: _heosConnection()
+	heosConnection: removeCallback(detector: _heosCb())
 }
 
 local function _createAndRunFindPlayersThread = |detector| {
@@ -236,20 +244,4 @@ local function _createHeosCallback = |detector| {
 		}
 	}
 	return heosCb
-}
-
-local function _stopConnectedMode = |detector| {
-	let isRunning = detector: _isRunning()
-	isRunning: set(false)
-
-	let heosConnection = detector: _heosConnection()
-	heosConnection: removeCallback(detector: _heosCb())
-}
-
-local function stopHeosDetector = |detector| {
-	let isRunning = detector: _isRunning()
-	isRunning: set(false)
-
-	_stopFindingPlayerMode(detector)
-	_stopConnectedMode(detector)
 }

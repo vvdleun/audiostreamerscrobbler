@@ -13,6 +13,8 @@ let DEBUG = false
 let MAX_IO_ERRORS = 3
 let TIMEOUT_SEC = 80
 let SEND_COMMAND_MS = 250
+let CMD_DISABLE_PRETTIFY_JSON = "heos://system/prettify_json_response?enable=off"
+let CMD_DISABLE_CHANGE_EVENTS = "heos://system/register_for_change_events?enable=off"
 
 union HeosConnectionMsgs = {
 	SendCommandMsg = { cmd }
@@ -86,9 +88,28 @@ local function connect = |connection, host, port| {
 }
 
 local function _initConnection = |connection| {
-	let printWriter = connection: _printWriter()
-	_sendCommand(printWriter, "heos://system/prettify_json_response?enable=off")
-	_sendCommand(printWriter, "heos://system/register_for_change_events?enable=off")
+	sendCommand(connection, CMD_DISABLE_PRETTIFY_JSON)
+	sendCommand(connection, CMD_DISABLE_CHANGE_EVENTS)
+}
+
+local function disconnect = |connection| {
+ 	connection: _isRunning(): set(false)
+}
+
+local function isConnected = |connection| {
+	return connection: _isRunning(): get() 
+}
+
+local function addCallback = |connection, cb| {
+	connection: _callbacks(): add(cb)
+}
+
+local function removeCallback = |connection, cb| {
+	connection: _callbacks(): remove(cb)
+}
+
+local function sendCommand = |connection, cmd| {
+	connection: _port(): send(HeosConnectionMsgs.SendCommandMsg(cmd))
 }
 
 local function _createAndRunReceiveThread = |connection| {
@@ -158,26 +179,6 @@ local function _createAndRunReceiveThread = |connection| {
 			connection: _env(null)
 		}
 	})
-}
-
-local function disconnect = |connection| {
- 	connection: _isRunning(): set(false)
-}
-
-local function isConnected = |connection| {
-	return connection: _isRunning(): get() 
-}
-
-local function addCallback = |connection, cb| {
-	connection: _callbacks(): add(cb)
-}
-
-local function removeCallback = |connection, cb| {
-	connection: _callbacks(): remove(cb)
-}
-
-local function sendCommand = |connection, cmd| {
-	connection: _port(): send(HeosConnectionMsgs.SendCommandMsg(cmd))
 }
 
 # Port message handler
