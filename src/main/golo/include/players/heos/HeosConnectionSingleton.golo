@@ -6,7 +6,7 @@ import audiostreamerscrobbler.utils.ThreadUtils
 import gololang.concurrent.workers.WorkerEnvironment
 import java.io.{BufferedReader, IOException, InputStreamReader, OutputStreamWriter, PrintWriter}
 import java.net.{Socket, URL}
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import java.util.concurrent.CopyOnWriteArrayList
 
 let DEBUG = false
@@ -26,12 +26,14 @@ function getHeosConnectionInstance = -> heosConnection
 
 local function createHeosConnection = {
 	let isRunning = AtomicBoolean(false)
+	let ioErrors = AtomicInteger(0)
 	let callbacks = CopyOnWriteArrayList()
 	let socketFactory = createSocketFactory()
 	
 	let heosConnection = DynamicObject("HEOSConnection"):
 		define("_callbacks", callbacks):
 		define("_isRunning", isRunning):
+		define("_ioErrors", ioErrors):
 		define("_socketFactory", |this| -> socketFactory):
 		define("_socket", null):
 		define("_printWriter", null):
@@ -119,8 +121,10 @@ local function _createAndRunReceiveThread = |connection| {
 	isRunning: set(true)
 
 	return runInNewThread("HeosConnectionInputThread", {
+		let ioErrors = connection: _ioErrors()
+		ioErrors: set(0)
+
 		let reader = connection: _inputStreamReader()
-		var ioErrors = 0
 
 		try {
 			while (isRunning: get()) {
@@ -139,7 +143,7 @@ local function _createAndRunReceiveThread = |connection| {
 						try {
 							cb(jsonResponse)
 						} catch(ex) {
-							println("ERROR: " + ex)
+							println("ERROR IN HEOS CONNECTION CALLBACK HANDLER: " + ex)
 							if (DEBUG) {
 								throw(ex)
 							}
@@ -148,9 +152,11 @@ local function _createAndRunReceiveThread = |connection| {
 				} catch(ex) {
 					case {
 						when ex oftype IOException.class {
-							println("HEOS network input handler thread: I/O error occurred: " + ex)
-							ioErrors = ioErrors + 1
-							if (ioErrors >= MAX_IO_ERRORS) {
+							if (DEBUG) {
+								println("HEOS network input handler thread: I/O error occurred: " + ex)
+							}
+							let currentIoErrors = ioErrors: incrementAndGet()
+							if (currentIoErrors >= MAX_IO_ERRORS) {
 								println("HEOS network input handler thread: too many I/O errors.")
 								isRunning: set(false)
 							}
@@ -179,6 +185,7 @@ local function _createAndRunReceiveThread = |connection| {
 
 			connection: _env(): shutdown()
 			connection: _env(null)
+			connection: _port(null)
 		}
 	})
 }
@@ -209,12 +216,13 @@ local function _handleSendCommandMsg = |connection, cmd| {
 		case {
 			when ex oftype IOException.class {
 				println("I/O error while sending command to HEOS player: " + ex)
+				let ioErrors = connection: _ioErrors()
+				ioErrors: incrementAndGet()
 			}
 			otherwise {
 				throw(ex)
 			}
 		}
-		
 	}
 }
 
