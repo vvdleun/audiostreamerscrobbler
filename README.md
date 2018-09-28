@@ -1,19 +1,10 @@
 # AudioStreamerScrobbler
 
-## Warning: ALPHA version
+## Status update: Seemingly almost ready for prime-time
 
-This program is not ready for prime time yet, it's under heavy development.
+Personally, I have been using this program for some months now, on a Raspberry pi 1 model B, that monitors my NAD C368's Bluesound add-on MDC card (BluOS) and Yamaha ISX-18D and WX-010 (MusicCast) players and sends my played songs simultaneously to my personal Last.FM, Libre.FM and ListenBrainz accounts. The program seems to recover from many common I/O problems, although there are some improvements needed in that area. Even more importantly, it looks like I've fixed all serious memory leaks that plagued the project previously.
 
-As of early July 2018, this program can monitor all players of all supported hardware audiostreamers in a household at the same time. This feature is very new, so troubles are not unexpected at this stage.
-
-The program has almost been completely rewritten some time ago. Among the changes were:
-* The network I/O parts of the program are now fully async events-based, instead of being based on synchronious function calls
-* There's a new PlayerControl thread that keeps track of player monitor, detector and player alive/idle check threads.
-* MusicCast support has been completely rewritten and is now based on MusicCast's Event update system via UDP
-* The used network interface (and IP addresses that program binds to) can now be configured
-* Improved, cleaned up and simplified lots of internal APIs, especially the "public" ones
-
-Note that the program uses the undocumented LSDP protocol to detect BluOs players that are powered on. I could only test it with my BluOS player, which is the built-in streamer (internal BluOS 2 MDC upgrade card) in my NAD C368 amplifier. Therefore I don't know yet whether it will work on other players, like BlueSound's more popular wi-fi speakers, or their Node range of products.
+While testing the program, I have added experimental Denon HEOS support. After this implementation has improved and tested for some weeks, and some additional improvements, I'll plan to do a version 1.0 release. I hope to add a desktop GUI configuration option, so end-users won't have to edit a JSON file by hand anymore, as well.
 
 ## Description  
 
@@ -21,23 +12,25 @@ AudioStreamerScrobbler is an application that monitors hardware audiostreamers a
 
 Supported hardware audiostreamers are:
 
-* BlueSound/BluOS-based players
+* Bluesound/BluOS-based players
 * Yamaha MusicCast players
 
-The following scrobbler services are supported:
+Support for HEOS players (Denon) is currently experimental. 
+
+The following music tracking services are supported:
 
 * Last FM (https://last.fm)
-* ListenBrainz (https://listenbrainz.org/)
+* ListenBrainz (https://listenbrainz.org/, or a local installation of ListenBrainz Server)
 * Libre FM (https://libre.fm)
 * A GNU FM instance (https://www.gnu.org/software/gnufm/)
 
-The program is intended to be used 24/7 on Raspberry pi-alike devices, although the program has not been tested on those small computers yet.
+The program is intended to be used 24/7 on Raspberry pi-alike devices. I have personally compiled and have been running it on a Raspberry pi 1 Model B for some time now.
 
 AudioStreamerScrobbler was written in [Eclipse Golo, a lesser known dynamic language that runs on the Java Virtual Machine (JVM)](http://golo-lang.org). It was a design goal to write as much code in Golo as possible and not to use additional Java dependencies, unless very unpractical. We'll see how that wil turn out on the longer run. I had to write some code in Java to work around omissions in the Golo run-time library, but luckily Gradle takes care of those complexities when building the project. Although I'm personally not the biggest fan of dynamic languages, I really started to like Golo while I was developing this program. In my opinion it's a nice, small and clean language, with a surprisingly powerful run-time library.
 
 ## Requirements
 
-AudioStreamerScrobbler is a project powered by the Java Virtual Machine (JVM). To run it, the Java Runtime Environment (JRE) version 8 is required. As Golo is not yet compatible with Java 9 and higher, I'm certain that it won't work yet with Java 9 or Java 10 at this time. This is very unfortunate and hope this will be resolved in the future, otherwise a port to a different JVM language is not ruled out.
+AudioStreamerScrobbler is a project powered by the Java Virtual Machine (JVM). To run it, the Java Runtime Environment (JRE) version 8 is required. Although Golo is not yet compatible with Java 9 and higher, it seems to compile/run on Java 9 and 10, with some warnings. It remains to be seen whether Golo will be made compatible with newer Java versions. If not, a port to a different programming language is not ruled out.
 
 Since this is a alpha pre-release, the program must be compiled before it can be used. To compile the program, both the Java Developers Kit (JDK) version 8 and the Gradle build tool (https://gradle.org) are required. Gradle will download the required dependencies, compile the project and build a stand-alone JAR file that can be used to run the program. To compile, issue the following command in the project's root directory (the directory containing the "build.gradle" file):
 
@@ -103,11 +96,11 @@ This format may change once support for other player standards, new group functi
 	
 ### Setting up the players
 
-The program can monitor all BluOS (BlueSound) and Yamaha MusicCast players that are available in your network.
+The program can monitor all BluOS (Bluesound) and Yamaha MusicCast players that are available in your network.
 
 Do not forget to disable the audiostreamer standards that you do not want to use at this time (by setting the "enabled" setting to value "false"). Otherwise, a lot of unnecessary traffic will be generated on your network.
 
-#### Monitor BluOS (BlueSound) players
+#### Monitor BluOS (Bluesound) players
 
 First, make sure that the "bluos" entry is enabled, as displayed below. Also, enter all the name of your players in the "names" field. 
 For example if you have two players that are called "Living Room C368" and "Kitchen Pulse Flex", your BluOS players configuration will look like this:

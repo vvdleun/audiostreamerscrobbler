@@ -71,7 +71,7 @@ local function initAndStartHandler = |handler| {
 			} catch (ex) {
 				case {
 					when ex oftype BindException.class {
-						println("ERROR: Could not bind to LSDP port. Make sure no other BluOS and/or BlueSound applications are active on this system.")
+						println("ERROR: Could not bind to LSDP port. Make sure no other BluOS/Bluesound applications are active on this system.")
 					}
 					when ex oftype IOException.class {
 						println("I/O error while sending LSDP player queries: " + ex)
