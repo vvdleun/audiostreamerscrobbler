@@ -30,9 +30,8 @@ function parseHeosDeviceDescriptorXML = |parser, inputStream| {
 	let xmlParser = parser: _xmlParser()
 
 	xmlParser: parse(inputStream, |event| {
-		let path = event: path()
-
 		if event: isEndElement() {
+			let path = event: path()
 			let key = XML_ELEMENTS_TO_KEYS: get(path)
 			if key != null {
 				heosXml: put(key, event: characters())

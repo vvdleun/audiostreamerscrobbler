@@ -1,12 +1,13 @@
 module audiostreamerscrobbler.players.heos.HeosConnectionSingleton
 
 import audiostreamerscrobbler.factories.SocketFactory
+import audiostreamerscrobbler.players.heos.HeosMasterMonitor
 import audiostreamerscrobbler.utils.ThreadUtils
 
 import gololang.concurrent.workers.WorkerEnvironment
 import java.io.{BufferedReader, IOException, InputStreamReader, OutputStreamWriter, PrintWriter}
 import java.net.{Socket, URL}
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicReference}
 import java.util.concurrent.CopyOnWriteArrayList
 
 let DEBUG = false
@@ -16,20 +17,20 @@ let SEND_COMMAND_MS = 250
 let CMD_DISABLE_PRETTIFY_JSON = "heos://system/prettify_json_response?enable=off"
 let CMD_DISABLE_CHANGE_EVENTS = "heos://system/register_for_change_events?enable=off"
 
+let HEOS_CONNECTION = createHeosConnection()
+
 union HeosConnectionMsgs = {
 	SendCommandMsg = { cmd }
 }
 
-let heosConnection = createHeosConnection()
-
-function getHeosConnectionInstance = -> heosConnection
+function getHeosConnectionInstance = -> HEOS_CONNECTION
 
 local function createHeosConnection = {
 	let isRunning = AtomicBoolean(false)
 	let ioErrors = AtomicInteger(0)
 	let callbacks = CopyOnWriteArrayList()
 	let socketFactory = createSocketFactory()
-	
+
 	let heosConnection = DynamicObject("HEOSConnection"):
 		define("_callbacks", callbacks):
 		define("_isRunning", isRunning):
@@ -40,13 +41,18 @@ local function createHeosConnection = {
 		define("_inputStreamReader", null):
 		define("_env", null):
 		define("_port", null):
-		define("playerHost", null):
+		define("host", null):
 		define("connect", |this, host, port| -> connect(this, host, port)):
 		define("disconnect", |this| -> disconnect(this)):
 		define("isConnected", |this| -> isConnected(this)):
 		define("addCallback", |this, cb| -> addCallback(this, cb)):
 		define("removeCallback", |this, cb| -> removeCallback(this, cb)):
 		define("sendCommand", |this, cmd| -> sendCommand(this, cmd))
+
+	let heosMasterMonitor = createHeosMasterMonitor(heosConnection)
+	let heosMasterMonitorReference = AtomicReference(heosMasterMonitor)
+
+	heosConnection: define("heosMasterMonitor", |this| -> heosMasterMonitorReference: get())
 
 	return heosConnection
 }
@@ -80,14 +86,16 @@ local function connect = |connection, host, port| {
 	connection: _inputStreamReader(inputStreamReader)
 	connection: _env(env)
 	connection: _port(envPort)
-	connection: playerHost(host + ":" + port)
-
-	_initConnection(connection)
+	connection: host(host + ":" + port)
 
 	_createAndRunReceiveThread(connection)
 
+	_initConnection(connection)
+
+	connection: heosMasterMonitor(): start()
+
 	if (DEBUG) {
-		println("Connected to HEOS player.")
+		println("Connected to HEOS player at " + host + ":" + port)
 	}
 }
 
@@ -138,7 +146,7 @@ local function _createAndRunReceiveThread = |connection| {
 					}
 
 					let jsonResponse = JSON.parse(textResponse)
-					
+
 					foreach (cb in connection: _callbacks()) {
 						try {
 							cb(jsonResponse)
@@ -175,6 +183,9 @@ local function _createAndRunReceiveThread = |connection| {
 				println("Stopping HEOS network connection")
 			}
 			isRunning: set(false)
+
+			connection: heosMasterMonitor(): stop()
+
 			connection: _socket(): close()
 			connection: _inputStreamReader(): close()
 			connection: _printWriter(): close()
@@ -206,9 +217,16 @@ local function _portIncomingMsgHandler = |connection, msg| {
 # Functions that should be called via _portIncomingMsgHandler (direct or indirectly) only
 
 local function _handleSendCommandMsg = |connection, cmd| {
+	if (not connection: _isRunning(): get()) {
+		if (DEBUG) {
+			println("Command '" + cmd + "' not send to HEOS network, because there is no active connection")
+		}
+		return
+	}
+
 	let socket = connection: _socket()
 	let printWriter = connection: _printWriter()
-	
+
 	try {
 		_sendCommand(printWriter, cmd)
 	} catch(ex) {

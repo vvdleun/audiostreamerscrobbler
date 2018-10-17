@@ -14,7 +14,7 @@ function createHeosPlayer = |heosImpl| {
 		define("heosImpl", heosImpl):
 		define("name", heosImpl: name()):
 		define("playerType", PlayerTypes.Heos()):
-		define("friendlyName", |this| -> this: name() + " (Standard: HEOS, model: " + heosImpl: model() + ", IP: " + heosImpl: ip() + ", id: " + heosImpl: pid() + ")")
+		define("friendlyName", |this| -> this: name() + " (Standard: HEOS, model: " + heosImpl: model() + ", IP: " + heosImpl: ip() + ")")
 
 	return playerImpl		
 }

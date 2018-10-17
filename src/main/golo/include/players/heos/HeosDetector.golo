@@ -26,7 +26,7 @@ function createHeosDetector = |cb| {
 	let heosConnection = getHeosConnectionInstance()
 	let ssdpHandler = getSsdpHandlerInstance()
 	let isRunning = AtomicBoolean(false)
-	
+
 	let detector = DynamicObject("HeosDetector"):
 		define("_cb", |this| -> cb):
 		define("_heosConnection", |this| -> heosConnection):
@@ -44,7 +44,7 @@ function createHeosDetector = |cb| {
 	let heosCb = _createHeosCallback(detector)
 
 	detector: define("_heosCb", |this| -> heosCb)
-	
+
 	return detector
 }
 
@@ -115,7 +115,7 @@ local function _createSsdpCallback = |detector, ignoredHosts| {
 			}
 			return
 		}
-	
+
 		var inputStream = null
 		try { 
 			let deviceDescriptorUrl = headers: get("location")
@@ -183,13 +183,13 @@ local function _getHost = |url| {
 local function _startConnectedMode = |detector| {
 	let heosConnection = detector: _heosConnection()
 
-	let host = heosConnection: playerHost()
-	println("Found HEOS player at " + host + ". Connecting to player's CLI server...")
-	
+	let host = heosConnection: host()
+	println("Connected to HEOS player's CLI server at " + host + ".")
+
 	heosConnection: addCallback(detector: _heosCb())
-	
+
 	let thread = _createAndRunFindPlayersThread(detector)
-	
+
 	# TODO 1: this command should not be given more than once...
 	# TODO 2: Ensure this command was processed correctly
 	heosConnection: sendCommand("heos://" + CMD_ENABLE_CHANGE_EVENTS + "?enable=on")
@@ -220,7 +220,7 @@ local function _createAndRunFindPlayersThread = |detector| {
 
 			Thread.sleep(REQUEST_PLAYERS_INTERVAL * 1000_L)
 		}
-		
+
 		if (DEBUG) {
 			println("Stopping HeosAliveThread...")
 		}
@@ -237,7 +237,7 @@ local function _createHeosCallback = |detector| {
 				println("ERROR RESPONSE FROM HEOS: " + response)
 				return
 			}
-		
+
 			let players = response: get("payload")
 
 			foreach (player in players) {
