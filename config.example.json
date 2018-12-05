@@ -1,5 +1,5 @@
 {
-	"players" {
+	"players": {
 		"bluos": {
 			"enabled": true,
 			"players": ["PlayerName"]
