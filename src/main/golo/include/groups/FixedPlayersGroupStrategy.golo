@@ -71,8 +71,16 @@ local function handleLostEvent = |impl, group, event| {
 		return
 	}
 
-	impl: startDetectors(|t| -> t: playerTypeId() == player: playerTypeId())
+	let playingPlayer = impl: playerInGroupPlaying()
+
 	impl: stopMonitors(|p| -> p: id() == player: id())
+	if playingPlayer != null and playingPlayer: id() == player: id() {
+		# Playing player was lost. Start all detectors
+		impl: startDetectors(|t| -> true)
+	} else {
+		# This player was not playing. Start detectors of this player type only
+		impl: startDetectors(|t| -> t: playerTypeId() == player: playerTypeId())
+	}
 
 	impl: removePlayer(player)
 }
