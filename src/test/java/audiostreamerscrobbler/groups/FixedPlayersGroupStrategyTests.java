@@ -125,20 +125,28 @@ public class FixedPlayersGroupStrategyTests extends GroupTests {
 	}
 
 	@Test
-	public void whenAPlayerIsLostItMustHaveBeenRemovedAndItsDetectorMustBeStartedAndItsMonitorStopped() {
+	public void whenAnIdlePlayerIsLostItMustHaveBeenRemovedAndItsDetectorMustBeStartedAndItsMonitorStopped() {
 		List<String> bluOsPlayers = new ArrayList<>();
-		bluOsPlayers.add("player");
+		bluOsPlayers.add("idlePlayer1");
 		expectedPlayers.put(bluOsPlayerType.playerTypeId(), bluOsPlayers);
 
+		List<String> musicCastPlayers = new ArrayList<>();
+		musicCastPlayers.add("idlePlayer2");
+		expectedPlayers.put(musicCastPlayerType.playerTypeId(), musicCastPlayers);
+		
 		// Must be set explicitly because this list is initialized when creating the fixedPlayersGroupStrategy instance
 		fixedPlayersGroupStrategy.playerTypes().add(bluOsPlayerType);
+		fixedPlayersGroupStrategy.playerTypes().add(musicCastPlayerType);
 		
 		// Create and add player and create/send event that will detect the player
-		Player player = Player.createMockedPlayer("player", bluOsPlayerType);
-		fixedPlayersGroupStrategy.addPlayer(player);
+		Player idlePlayer1 = Player.createMockedPlayer("idlePlayer1", bluOsPlayerType);
+		fixedPlayersGroupStrategy.addPlayer(idlePlayer1);
+
+		Player idlePlayer2 = Player.createMockedPlayer("idlePlayer2", musicCastPlayerType);
+		fixedPlayersGroupStrategy.addPlayer(idlePlayer1);
 		
 		// Create and send lost event
-		GroupEvents.LostEvent lostEvent = GroupEvents.createMockedLostEvent(player);
+		GroupEvents.LostEvent lostEvent = GroupEvents.createMockedLostEvent(idlePlayer1);
 		fixedPlayersGroupStrategy.handleLostEvent(group, lostEvent);
 
 		assertTrue(fixedPlayersGroupStrategy.players().isEmpty());
@@ -158,9 +166,56 @@ public class FixedPlayersGroupStrategyTests extends GroupTests {
 		Tuple stopMonitorsMembers = stopMonitors.destruct();
 		assertEquals(1, stopMonitorsMembers.size());
 		Tuple stopMonitorPlayers = (Tuple)stopMonitorsMembers.get(0);
-		assertThat(stopMonitorPlayers, contains(player));
+		assertThat(stopMonitorPlayers, contains(idlePlayer1));
+	}
+
+	@Test
+	public void whenAPlayingPlayerIsLostAllDetectorsMustBeStartedAndItsMonitorStopped() {
+		List<String> bluOsPlayers = new ArrayList<>();
+		bluOsPlayers.add("playingBluOsPlayer");
+		expectedPlayers.put(bluOsPlayerType.playerTypeId(), bluOsPlayers);
+
+		List<String> musicCastPlayers = new ArrayList<>();
+		musicCastPlayers.add("idleMusicCastPlayer");
+		expectedPlayers.put(musicCastPlayerType.playerTypeId(), musicCastPlayers);
+		
+		// Must be set explicitly because this list is initialized when creating the fixedPlayersGroupStrategy instance
+		fixedPlayersGroupStrategy.playerTypes().add(bluOsPlayerType);
+		fixedPlayersGroupStrategy.playerTypes().add(musicCastPlayerType);
+		
+		// Create and add player and create/send event that will detect the player
+		Player playingPlayer = Player.createMockedPlayer("playingBluOsPlayer", bluOsPlayerType);
+		fixedPlayersGroupStrategy.addPlayer(playingPlayer);
+		markPlayerAsPlaying(fixedPlayersGroupStrategy.players(), "playingBluOsPlayer");
+
+		Player idlePlayer = Player.createMockedPlayer("idleMusicCastPlayer", musicCastPlayerType);
+		fixedPlayersGroupStrategy.addPlayer(idlePlayer);
+		
+		// Create and send lost event
+		GroupEvents.LostEvent lostEvent = GroupEvents.createMockedLostEvent(playingPlayer);
+		fixedPlayersGroupStrategy.handleLostEvent(group, lostEvent);
+
+		assertThat(fixedPlayersGroupStrategy.players().keySet(), contains("idleMusicCastPlayer"));
+		
+		assertEquals(2, processedEvents.size());
+		
+		Union startDetectors = (Union)processedEvents.get(0);
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$StartDetectors", startDetectors.getClass().getName());
+		Tuple startDetectorsMembers = startDetectors.destruct();
+		assertEquals(1, startDetectorsMembers.size());
+
+		Tuple startDetectorsPlayerTypes = (Tuple)startDetectorsMembers.get(0);
+		assertThat(startDetectorsPlayerTypes, contains(bluOsPlayerType, musicCastPlayerType));
+
+		Union stopMonitors= (Union)processedEvents.get(1);
+		assertEquals("audiostreamerscrobbler.groups.GroupProcessEventTypes.types.GroupProcessEvents$StopMonitors", stopMonitors.getClass().getName());
+		Tuple stopMonitorsMembers = stopMonitors.destruct();
+		assertEquals(1, stopMonitorsMembers.size());
+		Tuple stopMonitorPlayers = (Tuple)stopMonitorsMembers.get(0);
+		assertThat(stopMonitorPlayers, contains(playingPlayer));
 
 	}
+
 	
 	@Test
 	public void handleIdleEventShouldStartIdlePlayerDetectors() throws Throwable {

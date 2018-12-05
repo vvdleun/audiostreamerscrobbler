@@ -3,10 +3,14 @@
 		"bluos": {
 			"enabled": true,
 			"players": ["PlayerName"]
-		}
+		},
 		"musiccast": {
 			"enabled": true,
 			"players": ["PlayerName1", "PlayerName2"]
+		},
+		"heos": {
+			"enabled": true,
+			"players": ["PlayerName1"]
 		}
 	},
 	"scrobblers": {
@@ -45,5 +49,5 @@
 			"maxSongs": 1500,
 			"retryIntervalMinutes": 30
 		}
-	}	
+	}
 }
