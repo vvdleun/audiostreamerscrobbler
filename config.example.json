@@ -20,7 +20,7 @@
 			"apiSecret": "",
 			"sessionKey": ""
 		},
-		"listenbrainz" {
+		"listenbrainz": {
 			"enabled": true,
 			"userToken": ""
 		},
