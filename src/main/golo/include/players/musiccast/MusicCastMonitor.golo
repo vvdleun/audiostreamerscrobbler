@@ -77,7 +77,6 @@ local function _createAndRunThread = |monitor| {
 				let status = JSON.parse(statusString)
 				
 				let netUsbStatus = status: get("netusb")
-				# println(netUsbStatus)
 				if (netUsbStatus isnt null) {
 					var song = null
 					if (netUsbStatus: containsKey("play_info_updated")) {
@@ -147,7 +146,6 @@ local function getAndRegisterCurrentStatus = |monitor| {
 		monitor: _song(song)
 		return song
 	} catch (ex) {
-		throw(ex)
 		monitor: _lastSuccess(false)
 	}
 	return null
