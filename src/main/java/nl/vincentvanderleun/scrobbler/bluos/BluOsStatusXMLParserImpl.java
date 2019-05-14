@@ -15,7 +15,7 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-public class BluOsStatusXMLParser {
+public class BluOsStatusXMLParserImpl {
 	private static final Set<String> STATUS_XML_ELEMENTS = new HashSet<>();
 
 	private final SAXParser saxParser;
@@ -31,7 +31,7 @@ public class BluOsStatusXMLParser {
 		STATUS_XML_ELEMENTS.add("totlen");
 	}
 	
-	public BluOsStatusXMLParser() {
+	public BluOsStatusXMLParserImpl() {
 		try {
 			SAXParserFactory factory = SAXParserFactory.newInstance();
 			saxParser = factory.newSAXParser();

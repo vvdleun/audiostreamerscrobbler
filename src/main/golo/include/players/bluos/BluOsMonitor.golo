@@ -1,6 +1,6 @@
 module audiostreamerscrobbler.players.bluos.BluOsMonitor
 
-import audiostreamerscrobbler.maintypes.Song.types.Song
+import audiostreamerscrobbler.maintypes.SongType.types.Song
 import audiostreamerscrobbler.players.bluos.BluOsStatusXMLParser
 import audiostreamerscrobbler.players.helpers.PollBasedMonitorHelper
 import audiostreamerscrobbler.threads.PlayerMonitorThreadTypes.types.MonitorThreadTypes

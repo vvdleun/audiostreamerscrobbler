@@ -1,6 +1,6 @@
 module audiostreamerscrobbler.players.bluos.BluOsStatusXMLParser
 
-import nl.vincentvanderleun.scrobbler.bluos.BluOsStatusXMLParser
+import nl.vincentvanderleun.scrobbler.bluos.BluOsStatusXMLParserImpl
 
 struct BluOsStatus = {
 	success,
@@ -15,7 +15,7 @@ struct BluOsStatus = {
 }
 
 function createBluOsStatusXMLParser = {
-	let bluOsStatusParser = BluOsStatusXMLParser()
+	let bluOsStatusParser = BluOsStatusXMLParserImpl()
 
 	let parser = DynamicObject("BluOsStatusXMLParser"):
 		define("_bluOsStatusParser", bluOsStatusParser):

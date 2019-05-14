@@ -1,6 +1,7 @@
 module audiostreamerscrobbler.players.musiccast.MusicCastMonitor
 
-import audiostreamerscrobbler.maintypes.{AppMetadata, Song}
+import audiostreamerscrobbler.maintypes.AppMetadata
+import audiostreamerscrobbler.maintypes.SongType.types.Song
 import audiostreamerscrobbler.threads.PlayerMonitorThreadTypes.types.MonitorThreadTypes
 import audiostreamerscrobbler.utils.{NetworkUtils, UrlUtils, ThreadUtils}
 
@@ -76,13 +77,16 @@ local function _createAndRunThread = |monitor| {
 				let status = JSON.parse(statusString)
 				
 				let netUsbStatus = status: get("netusb")
+				# println(netUsbStatus)
 				if (netUsbStatus isnt null) {
 					var song = null
 					if (netUsbStatus: containsKey("play_info_updated")) {
 						song = getAndRegisterCurrentStatus(monitor)
 					} else if (netUsbStatus: containsKey("play_time")) {
 						song = monitor: _song()
-						song: position(netUsbStatus: get("play_time"): intValue())
+						if(song isnt null) {
+							song: position(netUsbStatus: get("play_time"): intValue())
+						}
 					}
 
 					# Inform MonitorThread about status
@@ -143,6 +147,7 @@ local function getAndRegisterCurrentStatus = |monitor| {
 		monitor: _song(song)
 		return song
 	} catch (ex) {
+		throw(ex)
 		monitor: _lastSuccess(false)
 	}
 	return null
@@ -178,11 +183,10 @@ local function isPlayerPlaying = |playInfo| {
 }
 
 local function convertPlayInfoToSong = |playInfo| {
-	let song = Song(
+	return Song(
 		playInfo: get("track"), 
 		playInfo: get("artist"),
 		playInfo: get("album"),
 		playInfo: get("play_time"): intValue(),
 		playInfo: get("total_time"): intValue())
-	return song
 }

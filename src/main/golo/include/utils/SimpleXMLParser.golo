@@ -1,6 +1,6 @@
 module audiostreamerscrobbler.utils.SimpleXMLParser
 
-import nl.vincentvanderleun.utils.SimpleXMLParser
+import nl.vincentvanderleun.utils.SimpleXMLParserImpl
 import nl.vincentvanderleun.utils.SimpleXMLParserCallback
 
 import gololang.Adapters
@@ -12,7 +12,7 @@ union events = {
 }
 
 function createSimpleXMLParser = {
-	let xmlParser = SimpleXMLParser()
+	let xmlParser = SimpleXMLParserImpl()
 
 	let parser = DynamicObject("SimpleXMLParser"):
 		define("_xmlParser", xmlParser):

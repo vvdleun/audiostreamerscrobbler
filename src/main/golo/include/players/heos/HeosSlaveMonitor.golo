@@ -1,6 +1,6 @@
 module audiostreamerscrobbler.players.heos.HeosSlaveMonitor
 
-import audiostreamerscrobbler.maintypes.Song
+import audiostreamerscrobbler.maintypes.SongType.types.Song
 import audiostreamerscrobbler.players.heos.HeosConnectionSingleton
 import audiostreamerscrobbler.threads.PlayerMonitorThreadTypes.types.MonitorThreadTypes
 import audiostreamerscrobbler.utils.ThreadUtils

@@ -9,8 +9,8 @@ import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
 
-public class BluOsStatusXMLParserTests {
-	private BluOsStatusXMLParser bluOsStatusXMLParser;
+public class BluOsStatusXMLParserImplTests {
+	private BluOsStatusXMLParserImpl bluOsStatusXMLParserImpl;
 
 	String BLUOS_STATUS_XML_DATA = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n" + 
 			"<status etag=\"7f41bde69dfcfd2dcbfd8dd90750cb37\">\r\n" + 
@@ -48,14 +48,14 @@ public class BluOsStatusXMLParserTests {
 	
 	@Before
 	public void init() {
-		bluOsStatusXMLParser = new BluOsStatusXMLParser();
+		bluOsStatusXMLParserImpl = new BluOsStatusXMLParserImpl();
 	}
 	
 	@Test
 	public void mustParseBluOsStatusXML() throws IOException {
 		ByteArrayInputStream inputStream = new ByteArrayInputStream(BLUOS_STATUS_XML_DATA.getBytes());
 
-		BluOsParsedStatus status = bluOsStatusXMLParser.parse(inputStream);
+		BluOsParsedStatus status = bluOsStatusXMLParserImpl.parse(inputStream);
 
 		assertEquals("The Voice Of Love", status.getAlbum());
 		assertEquals("Julee Cruise", status.getArtist());

@@ -18,7 +18,7 @@ repositories {
 }
 
 mainClassName = 'audiostreamerscrobbler.Audiostreamerscrobbler'
-ext.goloDependency = 'org.eclipse.golo:golo:3.3.0-M1'
+ext.goloDependency = 'org.eclipse.golo:golo:3.3.0'
 
 dependencies {
     golo goloDependency

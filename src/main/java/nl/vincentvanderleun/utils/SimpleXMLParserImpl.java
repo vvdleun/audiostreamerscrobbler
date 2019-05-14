@@ -13,10 +13,10 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-public class SimpleXMLParser {
+public class SimpleXMLParserImpl {
 	private final SAXParser saxParser;
 	
-	public SimpleXMLParser() {
+	public SimpleXMLParserImpl() {
 		try {
 			SAXParserFactory parserFactory = SAXParserFactory.newInstance();
 			this.saxParser = parserFactory.newSAXParser();

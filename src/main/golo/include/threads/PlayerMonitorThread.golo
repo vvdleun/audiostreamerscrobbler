@@ -1,6 +1,6 @@
 module audiostreamerscrobbler.threads.PlayerMonitorThread
 
-import audiostreamerscrobbler.maintypes.Song
+import audiostreamerscrobbler.maintypes.SongType
 
 import java.time.{Duration, Instant}
 
@@ -89,7 +89,7 @@ local function monitorCallback = |monitorThread, monitorState| {
 }
 
 local function handleMonitorState = |monitorThread, monitorState| {
-	var action = monitorAction.NoAction()
+	var action = MonitorStateActions.NoAction()
 	case {
 		when monitorState: isMonitoring() {
 		}
