@@ -58,9 +58,6 @@ local function initAndStartHandler = |handler| {
 			try {
 				if (multicastSocket == null) {
 					# println("Opening LSDP socket...")
-					# datagramSocket = socketFactory: createDatagramSocket(LSDP_PORT)
-					# println("Opened LSDP socket...")
-					# multicastSocket = MulticastSocket(LSDP_PORT)
 					multicastSocket = socketFactory: createMulticastSocketAndBindToPort(LSDP_PORT)
 				}
 

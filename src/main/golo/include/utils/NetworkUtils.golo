@@ -1,7 +1,7 @@
 module audiostreamerscrobbler.utils.NetworkUtils
 
 import java.io.IOException
-import java.net.{DatagramSocket, DatagramPacket, InetAddress, InetSocketAddress, MulticastSocket, NetworkInterface, Socket}
+import java.net.{MulticastSocket, NetworkInterface, Socket}
 
 # Network Interfaces
 
@@ -115,12 +115,6 @@ function bindMulticastSocketToInterface = |multicastSocket, interfaceName, inter
 	multicastSocket: setInterface(inetAddress)
 	
 	return multicastSocket
-}
-
-function createDatagramSocket = |port, interfaceName, interfaceAddress| {
-	let inetAddress = getNetworkInterfaceInetAddress(interfaceName, interfaceAddress)
-	let inetSocketAddress = InetSocketAddress(inetAddress, port)
-	return DatagramSocket(inetSocketAddress)
 }
 
 function getNetworkInterfaceBroadcastAddresses = |interfaceName| {
