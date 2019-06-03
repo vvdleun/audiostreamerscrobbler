@@ -22,7 +22,7 @@ function createMusicCastMonitor = |player, socketFactory, httpRequestFactory, cb
 	
 	let appMetadata = getAppMetaData()
 
-	let socketUpdates = socketFactory: createDatagramSocketAnyPort()
+	let socketUpdates = socketFactory: createMulticastSocket()
 	socketUpdates: setSoTimeout(10 * 1000)
 	
 	let isRunning = AtomicBoolean(false)

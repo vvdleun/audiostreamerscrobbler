@@ -12,7 +12,6 @@ function createSocketFactory = {
 		define("createMulticastSocket", |this| -> createMulticastSocket(this: _config())):
 		define("createMulticastSocketAndBindToPort", |this, port| -> createMulticastSocketAndBindToPort(port, this: _config())):
 		define("createDatagramSocket", |this, port| -> createDatagramSocket(port, this: _config())):
-		define("createDatagramSocketAnyPort", |this| -> createDatagramSocket(0, this: _config())):
 		define("getBroadcastAddresses", |this| -> _getBroadcastAddresses(this: _config()))
 		
 	return socketFactory
