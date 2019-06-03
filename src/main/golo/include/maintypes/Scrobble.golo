@@ -1,4 +1,4 @@
-module audiostreamerscrobbler.maintypes.Scrobble
+module audiostreamerscrobbler.maintypes.ScrobbleType
 
 struct Scrobble = {
 	utcTimestamp,

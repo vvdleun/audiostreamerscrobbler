@@ -1,6 +1,6 @@
 module audiostreamerscrobbler.scrobbler.ScrobblersHandler
 
-import audiostreamerscrobbler.maintypes.Scrobble
+import audiostreamerscrobbler.maintypes.ScrobbleType.types.Scrobble
 import audiostreamerscrobbler.utils.ThreadUtils
 
 import java.util.{Calendar, TimeZone}
