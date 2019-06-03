@@ -1,28 +1,21 @@
 # AudioStreamerScrobbler
 
-## Status update: Seemingly almost ready for prime-time
-
-Personally, I have been using this program for some months now, on a Raspberry pi 1 model B, that monitors my NAD C368's Bluesound add-on MDC card (BluOS) and Yamaha ISX-18D and WX-010 (MusicCast) players and sends my played songs simultaneously to my personal Last.FM, Libre.FM and ListenBrainz accounts. The program seems to recover from many common I/O problems, although there are some improvements needed in that area. Even more importantly, it looks like I've fixed all serious memory leaks that plagued the project previously.
-
-While testing the program, I have added experimental Denon HEOS support. After this implementation has improved and tested for some weeks, and some additional improvements, I'll plan to do a version 1.0 release. I hope to add a desktop GUI configuration option, so end-users won't have to edit a JSON file by hand anymore, as well.
-
-## Description  
-
 AudioStreamerScrobbler is an application that monitors hardware audiostreamers and scrobbles played tracks to one or more of the personal audio tracking ("scrobbler") services.
 
-Supported hardware audiostreamers are:
+## Supported hardware and scrobbler/music tracking services
 
-* Bluesound/BluOS-based players
-* Yamaha MusicCast players
+Supported hardware audiostreamer platforms:
 
-Support for HEOS players (Denon) is currently experimental. 
+* Bluesound / BluOS-based players
+* Yamaha MusicCast
+* Denon HEOS (EXPERIMENTAL)
 
 The following music tracking services are supported:
 
 * Last FM (https://last.fm)
 * ListenBrainz (https://listenbrainz.org/, or a local installation of ListenBrainz Server)
 * Libre FM (https://libre.fm)
-* A GNU FM instance (https://www.gnu.org/software/gnufm/)
+* GNU FM instance (https://www.gnu.org/software/gnufm/)
 
 The program is intended to be used 24/7 on Raspberry pi-alike devices. I have personally compiled and have been running it on a Raspberry pi 1 Model B for some time now.
 
@@ -30,13 +23,13 @@ AudioStreamerScrobbler was written in [Eclipse Golo, a lesser known dynamic lang
 
 ## Requirements
 
-AudioStreamerScrobbler is a project powered by the Java Virtual Machine (JVM). To run it, the Java Runtime Environment (JRE) version 8 is required. Although Golo is not yet compatible with Java 9 and higher, it seems to compile/run on Java 9 and 10, with some warnings. It remains to be seen whether Golo will be made compatible with newer Java versions. If not, a port to a different programming language is not ruled out.
+AudioStreamerScrobbler is a project powered by the Java Virtual Machine (JVM). To run it, the Java Runtime Environment (JRE) version 8 is required. Golo is currently not compatible with Java 9 and higher, and seems to have issues when running on a JVM higher than 8. It remains to be seen whether Golo will be made compatible with newer Java versions. If not, a port to a different programming language is not ruled out.
 
 Since this is a alpha pre-release, the program must be compiled before it can be used. To compile the program, both the Java Developers Kit (JDK) version 8 and the Gradle build tool (https://gradle.org) are required. Gradle will download the required dependencies, compile the project and build a stand-alone JAR file that can be used to run the program. To compile, issue the following command in the project's root directory (the directory containing the "build.gradle" file):
 
-    gradle build
+    gradle clean build
 
-In the build/libs subdirectory, you'll find a audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar file that you can run with the `java -jar audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar` command. But be advised that you'll need to do some manual configuration first. This will be explained in the next section.
+In the build/libs subdirectory, you'll find a audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar file that you can run with the `java -jar audiostreamerscrobbler-0.1.0-SNAPSHOT-all.jar` command. Be advised that you'll need to do some manual configuration first. This will be explained in the next section.
 
 ## Installation
 
@@ -109,14 +102,14 @@ For example if you have two players that are called "Living Room C368" and "Kitc
         "players": {
 			"bluos": {
 				"enabled": "true",
-				"players": ["Living Room C368", "Kitchen Pulse Flex"]
+				"players": ["Living Room C368", "Kitchen Pulse Mini 2i"]
 			}
         },
         ...
 
 The player name must match your BluOS device name exactly. Note that the name is CaSe SeNsItIvE.
 
-The program should be compatible with the new third party BluOS powered devices that have appeared on the market (I believe Dali has them), but this has not been tested yet.
+The program should be compatible with all current and legacy Bluesound speakers and players. It has been tested on a NAD BlueOS 2 MDC upgrade module in a NAD C368 amplifier and a Bluesound Pulse Mini 2i speaker. The program should also be compatible with the new third party BluOS powered devices that have appeared on the market (like available from Dali), but this has not been tested yet.
 
 #### Monitor a Yamaha MusicCast player
 
@@ -137,6 +130,27 @@ For example if you have two players that are called "Living Room WX-010" and "Be
 Note that the player name is case sensitive.
 
 I have seen that when playing local songs from my NAS, that the MusicCast player does not recognize the length of songs and therefore cannot scrobble those songs. Yamaha UK support team confirmed to me that this is a known current implementation limitation of the MusicCast platform. I'll do some investigating and try to come up with an optional workaround.
+
+MusicCast compatibility has been tested with a Yamaha Restio ISX-18d and WX-010 MusicCast speakers only, but should be compatible with the full range of Yamaha MusicCast speakers, home theaters, amplifiers, CD players, turntable, etc.
+
+#### Monitor a Denon HEOS player
+
+This support is considered Experimental. As always, open an issue if you encounter problems.
+
+HEOS support is implemented differently than the other standards. Instead of the program connecting to all players individually, it connects to the first player that it finds. Since all HEOS devices communicate with each other, this device is then used to detect and monitor all HEOS devices on the network.
+
+Make sure that the "heos" entry is enabled, as displayed below. Also, enter all the name of your players in the "names" field:
+
+        ...
+        "players": {
+			"heos": {
+				"enabled": "true",
+				"players": ["Living Room HEOS 3", "Bathroom HEOS 1"]
+			}
+        },
+        ...
+
+Compatibility has been briefly tested with a HEOS 1 HS2 device only. It should be compatible with the full range of HEOS compatible devices released by Denon.
 
 ### Setting up scrobbler services
 
@@ -242,11 +256,9 @@ Normally that would be enough, the program will then try to bind to the first IP
 	
 ## Plans
 
-At the top of my list is improving the support of multiple players. After that, I'd like to add an optional GUI mode to make it possible to configure the program in a much more user-friendly way.
+I'd like to add an optional GUI mode, so setting up the program would become much more user-friendly.
 
-Then, I'd like to add HEOS by Denon support. Please let me know if there's any demand for support of other types/brands of audio streamers.
-
-On the longer term I'd like to add more advanced grouping possibilities, so that different group of devices can scrobble to different accounts on different services.
+On the longer term I'd like to add more advanced grouping possibilities, so that multiple groups of players can be monitored at the same time and support different accounts on different scrobbler/music tracking services.
 
 Right now I mostly concentrate on features that I'll use myself, but if there's demand I'd love to switch priorities.
 
@@ -254,7 +266,7 @@ Right now I mostly concentrate on features that I'll use myself, but if there's 
 
 I am Vincent van der Leun. I'm a Dutch Java developer and currently employed by a modern cloud-based software company in Woerden.
 
-If you like scrobbling as much as I do, feel free to add me on one of the following public music tracking services:
+If you like scrobbling as much as I do, feel free to visit one of my accounts (and add me as a friend if the service supports that):
 
 * Last FM: https://www.last.fm/user/vvdleun
 * ListenBrainz: https://listenbrainz.org/user/vintzend
