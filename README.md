@@ -2,6 +2,10 @@
 
 AudioStreamerScrobbler is an application that monitors hardware audiostreamers and scrobbles played tracks to one or more of the personal audio tracking ("scrobbler") services.
 
+The program is intended to be used 24/7 on Raspberry pi-alike devices. I have personally compiled and have been running it on a Raspberry pi 1 Model B for some time now.
+
+AudioStreamerScrobbler was written in [Eclipse Golo, a lesser known dynamic language that runs on the Java Virtual Machine (JVM)](http://golo-lang.org). It was a design goal to write as much code in Golo as possible and not to use additional Java dependencies, unless very unpractical. We'll see how that wil turn out on the longer run. I had to write some code in Java to work around omissions in the Golo run-time library, but luckily Gradle takes care of those complexities when building the project. Although I'm personally not the biggest fan of dynamic languages, I really started to like Golo while I was developing this program. In my opinion it's a nice, small and clean language, with a surprisingly powerful run-time library.
+
 ## Supported hardware and scrobbler/music tracking services
 
 Supported hardware audiostreamer platforms:
@@ -13,13 +17,9 @@ Supported hardware audiostreamer platforms:
 The following music tracking services are supported:
 
 * Last FM (https://last.fm)
-* ListenBrainz (https://listenbrainz.org/, or a local installation of ListenBrainz Server)
+* ListenBrainz (https://listenbrainz.org/, or a local installation of [ListenBrainz Server](https://github.com/metabrainz/listenbrainz-server))
 * Libre FM (https://libre.fm)
 * GNU FM instance (https://www.gnu.org/software/gnufm/)
-
-The program is intended to be used 24/7 on Raspberry pi-alike devices. I have personally compiled and have been running it on a Raspberry pi 1 Model B for some time now.
-
-AudioStreamerScrobbler was written in [Eclipse Golo, a lesser known dynamic language that runs on the Java Virtual Machine (JVM)](http://golo-lang.org). It was a design goal to write as much code in Golo as possible and not to use additional Java dependencies, unless very unpractical. We'll see how that wil turn out on the longer run. I had to write some code in Java to work around omissions in the Golo run-time library, but luckily Gradle takes care of those complexities when building the project. Although I'm personally not the biggest fan of dynamic languages, I really started to like Golo while I was developing this program. In my opinion it's a nice, small and clean language, with a surprisingly powerful run-time library.
 
 ## Requirements
 
@@ -44,7 +44,11 @@ After compiling the project, copy the builds/libs/audiostreamerscrobbler-0.1.0-S
             "musiccast": {
                 "enabled": true,
                 "players": ["Bedroom ISX-18D", "Kitchen WX-010"]
-            }
+            },
+			"heos": {
+                "enabled": true,
+                "players": ["Portable HEOS 1"]
+			}
         },
         "scrobblers": {
             "lastfm": {
@@ -93,10 +97,10 @@ The program can monitor all BluOS (Bluesound) and Yamaha MusicCast players that 
 
 Do not forget to disable the audiostreamer standards that you do not want to use at this time (by setting the "enabled" setting to value "false"). Otherwise, a lot of unnecessary traffic will be generated on your network.
 
-#### Monitor BluOS (Bluesound) players
+#### Monitor Bluesound / BluOS-based players
 
 First, make sure that the "bluos" entry is enabled, as displayed below. Also, enter all the name of your players in the "names" field. 
-For example if you have two players that are called "Living Room C368" and "Kitchen Pulse Flex", your BluOS players configuration will look like this:
+If you have two players, that are called "Living Room C368" and "Kitchen Pulse Flex", your BluOS players configuration will look like this:
 
         ...
         "players": {
@@ -256,7 +260,7 @@ Normally that would be enough, the program will then try to bind to the first IP
 	
 ## Plans
 
-I'd like to add an optional GUI mode, so setting up the program would become much more user-friendly.
+I'd like to add an optional GUI mode, so setting up the program would become much more user-friendly. Also, I'd like to add an option to reduce the generated network traffic (the trade-off being that it may take awhile to detect a playing device)
 
 On the longer term I'd like to add more advanced grouping possibilities, so that multiple groups of players can be monitored at the same time and support different accounts on different scrobbler/music tracking services.
 
