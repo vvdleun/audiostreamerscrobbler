@@ -1,0 +1,53 @@
+{
+	"players": {
+		"bluos": {
+			"enabled": true,
+			"players": ["PlayerName"]
+		},
+		"musiccast": {
+			"enabled": true,
+			"players": ["PlayerName1", "PlayerName2"]
+		},
+		"heos": {
+			"enabled": true,
+			"players": ["PlayerName1"]
+		}
+	},
+	"scrobblers": {
+		"lastfm": {
+			"enabled": true,
+			"apiKey": "",
+			"apiSecret": "",
+			"sessionKey": ""
+		},
+		"listenbrainz": {
+			"enabled": true,
+			"userToken": ""
+		},
+		"librefm": {
+			"enabled": true,
+			"sessionKey": ""
+		},
+		"gnufm": {
+			"enabled": false,
+			"nixtapeUrl": "",
+			"sessionKey": ""
+		},
+		"listenbrainz-server": {
+			"enabled": false,
+			"websiteUrl": "",
+			"apiUrl": "",
+			"userToken": ""
+		}
+	},
+	"settings": {
+		"network": {
+			"networkInterface": "",
+			"networkInterfaceAddress": ""
+		},
+		"errorHandling": {
+			"maxSongs": 1500,
+			"retryIntervalMinutes": 30
+		}
+	}
+}

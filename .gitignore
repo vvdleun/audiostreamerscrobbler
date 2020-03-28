@@ -1,0 +1,10 @@
+*.class
+/.nb-gradle/
+bin/
+build/
+config.json
+run.bat
+.gradle/
+.classpath
+.settings
+.project

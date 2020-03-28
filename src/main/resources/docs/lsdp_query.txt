@@ -1,0 +1,13 @@
+Query
+
+06
+
+4c:53:44:50		"LSDP"
+
+01
+
+05				lijkt lengte incl deze byte
+
+51				"Q"
+
+01:ff:ff
