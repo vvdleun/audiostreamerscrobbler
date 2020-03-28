@@ -9,9 +9,9 @@ import org.junit.jupiter.api.Test;
 
 import nl.vincentvanderleun.audiostreamerscrobbler.core.Config;
 
-class PlayerPlatformsConfigTests {
+public class PlayerPlatformsConfigTests {
 	@Test
-	void shouldFindPlayerPlatformsConfig() {
+	public void shouldFindPlayerPlatformsConfig() {
 		// Key/values for a specific player of a player platform
 		// In real life the value will be another Map<String, Object>, but with current implementation, 
 		// there's nothing preventing it to be something else :-/
