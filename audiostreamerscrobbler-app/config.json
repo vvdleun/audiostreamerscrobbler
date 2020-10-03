@@ -1,0 +1,20 @@
+{
+	"players": {
+		"bluesound": {
+			"enabled": true,
+			"pollIntervalSeconds": 10,
+			"detection": {
+				"mode": "detect-known-players-only",
+				"intervalSeconds": 60
+			},
+			"players": [
+				{
+					"id": "woonkamer",
+					"name": "Woonkamer (C368)",
+					"enabled": true,
+					"host": "host"
+				}
+			]
+		}
+	}
+}
