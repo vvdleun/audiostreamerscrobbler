@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<project
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+	xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>nl.vincentvanderleun.audiostreamerscrobbler</groupId>
+		<artifactId>audiostreamerscrobbler</artifactId>
+		<version>2.0</version>
+	</parent>
+
+	<artifactId>audiostreamerscrobbler-app</artifactId>
+	<name>AudioStreamerScrobbler App</name>
+	<packaging>jar</packaging>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.0.0</version>
+				<configuration>
+					<executable>java</executable>
+					<arguments>
+						<argument>--module-path</argument>
+						<modulepath />
+						<argument>-m</argument>
+						<argument>nl.vincentvanderleun.audiostreamerscrobbler.app/nl.vincentvanderleun.audiostreamerscrobbler.app.main.Main</argument>
+					</arguments>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	<dependencies>
+		<!-- Internal dependencies -->
+		<dependency>
+			<groupId>nl.vincentvanderleun.audiostreamerscrobbler</groupId>
+			<artifactId>audiostreamerscrobbler-core</artifactId>
+			<version>2.0</version>
+		</dependency>
+		<dependency>
+			<groupId>nl.vincentvanderleun.audiostreamerscrobbler</groupId>
+			<artifactId>audiostreamerscrobbler-player-bluos</artifactId>
+			<version>2.0</version>
+		</dependency>
+		<!-- External dependencies -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.jr</groupId>
+			<artifactId>jackson-jr-objects</artifactId>
+			<version>2.11.3</version>
+		</dependency>
+	</dependencies>
+</project>

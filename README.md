@@ -4,3 +4,7 @@ This branch contains the code of what will (should) eventually turn out be the J
 of the Audiostreamer Scrobbler project.
 
 This is work in progress and currently in a incomplete and unusable state.
+
+mvn clean build install
+cd audiostreamerscrobbler-app
+mvn exec:exec

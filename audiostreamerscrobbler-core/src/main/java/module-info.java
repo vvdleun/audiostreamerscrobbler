@@ -1,5 +1,5 @@
 module nl.vincentvanderleun.audiostreamerscrobbler.core {
-	exports nl.vincentvanderleun.audiostreamerscrobbler.core;
+	exports nl.vincentvanderleun.audiostreamerscrobbler.core.model;
 
-	requires lombok;
+	requires static lombok;
 }

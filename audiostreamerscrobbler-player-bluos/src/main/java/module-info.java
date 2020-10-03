@@ -1,5 +1,10 @@
-module nl.vincentvanderleun.audiostreamer.player.bluos {
-	requires nl.vincentvanderleun.audiostreamerscrobbler.core;
-	requires nl.vincentvanderleun.audiostreamerscrobbler.player;
-	requires lombok;
+module nl.vincentvanderleun.audiostreamerscrobbler.player.bluos {
+	requires static lombok;
+
+	requires transitive nl.vincentvanderleun.audiostreamerscrobbler.core;
+
+	exports nl.vincentvanderleun.audiostreamerscrobbler.player.bluos;
+	
+	provides nl.vincentvanderleun.audiostreamerscrobbler.core.model.PlayerPlatformService
+	with nl.vincentvanderleun.audiostreamerscrobbler.player.bluos.BluOsPlayerPlatformService;
 }
