@@ -17,11 +17,11 @@ public class LsdpQueryEncoder {
 		LSDP_QUERY_TEMPLATE[6] = 0x05;						// Query length
 		LSDP_QUERY_TEMPLATE[7] = 0x51;						// "Q" (Standard Query for broadcast response)
 		LSDP_QUERY_TEMPLATE[8] = 0x01;						// Classes to query
-		LSDP_QUERY_TEMPLATE[9] = (byte) (0xFF & 0xFF);		// Class low byte
-		LSDP_QUERY_TEMPLATE[10] = (byte) (0xFF & 0xFF);		// Class high byte
+		LSDP_QUERY_TEMPLATE[9] = 0x00;						// Class ID "BluOS Player" high byte
+		LSDP_QUERY_TEMPLATE[10] = 0x01;						// Class ID "BluOS Player" low byte
 	}
 	
-	public byte[] encodeQuery() {
+	public byte[] encodeQueryForBluOsPlayer() {
 		return Arrays.copyOf(LSDP_QUERY_TEMPLATE, LSDP_QUERY_TEMPLATE.length);
 	}
 

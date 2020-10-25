@@ -7,9 +7,9 @@ import lombok.Value;
 
 @Value
 public class LsdpAnnounceResponse {
-	byte[] nodeRaw;
+	int[] nodeRaw;
 	String node;
-	byte[] addressRaw;
+	int[] addressRaw;
 	String address;
 	List<AnnounceRecord> records;
 		

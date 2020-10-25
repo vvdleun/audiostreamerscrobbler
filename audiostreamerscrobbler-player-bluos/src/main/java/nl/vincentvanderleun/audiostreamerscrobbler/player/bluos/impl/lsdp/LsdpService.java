@@ -5,7 +5,6 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.SocketTimeoutException;
-import java.util.Arrays;
 
 import nl.vincentvanderleun.audiostreamerscrobbler.core.net.NetworkAdapter;
 import nl.vincentvanderleun.audiostreamerscrobbler.core.net.NetworkAdapterFactory;
@@ -18,7 +17,7 @@ public class LsdpService {
 	private final LsdpQueryEncoder lsdpEncoder;
 	private final LsdpHelper lsdpHelper = new LsdpHelper();
 	private final LsdpAnnounceDecoder announceDecoder = new LsdpAnnounceDecoder(lsdpHelper);
-	private final RawLsdpBytesParser parser = new RawLsdpBytesParser();
+	private final RawLsdpBytesParser parser = new RawLsdpBytesParser(lsdpHelper);
 
 	public LsdpService(SelectedNetworkAdapter networkAdapter) {
 		this.networkAdapter = networkAdapter;
@@ -37,7 +36,7 @@ public class LsdpService {
 			
 			System.out.println("Using broadcast address: " + broadcastAddress);
 			
-			byte[] lsdpQuery = lsdpEncoder.encodeQuery();
+			byte[] lsdpQuery = lsdpEncoder.encodeQueryForBluOsPlayer();
 			
 			DatagramPacket lsdpQueryPacket = new DatagramPacket(
 					lsdpQuery,
@@ -51,7 +50,9 @@ public class LsdpService {
 			socket.setSoTimeout(5000);
 			
 			while(true) {
-				socket.send(lsdpQueryPacket);
+				for(int i = 0; i < 3; i++) {
+					socket.send(lsdpQueryPacket);
+				}
 
 				for(int i = 0; i < 5; i++) {
 					try {

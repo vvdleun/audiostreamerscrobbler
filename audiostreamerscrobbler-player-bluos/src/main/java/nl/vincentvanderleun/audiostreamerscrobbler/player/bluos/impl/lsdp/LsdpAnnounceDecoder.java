@@ -1,38 +1,46 @@
 package nl.vincentvanderleun.audiostreamerscrobbler.player.bluos.impl.lsdp;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class LsdpAnnounceDecoder {
 	private final LsdpHelper lsdpHelper;
-	
+
 	public LsdpAnnounceDecoder(LsdpHelper lsdpHelper) {
 		this.lsdpHelper = lsdpHelper;
 	}
-	
+
 	public LsdpAnnounceResponse decode(RawLsdpMessage rawMsg) {
 		if(lsdpHelper.getVersion(rawMsg) != 1) {
 			throw new IllegalStateException("Unsupported LSDP version: " + lsdpHelper.getVersion(rawMsg));
 		}
-		
+
 		if(lsdpHelper.getType(rawMsg) != TypeMessage.ANNOUNCE) {
 			throw new IllegalStateException("Unsupported type: " + lsdpHelper.getRawType(rawMsg));
 		}
 
 		int index = 2;
-		int fieldLength = rawMsg.getMsg()[index++];
-		
-		final byte[] node = Arrays.copyOfRange(rawMsg.getMsg(), index, index + fieldLength);
-		index += fieldLength;
 
-		fieldLength = rawMsg.getMsg()[index++];
+		final int[] node = lsdpHelper.toUnsignedBytes(lsdpHelper.parseCountedField(index, rawMsg.getMsg(), false));
+		index += node.length + 1;
 
-		final byte[] address = Arrays.copyOfRange(rawMsg.getMsg(), index, index + fieldLength);
-		index += fieldLength;
+		final int[] address = lsdpHelper.toUnsignedBytes(lsdpHelper.parseCountedField(index, rawMsg.getMsg(), false));
+		index += address.length + 1;
+
+		List<LsdpAnnounceResponse.AnnounceRecord> announceRecords = readTextRecords(rawMsg, index);
+
+		return new LsdpAnnounceResponse(
+				node,
+				lsdpHelper.formatAsHexString(node),
+				address,
+				lsdpHelper.formatAddress(address),
+				announceRecords);
+	}
+	
+	private List<LsdpAnnounceResponse.AnnounceRecord> readTextRecords(RawLsdpMessage rawMsg, int startIndex) {
+		int index = startIndex;
 		
 		final int countRecords = rawMsg.getMsg()[index++];
 
@@ -44,30 +52,20 @@ public class LsdpAnnounceDecoder {
 			index += 2;
 			
 			final int txtRecordCount = rawMsg.getMsg()[index++];
-			Map<String, String> values = new HashMap<>(txtRecordCount);
+			final Map<String, String> values = new HashMap<>(txtRecordCount);
 			
 			for (int txtRecordIndex = 0; txtRecordIndex < txtRecordCount; txtRecordIndex++) {
-				final int keyLength = rawMsg.getMsg()[index++];
-				final byte[] keyBytes = Arrays.copyOfRange(rawMsg.getMsg(), index, index + keyLength);
-				index += keyLength;
-
-				final int valueLength = rawMsg.getMsg()[index++];
-				final byte[] valueBytes = Arrays.copyOfRange(rawMsg.getMsg(), index, index + valueLength);
-				index += valueLength;
-
-				values.put(
-						new String(keyBytes, StandardCharsets.UTF_8),
-						new String(valueBytes, StandardCharsets.UTF_8));
+				final String key = lsdpHelper.parseString(index, rawMsg.getMsg());
+				index += key.length() + 1;
+	
+				final String value = lsdpHelper.parseString(index, rawMsg.getMsg());
+				index += value.length() + 1;
+	
+				values.put(key, value);
 			}
-			
+		
 			records.add(new LsdpAnnounceResponse.AnnounceRecord(rawClassId, classId, values));
 		}
-		
-		return new LsdpAnnounceResponse(
-				node,
-				"",
-				address,
-				"",
-				records);
+		return records;
 	}
 }
