@@ -2,6 +2,7 @@ package nl.vincentvanderleun.audiostreamerscrobbler.app;
 
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import nl.vincentvanderleun.audiostreamerscrobbler.core.model.Config;
@@ -20,12 +21,18 @@ public class AudioStreamerScrobblerApp {
 	
 	public void run() {
 		System.out.println("Initializing players...");
-		playerPlatformServices.forEach(playerPlatformService -> {
-			System.out.println("Starting " + playerPlatformService.getPlatform().getName() + "...");
-			playerPlatformService.initialize(config);
-			playerPlatformService.start();
+		executeOnPlayerPlatformServices(service -> {
+			System.out.println("[" + service.getPlatform().getId() + "] Initializing " + service.getPlatform().getName() + " sub-system...");
+			service.initialize(config);
 		});
-		System.out.println("Players initialized.");
+		executeOnPlayerPlatformServices(service -> {
+			System.out.println("[" + service.getPlatform().getId() + "] Starting " + service.getPlatform().getName() + " sub-system...");
+			service.start();	
+ 		});
 		System.out.println("AudioStreamerScrobbler running...");
+	}
+	
+	private void executeOnPlayerPlatformServices(Consumer<PlayerPlatformService> consumer) {
+		playerPlatformServices.forEach(consumer::accept);
 	}
 }

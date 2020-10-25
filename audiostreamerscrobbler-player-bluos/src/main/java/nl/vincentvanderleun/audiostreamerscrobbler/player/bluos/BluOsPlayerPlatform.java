@@ -13,4 +13,5 @@ public class BluOsPlayerPlatform implements PlayerPlatform {
 	public String getName() {
 		return "Bluesound/BluOS";
 	}
+
 }
